@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
@@ -93,7 +93,7 @@ import kotlinx.coroutines.withContext
 
 private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
     HOME(Routes.HOME, "Home", Icons.Rounded.Home),
-    LIBRARY(Routes.LIBRARY, "Library", Icons.AutoMirrored.Rounded.LibraryMusic),
+    LIBRARY(Routes.LIBRARY, "Library", Icons.Rounded.LibraryMusic),
     SEARCH(Routes.SEARCH, "Search", Icons.Rounded.Search),
     SETTINGS(Routes.SETTINGS, "Settings", Icons.Rounded.Settings),
 }
