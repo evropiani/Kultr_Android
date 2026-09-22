@@ -1,11 +1,13 @@
 package app.kultr.android
 
 import android.Manifest
+import android.app.SearchManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -22,6 +24,7 @@ import app.kultr.android.ui.KultrAppUi
 import app.kultr.android.ui.rememberAccent
 import app.kultr.android.ui.theme.KultrTheme
 import app.kultr.android.ui.theme.isDark
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     /** Bumped whenever something (the media notification) asks for the full player. */
@@ -69,7 +72,38 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        if (intent?.getBooleanExtra(EXTRA_OPEN_PLAYER, false) == true) openPlayerRequest++
+        intent ?: return
+        if (intent.getBooleanExtra(EXTRA_OPEN_PLAYER, false)) openPlayerRequest++
+        if (intent.action == MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH) {
+            val query = intent.getStringExtra(SearchManager.QUERY).orEmpty().trim()
+            KultrApp.graph.scope.launch { playFromSearch(query) }
+        }
+    }
+
+    /**
+     * "Play … on Kultr": an exact artist or album name plays that, otherwise
+     * the matching tracks; an empty query shuffles the library.
+     */
+    private suspend fun playFromSearch(query: String) {
+        val library = KultrApp.graph.library
+        val songs = if (query.isEmpty()) {
+            library.randomSongs(100)
+        } else {
+            val results = runCatching { library.search(query) }.getOrNull()
+            val artist = results?.artists?.firstOrNull { it.name.equals(query, ignoreCase = true) }
+            val album = results?.albums?.firstOrNull { it.name.equals(query, ignoreCase = true) }
+            when {
+                artist != null -> library.songsOfArtistNow(artist.id).shuffled()
+                album != null -> library.songsOfAlbumNow(album.id)
+                else -> results?.songs.orEmpty()
+            }
+        }
+        if (songs.isEmpty()) {
+            KultrApp.graph.messages.show(if (query.isEmpty()) "Sync your library first." else "Nothing found for “$query”.")
+            return
+        }
+        KultrApp.graph.player.play(songs.take(200), 0)
+        openPlayerRequest++
     }
 
     /** Download progress needs notifications; ask once, on first launch. */
