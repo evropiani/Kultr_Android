@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Kultr</string>
+    <string name="channel_downloads">Downloads</string>
 </resources>

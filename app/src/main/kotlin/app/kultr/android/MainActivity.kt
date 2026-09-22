@@ -10,4 +10,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent { Text("Kultr") }
     }
+
+    companion object {
+        const val EXTRA_OPEN_PLAYER = "kultr.open_player"
+    }
 }

@@ -125,6 +125,13 @@ class SubsonicClient(
     credentials: Credentials,
     private val http: OkHttpClient,
     private val json: Json = SubsonicJson,
+    /**
+     * Salt for URLs other components hold on to. Pass a value derived from the
+     * profile to keep artwork and stream URLs identical across app restarts,
+     * so disk caches keep hitting. A captured URL is replayable whatever the
+     * salt, so a fixed one exposes nothing new.
+     */
+    private val stableSalt: String? = null,
 ) {
     val credentials: Credentials = credentials.copy(serverUrl = normalizeServerUrl(credentials.serverUrl))
 
@@ -138,7 +145,7 @@ class SubsonicClient(
      * call would defeat every cache between us and the server.
      */
     private val stableAuth: Pair<String, String> by lazy {
-        val salt = randomSalt()
+        val salt = stableSalt?.takeIf { it.length >= 6 } ?: randomSalt()
         salt to md5Hex(credentials.password + salt)
     }
 

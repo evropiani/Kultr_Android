@@ -6,6 +6,7 @@ import app.kultr.core.api.Credentials
 import app.kultr.core.api.ServerInfo
 import app.kultr.core.api.SubsonicClient
 import app.kultr.core.api.describeError
+import app.kultr.core.api.md5Hex
 import app.kultr.core.api.normalizeServerUrl
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -52,6 +53,8 @@ fun hostLabel(url: String): String = url.toHttpUrlOrNull()?.let { u ->
 } ?: url
 
 private fun profileId(url: String, username: String): String = "${url.trimEnd('/')}#$username".lowercase()
+
+private fun stableSaltFor(profileId: String): String = md5Hex("kultr-salt:$profileId").take(12)
 
 /**
  * Saved servers, which one is active, and the API client for it.
@@ -102,7 +105,11 @@ class AuthRepository(
     private fun buildClient(profile: ServerProfile): SubsonicClient? {
         val password = SecretBox.decrypt(profile.secret) ?: return null
         if (profile.username.isBlank()) return null
-        return SubsonicClient(Credentials(profile.serverUrl, profile.username, password, profile.authMode), http)
+        return SubsonicClient(
+            Credentials(profile.serverUrl, profile.username, password, profile.authMode),
+            http,
+            stableSalt = stableSaltFor(profile.id),
+        )
     }
 
     /**
@@ -152,7 +159,7 @@ class AuthRepository(
         if (url.toHttpUrlOrNull() == null) return "“${input.serverUrl}” is not a valid address."
         if (input.username.isBlank()) return "Enter your username."
         val creds = Credentials(url, input.username.trim(), input.password, input.authMode)
-        val client = SubsonicClient(creds, http)
+        val client = SubsonicClient(creds, http, stableSalt = stableSaltFor(profileId(url, creds.username)))
         _connection.value = Connection.Connecting
         return try {
             val info = client.ping()
