@@ -1,0 +1,33 @@
+name: probe
+on:
+  push:
+    branches: [claude/kultr-android-app-ncqb8w]
+    paths: ['.github/workflows/probe.yml']
+jobs:
+  versions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Google Maven versions
+        run: |
+          v() { curl -s "https://dl.google.com/dl/android/maven2/$1/maven-metadata.xml" | grep -oE '<version>[^<]+' | sed 's/<version>//' | grep -vE 'alpha|beta|rc|dev' | tail -${2:-6} | tr '\n' ' '; echo " <= $1"; }
+          v com/android/tools/build/gradle 12
+          v androidx/compose/compose-bom 8
+          v androidx/media3/media3-exoplayer
+          v androidx/media3/media3-session
+          v androidx/room/room-runtime
+          v androidx/core/core-ktx
+          v androidx/activity/activity-compose
+          v androidx/lifecycle/lifecycle-runtime-compose
+          v androidx/navigation/navigation-compose
+          v androidx/datastore/datastore-preferences
+          v androidx/work/work-runtime-ktx
+          v androidx/compose/material3/material3
+          v androidx/compose/material/material-icons-extended
+          v androidx/compose/ui/ui
+          v androidx/core/core-splashscreen
+          v androidx/palette/palette-ktx
+          v androidx/test/ext/junit
+          v androidx/sqlite/sqlite-bundled
+          echo "sdk:"; ls $ANDROID_HOME/platforms $ANDROID_HOME/build-tools || true
+          echo "gradle:"; gradle --version | head -3 || true
+          java -version 2>&1 | head -1
