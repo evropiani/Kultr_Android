@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "app.kultr.android"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "app.kultr.android"
