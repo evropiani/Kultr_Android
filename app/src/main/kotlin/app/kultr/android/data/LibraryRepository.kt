@@ -1,5 +1,6 @@
 package app.kultr.android.data
 
+import app.kultr.android.AppGraph
 import app.kultr.android.data.db.Counts
 import app.kultr.android.data.db.HistoryEntity
 import app.kultr.android.data.db.KultrDatabase

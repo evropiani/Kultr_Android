@@ -230,6 +230,24 @@ fun AccentWash(modifier: Modifier = Modifier, height: Dp = 320.dp) {
     )
 }
 
+/** The drifting colour field behind screens that have no artwork of their own. */
+@Composable
+fun ArtworkBackdropPlain(modifier: Modifier = Modifier) {
+    val colors = Kultr.colors
+    Box(
+        modifier
+            .fillMaxSize()
+            .background(colors.background)
+            .background(
+                Brush.radialGradient(
+                    listOf(colors.accent.copy(alpha = if (colors.dark) 0.22f else 0.16f), Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(0f, 0f),
+                    radius = 1400f,
+                ),
+            ),
+    )
+}
+
 @Composable
 fun FullScreenCenter(content: @Composable () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }

@@ -1,5 +1,6 @@
 package app.kultr.android.data
 
+import app.kultr.android.AppGraph
 import android.app.Notification
 import android.content.Context
 import android.content.pm.ServiceInfo
