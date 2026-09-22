@@ -106,8 +106,10 @@ class LibraryBrowser(private val graph: AppGraph) {
                     if (found != null) out += track(found)
                 }
                 item.requestMetadata.searchQuery != null -> {
-                    val query = item.requestMetadata.searchQuery.orEmpty()
-                    graph.library.search(query).songs.take(50).mapTo(out, ::track)
+                    // "Play music" with no subject shuffles the library.
+                    val query = item.requestMetadata.searchQuery.orEmpty().trim()
+                    val songs = if (query.isEmpty()) graph.library.randomSongs(100) else graph.library.search(query).songs.take(50)
+                    songs.mapTo(out, ::track)
                 }
             }
         }

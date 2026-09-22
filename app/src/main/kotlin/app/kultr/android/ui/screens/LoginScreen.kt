@@ -89,7 +89,12 @@ fun LoginScreen(
                 AuthRepository.LoginInput(url, user, password, label, if (plain) AuthMode.PLAIN else AuthMode.TOKEN),
             )
             busy = false
-            if (result == null) onDone() else error = result
+            if (result == null) {
+                graph.sync.startFirstSyncIfNeeded()
+                onDone()
+            } else {
+                error = result
+            }
         }
     }
 

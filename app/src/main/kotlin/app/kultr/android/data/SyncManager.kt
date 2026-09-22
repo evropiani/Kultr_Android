@@ -56,6 +56,15 @@ class SyncManager(private val graph: AppGraph) {
         job?.cancel()
     }
 
+    /** Right after signing in to a server whose library is not on this phone yet, build it. */
+    fun startFirstSyncIfNeeded() {
+        val profileId = graph.auth.active.value?.id ?: return
+        graph.scope.launch {
+            val state = withContext(Dispatchers.IO) { graph.databaseFor(profileId).syncState() }
+            if (state.lastCheck == null && graph.auth.active.value?.id == profileId) start(SyncMode.FULL, quiet = false)
+        }
+    }
+
     /** Run a sync and wait for it. Returns null on success, or an error message. */
     suspend fun runNow(mode: SyncMode, quiet: Boolean = false): String? {
         val client = graph.auth.client.value ?: return "Not signed in."
