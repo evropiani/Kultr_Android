@@ -20,8 +20,13 @@ downloads for offline listening.
   that: tempo-matched blends that land on the downbeat, a bass swap, a
   filter sweep, and key-aware ordering for an endless automatic queue.
 - **Offline.** Download albums, playlists, favourites or the whole library, at
-  a bitrate of your choosing, on Wi-Fi only if you like. Downloads play first,
-  before the network is tried, and a stream cache keeps recent tracks too.
+  a bitrate of your choosing, on Wi-Fi only if you like. A Downloads page shows
+  what is coming down, what is queued or failed, and what is already on the
+  phone. Downloads play first, before the network is tried, and a stream cache
+  keeps recent tracks too.
+- **Cast** to a Chromecast or speaker group from the player.
+- **Drag and drop** tracks, albums, artists and playlists onto Play next, Add to
+  queue, Favourite, Sync offline or Delete downloads.
 - **Several servers.** Sign in to more than one server and switch between them;
   each has its own library, downloads and history. Passwords are sealed with a
   key held in the Android Keystore.
