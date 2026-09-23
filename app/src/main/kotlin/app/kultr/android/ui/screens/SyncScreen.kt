@@ -196,6 +196,7 @@ fun SyncScreen() {
                             Pill("Download everything", icon = Icons.Rounded.Download, onClick = {
                                 actions.launch { graph.offline.download(graph.library.allSongs(), "Your library") }
                             })
+                            Pill("Open downloads", onClick = { actions.openDownloads() })
                         }
                     }
                 }

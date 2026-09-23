@@ -449,74 +449,7 @@ private fun FavouritesTab() {
 // ------------------------------------------------------------ downloads --
 
 @Composable
-private fun DownloadsTab() {
-    val actions = LocalActions.current
-    val graph = actions.graph
-    val usage by graph.offline.usage.collectAsStateWithLifecycle(DownloadUsage(0, 0))
-    val queued by graph.offline.queuedCount.collectAsStateWithLifecycle(0)
-    val progress by graph.offline.progress.collectAsStateWithLifecycle()
-    val ids by graph.offline.downloadedIds.collectAsStateWithLifecycle()
-    val player by graph.player.state.collectAsStateWithLifecycle()
-    val songs by produceState(emptyList<Song>(), ids) { value = graph.library.songsByIds(ids.toList()) }
-    val selection = rememberSelection()
-    var confirmClear by remember { mutableStateOf(false) }
-
-    Column(Modifier.fillMaxSize()) {
-        if (selection.active) SelectionBar(selection, songs)
-        LazyColumn(Modifier.weight(1f)) {
-            item(key = "summary") {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "${Format.count(usage.count, "track")} on this phone · ${Format.bytes(usage.bytes)}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Kultr.colors.ink,
-                    )
-                    val p = progress
-                    if (p != null || queued > 0) {
-                        Text(
-                            if (p != null) "Downloading ${p.done} of ${p.total}${if (p.failed > 0) " · ${p.failed} failed" else ""}" else "$queued waiting to download",
-                            color = Kultr.colors.ink2,
-                        )
-                        if (p != null && p.total > 0) {
-                            LinearProgressIndicator(progress = { p.done.toFloat() / p.total }, modifier = Modifier.fillMaxWidth())
-                        }
-                        Pill("Stop downloads", icon = Icons.Rounded.Stop, onClick = { graph.offline.cancel() })
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Pill("Play", icon = Icons.Rounded.PlayArrow, accent = true, enabled = songs.isNotEmpty(), onClick = { actions.play(songs) })
-                        Pill("Shuffle", icon = Icons.Rounded.Shuffle, enabled = songs.isNotEmpty(), onClick = { actions.shuffle(songs) })
-                        Pill("Remove all", icon = Icons.Rounded.Delete, enabled = usage.count > 0, onClick = { confirmClear = true })
-                    }
-                }
-            }
-            if (songs.isEmpty() && progress == null) {
-                item(key = "empty") {
-                    EmptyState(
-                        Icons.Rounded.Download,
-                        "Nothing downloaded",
-                        body = "Use Download on any album, artist, playlist or track to keep it on this phone for when you are offline.",
-                    )
-                }
-            }
-            songItems(
-                songs,
-                currentId = player.current?.id,
-                downloaded = ids,
-                selection = selection,
-                onPlay = { index -> actions.play(songs, index) },
-            )
-        }
-    }
-    if (confirmClear) {
-        app.kultr.android.ui.components.ConfirmDialog(
-            title = "Remove every download?",
-            body = "The files are deleted from this phone. Your library and playlists are not touched.",
-            confirm = "Remove all",
-            onConfirm = { actions.launch { graph.messages.show("Removed ${graph.offline.removeAll()} downloads.") } },
-            onDismiss = { confirmClear = false },
-        )
-    }
-}
+private fun DownloadsTab() = OfflineContent()
 
 // ---------------------------------------------------------------- radio --
 

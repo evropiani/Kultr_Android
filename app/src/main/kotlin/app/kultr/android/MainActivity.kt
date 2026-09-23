@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.kultr.android.data.OfflineManager
 import app.kultr.android.ui.KultrAppUi
 import app.kultr.android.ui.rememberAccent
 import app.kultr.android.ui.theme.KultrTheme
@@ -29,6 +30,9 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     /** Bumped whenever something (the media notification) asks for the full player. */
     private var openPlayerRequest by mutableIntStateOf(0)
+
+    /** Bumped when the download notification is tapped. */
+    private var openDownloadsRequest by mutableIntStateOf(0)
 
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
@@ -50,7 +54,7 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
             KultrTheme(settings, accent) {
-                KultrAppUi(graph, openPlayerRequest)
+                KultrAppUi(graph, openPlayerRequest, openDownloadsRequest)
             }
         }
     }
@@ -74,6 +78,7 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         intent ?: return
         if (intent.getBooleanExtra(EXTRA_OPEN_PLAYER, false)) openPlayerRequest++
+        if (intent.getBooleanExtra(OfflineManager.EXTRA_OPEN_DOWNLOADS, false)) openDownloadsRequest++
         if (intent.action == MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH) {
             val query = intent.getStringExtra(SearchManager.QUERY).orEmpty().trim()
             KultrApp.graph.scope.launch { playFromSearch(query) }

@@ -25,6 +25,8 @@ enum class LibraryTab(val label: String) {
     RADIO("Radio"),
 }
 
+enum class DownloadsPage(val label: String) { NOW("Downloading"), OFFLINE("On this phone") }
+
 object Routes {
     const val HOME = "home"
     const val LIBRARY = "library?tab={tab}"
@@ -36,12 +38,14 @@ object Routes {
     const val GENRE = "genre/{name}"
     const val SYNC = "sync"
     const val STATS = "stats"
+    const val DOWNLOADS = "downloads?page={page}"
 
     fun library(tab: LibraryTab? = null) = if (tab == null) "library" else "library?tab=${tab.name}"
     fun album(id: String) = "album/${Uri.encode(id)}"
     fun artist(id: String) = "artist/${Uri.encode(id)}"
     fun playlist(id: String) = "playlist/${Uri.encode(id)}"
     fun genre(name: String) = "genre/${Uri.encode(name)}"
+    fun downloads(page: DownloadsPage? = null) = if (page == null) "downloads" else "downloads?page=${page.name}"
 }
 
 /** Dialogs that any screen can ask for; the root composable shows them. */
@@ -79,6 +83,7 @@ class AppActions(
     fun openPlaylist(id: String) = navigate(Routes.playlist(id))
     fun openGenre(name: String) = navigate(Routes.genre(name))
     fun openLibrary(tab: LibraryTab) = navigate(Routes.library(tab))
+    fun openDownloads(page: DownloadsPage = DownloadsPage.NOW) = navigate(Routes.downloads(page))
 
     fun play(songs: List<Song>, startIndex: Int = 0) = player.play(songs, startIndex, shuffle = false)
 

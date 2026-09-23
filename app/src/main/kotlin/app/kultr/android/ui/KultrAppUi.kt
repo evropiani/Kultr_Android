@@ -57,6 +57,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.kultr.android.AppGraph
+import app.kultr.android.data.DownloadStatus
 import app.kultr.android.data.MessageKind
 import app.kultr.android.data.ServerProfile
 import app.kultr.android.ui.components.AddToPlaylistDialog
@@ -68,6 +69,8 @@ import app.kultr.android.ui.player.ArtworkBackdrop
 import app.kultr.android.ui.player.MiniPlayer
 import app.kultr.android.ui.player.NowPlayingScreen
 import app.kultr.android.ui.screens.AlbumScreen
+import app.kultr.android.ui.screens.DownloadIndicator
+import app.kultr.android.ui.screens.DownloadsScreen
 import app.kultr.android.ui.screens.ArtistScreen
 import app.kultr.android.ui.screens.GenreScreen
 import app.kultr.android.ui.screens.HomeScreen
@@ -143,7 +146,7 @@ private suspend fun sampleArtwork(context: Context, url: String): Int? = runCatc
  * otherwise the tabs, the mini player and the full-screen player on top.
  */
 @Composable
-fun KultrAppUi(graph: AppGraph, openPlayerRequest: Int) {
+fun KultrAppUi(graph: AppGraph, openPlayerRequest: Int, openDownloadsRequest: Int = 0) {
     val active by graph.auth.active.collectAsStateWithLifecycle()
     val client by graph.auth.client.collectAsStateWithLifecycle()
     var login by remember { mutableStateOf<LoginRequest?>(null) }
@@ -161,6 +164,7 @@ fun KultrAppUi(graph: AppGraph, openPlayerRequest: Int) {
             MainUi(
                 graph = graph,
                 openPlayerRequest = openPlayerRequest,
+                openDownloadsRequest = openDownloadsRequest,
                 onAddServer = { login = LoginRequest() },
                 onSignIn = { p: ServerProfile -> login = LoginRequest(p.serverUrl, p.username) },
             )
@@ -183,6 +187,7 @@ fun KultrAppUi(graph: AppGraph, openPlayerRequest: Int) {
 private fun MainUi(
     graph: AppGraph,
     openPlayerRequest: Int,
+    openDownloadsRequest: Int,
     onAddServer: () -> Unit,
     onSignIn: (ServerProfile) -> Unit,
 ) {
@@ -211,6 +216,10 @@ private fun MainUi(
     LaunchedEffect(openPlayerRequest) {
         if (openPlayerRequest > 0) playerOpen = true
     }
+    LaunchedEffect(openDownloadsRequest) {
+        if (openDownloadsRequest > 0) actions.openDownloads()
+    }
+    val downloadStatus by graph.offline.status.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) {
         graph.messages.messages.collect { message ->
             snackbar.currentSnackbarData?.dismiss()
@@ -259,8 +268,21 @@ private fun MainUi(
                     composable(Routes.GENRE) { GenreScreen(it.arguments?.getString("name").orEmpty()) }
                     composable(Routes.SYNC) { SyncScreen() }
                     composable(Routes.STATS) { StatsScreen() }
+                    composable(
+                        Routes.DOWNLOADS,
+                        arguments = listOf(navArgument("page") { type = NavType.StringType; nullable = true; defaultValue = null }),
+                    ) { entry ->
+                        val page = entry.arguments?.getString("page")
+                            ?.let { name -> DownloadsPage.entries.firstOrNull { it.name == name } }
+                            ?: DownloadsPage.NOW
+                        DownloadsScreen(page)
+                    }
                 }
                 if (!keyboardOpen) {
+                    // The Downloads page shows all of this already.
+                    if (backStack?.destination?.route != Routes.DOWNLOADS) {
+                        DownloadIndicator(onOpen = { actions.openDownloads() })
+                    }
                     MiniPlayer(player)
                     BottomBar(selectedTab) { tab ->
                         selectedTab = tab
@@ -278,7 +300,13 @@ private fun MainUi(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .imePadding()
-                    .padding(bottom = if (keyboardOpen) 8.dp else if (player.current != null) 150.dp else 90.dp),
+                    .padding(
+                        bottom = when {
+                            keyboardOpen -> 8.dp
+                            else -> (if (player.current != null) 150.dp else 90.dp) +
+                                (if (downloadStatus != DownloadStatus.Idle) 48.dp else 0.dp)
+                        },
+                    ),
             ) { data ->
                 val colors = Kultr.colors
                 val kind = (data.visuals as? Message)?.kind ?: MessageKind.INFO

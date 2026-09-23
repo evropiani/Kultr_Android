@@ -73,6 +73,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -146,8 +147,19 @@ fun NowPlayingScreen(state: PlayerUiState, onClose: () -> Unit) {
     val colors = Kultr.colors
     var tab by rememberSaveable { mutableStateOf(PlayerTab.QUEUE) }
     val listState = rememberLazyListState()
+    val pull = rememberPullToDismiss(onClose)
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                translationY = pull.offset
+                val shrink = (pull.offset / size.height).coerceIn(0f, 1f) * 0.08f
+                scaleX = 1f - shrink
+                scaleY = 1f - shrink
+            }
+            .nestedScroll(pull.connection),
+    ) {
         ArtworkBackdrop(song?.artworkId)
         if (song == null) {
             Column(Modifier.fillMaxSize().statusBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally) {

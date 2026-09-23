@@ -350,6 +350,19 @@ interface DownloadDao {
     @Query("SELECT COUNT(*) FROM downloads WHERE state = 'queued'")
     fun queuedCountFlow(): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM downloads WHERE state = 'queued'")
+    suspend fun queuedCount(): Int
+
+    /** What is still to come, in the order it will be fetched. */
+    @Query("SELECT * FROM downloads WHERE state = 'queued' ORDER BY requestedAt LIMIT :limit")
+    fun queuedFlow(limit: Int): Flow<List<DownloadEntity>>
+
+    @Query("SELECT * FROM downloads WHERE state = 'failed' ORDER BY requestedAt")
+    fun failedFlow(): Flow<List<DownloadEntity>>
+
+    @Query("UPDATE downloads SET state = 'queued', error = NULL, requestedAt = :now WHERE state = 'failed'")
+    suspend fun requeueFailed(now: Long): Int
+
     @Query("SELECT COUNT(*) AS count, COALESCE(SUM(size), 0) AS bytes FROM downloads WHERE state = 'done'")
     fun usageFlow(): Flow<DownloadUsage>
 
