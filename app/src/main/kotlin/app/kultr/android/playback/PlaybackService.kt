@@ -20,6 +20,8 @@ import app.kultr.android.AppGraph
 import app.kultr.android.KultrApp
 import app.kultr.android.MainActivity
 import app.kultr.android.R
+import app.kultr.android.widget.NowPlayingWidget
+import app.kultr.android.widget.WidgetActionReceiver
 import app.kultr.core.api.Song
 import app.kultr.core.engine.EngineHost
 import app.kultr.core.engine.EngineStatus
@@ -57,7 +59,7 @@ private data class SavedSession(
 
 /** The queue and position, kept across restarts when "Resume where you left off" is on. */
 private class SessionStore(context: Context) {
-    private val file = File(context.filesDir, "session.json")
+    private val file = File(context.filesDir, SESSION_FILE)
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
 
     fun save(session: SavedSession) {
@@ -174,7 +176,57 @@ class PlaybackService : MediaLibraryService() {
 
         observe()
         restore()
+
+        // The home screen widget follows whatever the session plays, here or on a Cast receiver.
+        sessionPlayer.addListener(widgetListener)
+        NowPlayingWidget.publish(this, NowPlayingWidget.stateOf(sessionPlayer))
+        current = this
     }
+
+    private val widgetListener = object : Player.Listener {
+        override fun onEvents(player: Player, events: Player.Events) {
+            if (events.containsAny(
+                    Player.EVENT_MEDIA_ITEM_TRANSITION,
+                    Player.EVENT_MEDIA_METADATA_CHANGED,
+                    Player.EVENT_PLAY_WHEN_READY_CHANGED,
+                    Player.EVENT_PLAYBACK_STATE_CHANGED,
+                    Player.EVENT_TIMELINE_CHANGED,
+                )
+            ) {
+                NowPlayingWidget.publish(this@PlaybackService, NowPlayingWidget.stateOf(player))
+            }
+        }
+    }
+
+    /** A button on the home screen widget, sent while this service is running. */
+    fun onWidgetAction(action: String) {
+        val target = sessionPlayer
+        when (action) {
+            WidgetActionReceiver.ACTION_PLAY_PAUSE -> when {
+                target.playWhenReady && target.playbackState != Player.STATE_ENDED -> target.pause()
+                target.mediaItemCount == 0 -> resumeFromSaved(target)
+                else -> {
+                    if (target.playbackState == Player.STATE_IDLE) target.prepare()
+                    if (target.playbackState == Player.STATE_ENDED) target.seekToDefaultPosition(0)
+                    target.play()
+                }
+            }
+            WidgetActionReceiver.ACTION_NEXT -> target.seekToNext()
+            WidgetActionReceiver.ACTION_PREVIOUS -> target.seekToPrevious()
+        }
+    }
+
+    private fun resumeFromSaved(target: Player) {
+        val saved = savedForProfile() ?: return
+        val client = graph.auth.client.value
+        target.setMediaItems(saved.songs.map { MediaItems.from(it, client) }, saved.index, saved.positionMs)
+        target.prepare()
+        target.play()
+    }
+
+    /** The saved queue, if it belongs to the server that is signed in now. */
+    private fun savedForProfile(): SavedSession? =
+        sessions.load()?.takeIf { it.profileId == graph.auth.active.value?.id && it.songs.isNotEmpty() }
 
     /**
      * Wrap the local player so playback moves to a Chromecast when a Cast
@@ -331,6 +383,9 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        current = null
+        sessionPlayer.removeListener(widgetListener)
+        NowPlayingWidget.publish(this, NowPlayingWidget.stateOf(sessionPlayer).copy(playing = false))
         saveSession()
         handler.removeCallbacks(tick)
         session?.release()
@@ -417,5 +472,38 @@ class PlaybackService : MediaLibraryService() {
             val index = if (resolved.size == mediaItems.size) startIndex else 0
             MediaSession.MediaItemsWithStartPosition(resolved, index, startPositionMs)
         }
+
+        /**
+         * Play pressed with nothing loaded — a headset or Bluetooth button,
+         * KWGT, the widget or System UI's resume card after the app was
+         * closed: carry on with the saved queue where it stopped. For System
+         * UI's card alone ([isForPlayback] false), only the current track.
+         */
+        override fun onPlaybackResumption(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            isForPlayback: Boolean,
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> = scope.future {
+            val saved = savedForProfile() ?: throw UnsupportedOperationException("Nothing to resume.")
+            val client = graph.auth.client.value
+            if (isForPlayback) {
+                MediaSession.MediaItemsWithStartPosition(saved.songs.map { MediaItems.from(it, client) }, saved.index, saved.positionMs)
+            } else {
+                val song = saved.songs.getOrElse(saved.index) { saved.songs.first() }
+                MediaSession.MediaItemsWithStartPosition(listOf(MediaItems.from(song, client)), 0, saved.positionMs)
+            }
+        }
+    }
+
+    companion object {
+        /** The running service, for the home screen widget's buttons. */
+        @Volatile
+        var current: PlaybackService? = null
+            private set
+
+        /** Whether there is a saved queue that play could pick up again. */
+        fun canResume(context: Context): Boolean = File(context.filesDir, SESSION_FILE).isFile
     }
 }
+
+private const val SESSION_FILE = "session.json"

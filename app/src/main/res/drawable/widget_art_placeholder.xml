@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shown before any artwork has loaded, or when nothing has played yet. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FF22222E" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+    <item
+        android:width="28dp"
+        android:height="28dp"
+        android:gravity="center"
+        android:drawable="@drawable/ic_widget_note" />
+</layer-list>
