@@ -68,10 +68,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.BuildConfig
 import app.kultr.android.data.ServerProfile
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.components.BrandIcons
 import app.kultr.android.ui.components.ConfirmDialog
 import app.kultr.android.ui.components.GlassPanel
 import app.kultr.android.ui.components.Pill
@@ -550,11 +552,16 @@ private fun BackupSettings(s: Settings) {
 @Composable
 private fun AboutSection() {
     val context = LocalContext.current
+    val open = { url: String -> runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) } }
     SettingRow("Version", hint = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
     SettingRow("Source", hint = "github.com/evropiani/Kultr_Android — issues and pull requests welcome.", onClick = {
-        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/evropiani/Kultr_Android"))) }
+        open("https://github.com/evropiani/Kultr_Android")
     })
-    SettingRow("Kultr for the web", hint = "github.com/evropiani/Kultr", onClick = {
-        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/evropiani/Kultr"))) }
-    })
+    SettingRow("Website", hint = "web.kultr.cc — Kultr in your browser.", onClick = { open(WEBSITE) })
+    SettingRow("Get in touch", hint = "Questions, ideas, or something broken.", onClick = { open(DISCORD) }) {
+        Pill("@evropiani", icon = BrandIcons.Discord, onClick = { open(DISCORD) })
+    }
 }
+
+private const val WEBSITE = "https://web.kultr.cc/"
+private const val DISCORD = "https://discord.com/users/319246364246540288"

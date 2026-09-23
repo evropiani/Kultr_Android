@@ -291,10 +291,16 @@ private fun MainUi(
                     MiniPlayer(player)
                     BottomBar(selectedTab) { tab ->
                         selectedTab = tab
-                        nav.navigate(if (tab == Tab.LIBRARY) Routes.library() else tab.route) {
-                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        // A tab always opens at its own start page, dropping any album,
+                        // artist or other page opened inside it. Already there: nothing to do.
+                        if (backStack?.destination?.route == tab.route) return@BottomBar
+                        if (tab == Tab.HOME) {
+                            nav.popBackStack(Routes.HOME, inclusive = false)
+                        } else {
+                            nav.navigate(if (tab == Tab.LIBRARY) Routes.library() else tab.route) {
+                                popUpTo(nav.graph.findStartDestination().id)
+                                launchSingleTop = true
+                            }
                         }
                     }
                 }
