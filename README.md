@@ -63,11 +63,9 @@ Open the project in a current Android Studio to run it on a device.
 ### Releasing
 
 Bump `versionCode` and `versionName` in `app/build.gradle.kts`, add notes as
-`.github/release-notes/v<version>.md`, then push a matching tag:
-
-```sh
-git tag v1.0.1 && git push origin v1.0.1
-```
+`.github/release-notes/v<version>.md`, then either push a matching tag
+(`git tag v1.0.1 && git push origin v1.0.1`) or run the **Release** workflow
+from the Actions tab on `main` with the tag `v1.0.1`, which creates it.
 
 The release workflow builds and signs the APK and publishes it as a GitHub
 release. The signing key is kept in the repository encrypted

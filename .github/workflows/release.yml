@@ -1,14 +1,16 @@
 name: Release
 
-# Push a tag like v1.0.0 (matching versionName in app/build.gradle.kts) to
-# publish a signed APK as a GitHub release. Run it by hand to retry a tag.
+# Publishes a signed APK as a GitHub release. Either push a tag like v1.0.0
+# (matching versionName in app/build.gradle.kts), or run this workflow from
+# the Actions tab with that tag: a tag that does not exist yet is created on
+# the commit the run was started from.
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing tag to release, e.g. v1.0.0
+        description: Version tag to release, e.g. v1.0.0
         required: true
 
 permissions:
@@ -26,8 +28,14 @@ jobs:
       TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Build from the tag if it already exists
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            git fetch --no-tags origin "refs/tags/$TAG:refs/tags/$TAG"
+            git checkout --detach "$TAG"
+          fi
+          echo "TARGET=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Check the tag matches the app version
         run: |
@@ -88,5 +96,5 @@ jobs:
             gh release upload "$TAG" "Kultr-$VERSION.apk" "Kultr-$VERSION.apk.sha256" --clobber
           else
             gh release create "$TAG" "Kultr-$VERSION.apk" "Kultr-$VERSION.apk.sha256" \
-              --title "Kultr $VERSION" --verify-tag "$@"
+              --title "Kultr $VERSION" --target "$TARGET" "$@"
           fi
