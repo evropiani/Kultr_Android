@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.data.db.Counts
 import app.kultr.android.ui.LibraryTab
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.player.CastButton
 import app.kultr.android.ui.Routes
 import app.kultr.android.ui.components.AlbumCard
 import app.kultr.android.ui.components.ArtistCard
@@ -92,6 +93,7 @@ fun HomeScreen() {
             Column(Modifier.statusBarsPadding().padding(start = 16.dp, end = 4.dp, top = 12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(Format.greeting(hour), style = MaterialTheme.typography.headlineMedium, color = Kultr.colors.ink, modifier = Modifier.weight(1f))
+                    CastButton()
                     IconButton(onClick = { actions.navigate(Routes.STATS) }) {
                         Icon(Icons.Rounded.BarChart, contentDescription = "Listening stats", tint = Kultr.colors.ink2)
                     }

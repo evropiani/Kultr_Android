@@ -24,12 +24,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.kultr.android.AppGraph
+import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.Album
 import app.kultr.core.api.Artist
 import app.kultr.core.api.Playlist
+import app.kultr.core.api.Song
 import app.kultr.core.settings.GridSize
 import app.kultr.core.util.Format
+import kotlinx.coroutines.flow.first
 
 fun GridSize.minCell(): Dp = when (this) {
     GridSize.SMALL -> 104.dp
@@ -40,8 +44,15 @@ fun GridSize.minCell(): Dp = when (this) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AlbumCard(album: Album, onClick: () -> Unit, modifier: Modifier = Modifier, onLongClick: (() -> Unit)? = null) {
+    val graph = LocalActions.current.graph
     Column(
-        modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(6.dp),
+        modifier
+            .combinedClickable(onClick = onClick)
+            .dragSource(
+                { DragPayload(album.name, album.coverArt ?: album.id) { graph.library.songsOfAlbumNow(album.id) } },
+                onLongPress = onLongClick,
+            )
+            .padding(6.dp),
     ) {
         ArtworkFill(album.coverArt ?: album.id, Modifier.fillMaxWidth().aspectRatio(1f), label = album.name)
         Spacer(Modifier.height(8.dp))
@@ -60,8 +71,12 @@ fun AlbumCard(album: Album, onClick: () -> Unit, modifier: Modifier = Modifier, 
 
 @Composable
 fun ArtistCard(artist: Artist, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val graph = LocalActions.current.graph
     Column(
-        modifier.combinedClickableCompat(onClick).padding(6.dp),
+        modifier
+            .combinedClickableCompat(onClick)
+            .dragSource({ DragPayload(artist.name, artist.coverArt) { artistSongs(graph, artist) } })
+            .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         ArtworkFill(
@@ -89,7 +104,13 @@ fun ArtistCard(artist: Artist, onClick: () -> Unit, modifier: Modifier = Modifie
 
 @Composable
 fun PlaylistCard(playlist: Playlist, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier.combinedClickableCompat(onClick).padding(6.dp)) {
+    val graph = LocalActions.current.graph
+    Column(
+        modifier
+            .combinedClickableCompat(onClick)
+            .dragSource({ DragPayload(playlist.name, playlist.coverArt) { playlistSongs(graph, playlist) } })
+            .padding(6.dp),
+    ) {
         ArtworkFill(playlist.coverArt, Modifier.fillMaxWidth().aspectRatio(1f), label = playlist.name)
         Spacer(Modifier.height(8.dp))
         Text(
@@ -112,6 +133,21 @@ fun PlaylistCard(playlist: Playlist, onClick: () -> Unit, modifier: Modifier = M
 
 @OptIn(ExperimentalFoundationApi::class)
 private fun Modifier.combinedClickableCompat(onClick: () -> Unit): Modifier = this.combinedClickable(onClick = onClick)
+
+/** An artist's tracks from the mirror, or album by album from the server when not synced. */
+private suspend fun artistSongs(graph: AppGraph, artist: Artist): List<Song> {
+    val local = graph.library.songsOfArtistNow(artist.id)
+    if (local.isNotEmpty()) return local
+    val albums = graph.auth.client.value?.getArtist(artist.id)?.album.orEmpty()
+    return albums.flatMap { graph.library.songsOfAlbumNow(it.id) }
+}
+
+/** A playlist's tracks from the mirror, or from the server when its contents are not synced. */
+private suspend fun playlistSongs(graph: AppGraph, playlist: Playlist): List<Song> {
+    val local = graph.library.playlist(playlist.id).first()?.songs.orEmpty()
+    if (local.isNotEmpty()) return local
+    return graph.auth.client.value?.getPlaylist(playlist.id)?.entry.orEmpty()
+}
 
 /** A horizontally scrolling row of cards. */
 @Composable

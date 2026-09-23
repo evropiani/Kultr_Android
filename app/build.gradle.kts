@@ -88,6 +88,7 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.session)
+    implementation(libs.androidx.media3.cast)
     implementation(libs.androidx.media3.datasource.okhttp)
 
     implementation(platform(libs.compose.bom))

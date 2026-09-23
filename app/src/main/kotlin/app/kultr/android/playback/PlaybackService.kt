@@ -6,7 +6,10 @@ import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import androidx.media3.cast.CastPlayer
+import androidx.media3.cast.RemoteCastPlayer
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.LibraryResult
@@ -116,6 +119,10 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var tracker: ListeningTracker
     private var session: MediaLibrarySession? = null
 
+    /** What the session controls: [player] here, or a Cast receiver while one is connected. */
+    private lateinit var sessionPlayer: Player
+    private var castPlayer: CastPlayer? = null
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val handler = Handler(Looper.getMainLooper())
     private val eq = EqState()
@@ -151,7 +158,8 @@ class PlaybackService : MediaLibraryService() {
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider.Builder(this).build().also { it.setSmallIcon(R.drawable.ic_stat_kultr) },
         )
-        session = MediaLibrarySession.Builder(this, player, LibraryCallback())
+        sessionPlayer = buildCastPlayer() ?: player
+        session = MediaLibrarySession.Builder(this, sessionPlayer, LibraryCallback())
             .setSessionActivity(
                 PendingIntent.getActivity(
                     this,
@@ -167,6 +175,21 @@ class PlaybackService : MediaLibraryService() {
         observe()
         restore()
     }
+
+    /**
+     * Wrap the local player so playback moves to a Chromecast when a Cast
+     * session starts, and back when it ends. Null where Cast is unavailable.
+     */
+    private fun buildCastPlayer(): CastPlayer? = runCatching {
+        val remote = RemoteCastPlayer.Builder(this)
+            .setMediaItemConverter(KultrMediaItemConverter())
+            .build()
+        CastPlayer.Builder(this)
+            .setLocalPlayer(player)
+            .setRemotePlayer(remote)
+            .setTransferCallback(KultrTransferCallback { song -> CastSupport.streamFor(song, graph.auth.client.value) })
+            .build()
+    }.getOrNull().also { castPlayer = it }
 
     private fun observe() {
         var previous = graph.settings.current
@@ -243,7 +266,7 @@ class PlaybackService : MediaLibraryService() {
         graph.hub.sleepTimer.value?.endsAtMillis?.let { ends ->
             if (System.currentTimeMillis() >= ends) {
                 graph.hub.clearSleepTimer()
-                player.pause()
+                sessionPlayer.pause()
                 graph.messages.show("Sleep timer finished. Good night.")
             }
         }
@@ -303,7 +326,8 @@ class PlaybackService : MediaLibraryService() {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         saveSession()
-        if (!engine.playWhenReady || engine.queue.isEmpty()) stopSelf()
+        // Keep going while something plays, here or on a Cast receiver.
+        if (!sessionPlayer.playWhenReady || sessionPlayer.mediaItemCount == 0) stopSelf()
     }
 
     override fun onDestroy() {
@@ -311,7 +335,8 @@ class PlaybackService : MediaLibraryService() {
         handler.removeCallbacks(tick)
         session?.release()
         session = null
-        player.release()
+        // The Cast wrapper releases the local player along with its own.
+        castPlayer?.release() ?: player.release()
         decks.forEach { it.release() }
         scope.cancel()
         super.onDestroy()

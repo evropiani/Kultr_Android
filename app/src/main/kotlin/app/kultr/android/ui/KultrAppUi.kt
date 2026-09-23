@@ -62,6 +62,9 @@ import app.kultr.android.data.MessageKind
 import app.kultr.android.data.ServerProfile
 import app.kultr.android.ui.components.AddToPlaylistDialog
 import app.kultr.android.ui.components.ArtworkBackdropPlain
+import app.kultr.android.ui.components.DragDropState
+import app.kultr.android.ui.components.DropZoneOverlay
+import app.kultr.android.ui.components.LocalDragDrop
 import app.kultr.android.ui.components.RatingDialog
 import app.kultr.android.ui.components.SleepTimerDialog
 import app.kultr.android.ui.components.rememberArtworkUrl
@@ -213,6 +216,8 @@ private fun MainUi(
         )
     }
 
+    val dragDrop = remember(actions) { DragDropState { payload, action -> actions.drop(payload, action) } }
+
     LaunchedEffect(openPlayerRequest) {
         if (openPlayerRequest > 0) playerOpen = true
     }
@@ -233,7 +238,7 @@ private fun MainUi(
     LaunchedEffect(currentTab) { if (currentTab != null) selectedTab = currentTab }
     val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 
-    CompositionLocalProvider(LocalActions provides actions) {
+    CompositionLocalProvider(LocalActions provides actions, LocalDragDrop provides dragDrop) {
         Box(Modifier.fillMaxSize()) {
             if (settings.backdropArtwork && player.current != null) {
                 ArtworkBackdrop(player.current?.artworkId)
@@ -330,6 +335,8 @@ private fun MainUi(
                 NowPlayingScreen(player, onClose = { playerOpen = false })
             }
             BackHandler(enabled = playerOpen && player.current != null) { playerOpen = false }
+
+            DropZoneOverlay(dragDrop)
         }
 
         dialogs.addToPlaylist?.let { songs -> AddToPlaylistDialog(songs, onDismiss = { dialogs.addToPlaylist = null }) }

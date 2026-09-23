@@ -3,6 +3,7 @@ package app.kultr.android
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import androidx.media3.cast.Cast
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -19,6 +20,8 @@ class KultrApp : Application(), SingletonImageLoader.Factory {
         instance = this
         graphInstance = AppGraph(this)
         createChannels()
+        // Cast needs Google Play services; without them the cast button simply never appears.
+        runCatching { Cast.getSingletonInstance(this).initialize() }
         graph.sync.onAppStart()
     }
 

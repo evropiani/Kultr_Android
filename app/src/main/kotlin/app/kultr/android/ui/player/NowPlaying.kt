@@ -275,6 +275,7 @@ private fun PlayerTopBar(song: Song, injektOn: Boolean, downloaded: Boolean, onC
             icon = Icons.Rounded.AutoAwesome,
             accent = injektOn,
         )
+        CastButton(tint = Kultr.colors.ink)
         Box {
             IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, contentDescription = "More") }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {

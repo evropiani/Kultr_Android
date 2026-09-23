@@ -105,13 +105,18 @@ fun SongRow(
     onLongClick: (() -> Unit)? = null,
     compact: Boolean = false,
     extraActions: List<MenuAction> = emptyList(),
+    dragPayload: (() -> DragPayload?)? = { DragPayload(song.title, song.artworkId) { listOf(song) } },
 ) {
     val colors = Kultr.colors
+    val draggable = dragPayload != null && LocalDragDrop.current != null && !song.isRadio
     Row(
         modifier
             .fillMaxWidth()
             .background(if (selected) colors.accentSoft else androidx.compose.ui.graphics.Color.Transparent)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            // With dragging on, the drag source owns the long press and passes
+            // it on when the finger did not move.
+            .combinedClickable(onClick = onClick, onLongClick = if (draggable) null else onLongClick)
+            .then(if (draggable) Modifier.dragSource(dragPayload!!, onLongPress = onLongClick) else Modifier)
             .padding(start = 16.dp, end = 4.dp, top = if (compact) 4.dp else 8.dp, bottom = if (compact) 4.dp else 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -254,6 +259,15 @@ fun LazyListScope.songItems(
     itemsIndexed(songs, key = { index, song -> "$keyPrefix:$index:${song.id}" }) { index, song ->
         val selecting = selection?.active == true
         SongRow(
+            dragPayload = {
+                // Dragging a selected track takes the whole selection with it.
+                val picked = if (selecting && song.id in selection.ids) selection.picked(songs) else emptyList()
+                if (picked.size > 1) {
+                    DragPayload("${picked.size} tracks", picked.first().artworkId) { picked }
+                } else {
+                    DragPayload(song.title, song.artworkId) { listOf(song) }
+                }
+            },
             song = song,
             onClick = { if (selecting) selection.toggle(song.id) else onPlay(index) },
             onLongClick = selection?.let { { it.toggle(song.id) } },

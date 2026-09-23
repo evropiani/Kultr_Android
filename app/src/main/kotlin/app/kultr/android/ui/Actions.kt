@@ -8,6 +8,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import app.kultr.android.AppGraph
 import app.kultr.android.data.MessageKind
+import app.kultr.android.ui.components.DragPayload
+import app.kultr.android.ui.components.DropAction
 import app.kultr.core.api.Album
 import app.kultr.core.api.Artist
 import app.kultr.core.api.Song
@@ -147,6 +149,41 @@ class AppActions(
         val rest = app.kultr.android.playback.AutoQueue(graph).build(start, emptyList(), count = 24)
         player.play(listOf(start) + rest, 0)
         openPlayer()
+    }
+
+    /** Something dragged onto the drop zone: resolve it to tracks and do what the target says. */
+    fun drop(payload: DragPayload, action: DropAction) = scope.launch {
+        val songs = try {
+            payload.resolve().filter { !it.isRadio }
+        } catch (err: Exception) {
+            if (err is kotlinx.coroutines.CancellationException) throw err
+            messages.error("Could not load “${payload.label}”: ${app.kultr.core.api.describeError(err)}")
+            return@launch
+        }
+        if (songs.isEmpty()) {
+            messages.show("“${payload.label}” has no tracks here yet.")
+            return@launch
+        }
+        when (action) {
+            DropAction.PLAY_NEXT -> playNext(songs)
+            DropAction.QUEUE -> enqueue(songs)
+            DropAction.FAVOURITE -> {
+                val missing = songs.filter { !it.isStarred }
+                if (missing.isEmpty()) {
+                    messages.show("Already in your favourites.")
+                } else {
+                    report(
+                        graph.library.setStarred(missing, true),
+                        "Favourited ${missing.size} track${if (missing.size == 1) "" else "s"}",
+                    )
+                }
+            }
+            DropAction.DOWNLOAD -> graph.offline.download(songs, payload.label)
+            DropAction.REMOVE -> {
+                val removed = graph.offline.remove(songs.map { it.id })
+                messages.show(if (removed > 0) "Removed $removed download${if (removed == 1) "" else "s"}." else "Nothing from “${payload.label}” was downloaded.")
+            }
+        }
     }
 
     fun launch(block: suspend CoroutineScope.() -> Unit) = scope.launch(block = block)
