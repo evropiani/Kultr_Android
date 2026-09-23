@@ -199,6 +199,10 @@ fun DropZoneOverlay(state: DragDropState, modifier: Modifier = Modifier) {
     val colors = Kultr.colors
     val payload = state.payload
     Box(modifier.fillMaxSize()) {
+        // Dim everything behind, so the targets and their labels stand out.
+        AnimatedVisibility(visible = payload != null, enter = fadeIn(), exit = fadeOut()) {
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = if (colors.dark) 0.6f else 0.4f)))
+        }
         AnimatedVisibility(
             visible = payload != null,
             modifier = Modifier.align(Alignment.BottomCenter),
@@ -208,7 +212,13 @@ fun DropZoneOverlay(state: DragDropState, modifier: Modifier = Modifier) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, colors.background.copy(alpha = 0.92f))))
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.2f to colors.background.copy(alpha = 0.96f),
+                            1f to colors.background,
+                        ),
+                    )
                     .navigationBarsPadding()
                     .padding(start = 12.dp, end = 12.dp, top = 40.dp, bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -216,7 +226,7 @@ fun DropZoneOverlay(state: DragDropState, modifier: Modifier = Modifier) {
             ) {
                 Text(
                     "Drop “${state.payload?.label.orEmpty()}” on…",
-                    color = colors.ink2,
+                    color = colors.ink,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -272,7 +282,7 @@ private fun DropTarget(action: DropAction, state: DragDropState, modifier: Modif
     val tint = when {
         over && danger -> colors.danger
         over -> colors.accent
-        else -> colors.ink2
+        else -> colors.ink
     }
     val shape = RoundedCornerShape(Kultr.radii.lg)
     Column(
@@ -284,7 +294,7 @@ private fun DropTarget(action: DropAction, state: DragDropState, modifier: Modif
                 translationY = if (over) -6.dp.toPx() else 0f
             }
             .clip(shape)
-            .background(colors.glassStrong)
+            .background(colors.elevated)
             .background(
                 when {
                     over && danger -> colors.danger.copy(alpha = 0.16f)
@@ -299,6 +309,6 @@ private fun DropTarget(action: DropAction, state: DragDropState, modifier: Modif
     ) {
         Icon(action.icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
         Text(action.label, color = colors.ink, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, maxLines = 1)
-        Text(action.hint, color = colors.ink3, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 2)
+        Text(action.hint, color = colors.ink2, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 2)
     }
 }

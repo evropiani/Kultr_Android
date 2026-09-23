@@ -557,11 +557,11 @@ private fun AboutSection() {
     SettingRow("Source", hint = "github.com/evropiani/Kultr_Android — issues and pull requests welcome.", onClick = {
         open("https://github.com/evropiani/Kultr_Android")
     })
-    SettingRow("Website", hint = "web.kultr.cc — Kultr in your browser.", onClick = { open(WEBSITE) })
+    SettingRow("Website", hint = "kultr.cc", onClick = { open(WEBSITE) })
     SettingRow("Get in touch", hint = "Questions, ideas, or something broken.", onClick = { open(DISCORD) }) {
         Pill("@evropiani", icon = BrandIcons.Discord, onClick = { open(DISCORD) })
     }
 }
 
-private const val WEBSITE = "https://web.kultr.cc/"
+private const val WEBSITE = "https://kultr.cc/"
 private const val DISCORD = "https://discord.com/users/319246364246540288"
