@@ -8,5 +8,8 @@ build/
 /captures
 .externalNativeBuild
 .cxx
+# Signing keys: only the encrypted release key belongs in the repository.
 *.keystore
+*.jks
+*.p12
 !debug.keystore

@@ -37,9 +37,16 @@ downloads for offline listening.
 
 ## Getting it
 
-Every push is built by GitHub Actions; the debug APK is attached to each run as
-the `kultr-debug-apk` artifact (Actions → latest run → Artifacts). Install it
-on a phone running Android 8.0 (API 26) or later.
+Download `Kultr-<version>.apk` from the
+[latest release](https://github.com/evropiani/Kultr_Android/releases/latest)
+and open it on a phone running Android 8.0 (API 26) or later. Releases are
+signed with the Kultr release key, so each one installs over the last; its
+certificate's SHA-256 fingerprint is
+`3C:26:16:4A:FD:6F:C1:30:F5:7D:A5:2B:4F:04:AB:2B:E8:3C:89:25:50:89:6F:C9:43:57:D2:E0:B8:51:6F:E0`.
+
+Every push to `main` is also built by GitHub Actions, with a debug APK attached
+to the run as the `kultr-debug-apk` artifact. Debug builds are signed with a
+different key, so uninstall a release before installing one (and back).
 
 ## Building
 
@@ -52,6 +59,21 @@ Requirements: JDK 17 or newer and the Android SDK (compile SDK 37). Then:
 ```
 
 Open the project in a current Android Studio to run it on a device.
+
+### Releasing
+
+Bump `versionCode` and `versionName` in `app/build.gradle.kts`, add notes as
+`.github/release-notes/v<version>.md`, then push a matching tag:
+
+```sh
+git tag v1.0.1 && git push origin v1.0.1
+```
+
+The release workflow builds and signs the APK and publishes it as a GitHub
+release. The signing key is kept in the repository encrypted
+(`signing/kultr-release.p12.enc`); the workflow unlocks it with the
+`KULTR_SIGNING_PASSPHRASE` repository secret. Keep that passphrase somewhere
+safe: without it, no update can be signed to install over existing copies.
 
 ## How it is put together
 

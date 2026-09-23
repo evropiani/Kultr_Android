@@ -5,6 +5,11 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Release signing comes from the environment, so no key or password lives in
+// the build: the release workflow unlocks signing/kultr-release.p12.enc and
+// points KULTR_KEYSTORE_FILE at it. Without it, release builds stay unsigned.
+val releaseKeystore = System.getenv("KULTR_KEYSTORE_FILE")?.let { file(it) }?.takeIf { it.isFile }
+
 android {
     namespace = "app.kultr.android"
     compileSdk = 37
@@ -17,8 +22,21 @@ android {
         versionName = "1.0.0"
     }
 
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storeType = "PKCS12"
+                storePassword = System.getenv("KULTR_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KULTR_KEY_ALIAS") ?: "kultr"
+                keyPassword = System.getenv("KULTR_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
