@@ -30,6 +30,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.data.db.HistoryEntity
@@ -48,7 +49,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.TextStyle
-import java.util.Locale
 
 private data class StatsSummary(
     val plays: Int,
@@ -142,6 +142,7 @@ fun StatsScreen() {
 @Composable
 private fun DayChart(days: List<Pair<LocalDate, Long>>) {
     val colors = Kultr.colors
+    val locale = LocalConfiguration.current.locales[0]
     val peak = (days.maxOfOrNull { it.second } ?: 0).coerceAtLeast(1)
     Column {
         Canvas(Modifier.fillMaxWidth().height(120.dp)) {
@@ -161,7 +162,7 @@ private fun DayChart(days: List<Pair<LocalDate, Long>>) {
         Row(Modifier.fillMaxWidth()) {
             days.forEachIndexed { i, (day, _) ->
                 Text(
-                    if (i % 2 == 0) day.dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault()) else "",
+                    if (i % 2 == 0) day.dayOfWeek.getDisplayName(TextStyle.NARROW, locale) else "",
                     color = colors.ink3,
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.weight(1f),

@@ -51,4 +51,4 @@ jobs:
       - name: Error summary
         if: failure()
         run: |
-          grep -E "^e: |error:|What went wrong|FAILED|Lint found|tests completed" build.log | grep -v "^w: " | head -200 || true
+          grep -E "^e: |error:|: Error: |What went wrong|FAILED|Lint found|tests completed" build.log | grep -v "^w: " | head -200 || true

@@ -96,7 +96,6 @@ class ExoDeck(
             ): AudioSink = DefaultAudioSink.Builder(context)
                 .setAudioProcessors(arrayOf<AudioProcessor>(processor))
                 .setEnableFloatOutput(enableFloatOutput)
-                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .build()
         }
         player = ExoPlayer.Builder(context, renderers)

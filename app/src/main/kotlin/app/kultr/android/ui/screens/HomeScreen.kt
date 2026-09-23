@@ -226,7 +226,8 @@ private fun HomeShelf(tile: HomeTile, counts: Counts, lastCheck: Long?) {
             }
         }
         TileKind.PLAYLISTS -> {
-            val username = graph.auth.active.value?.username
+            val active by graph.auth.active.collectAsStateWithLifecycle()
+            val username = active?.username
             val playlists by when (tile.id) {
                 "mostPlayedPlaylists" -> remember { library.playlistsByPlays() }.collectAsStateWithLifecycle(emptyList())
                 else -> remember { library.playlists() }.collectAsStateWithLifecycle(emptyList())

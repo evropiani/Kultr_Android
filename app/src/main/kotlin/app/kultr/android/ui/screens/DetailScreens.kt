@@ -381,7 +381,8 @@ fun PlaylistScreen(id: String) {
         return
     }
     val songs = d.songs
-    val username = graph.auth.active.value?.username
+    val active by graph.auth.active.collectAsStateWithLifecycle()
+    val username = active?.username
     val editable = d.playlist.owner == null || d.playlist.owner == username
     DetailScaffold(selection, songs) {
         item(key = "header") {
