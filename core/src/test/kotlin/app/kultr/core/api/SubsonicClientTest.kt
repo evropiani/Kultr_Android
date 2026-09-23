@@ -124,8 +124,8 @@ class SubsonicClientTest {
         val album = client().getAlbum("al1")
         assertNotNull(album)
         assertEquals(2, album.song!!.size)
-        assertEquals(-6.5, album.song!![0].replayGain!!.trackGain)
-        assertEquals(128, album.song!![1].bpm)
+        assertEquals(-6.5, album.song[0].replayGain!!.trackGain)
+        assertEquals(128, album.song[1].bpm)
     }
 
     @Test

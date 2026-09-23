@@ -164,6 +164,7 @@ class DeckProcessor(private val eq: EqState) : BaseAudioProcessor() {
         return inputAudioFormat
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun onFlush() {
         channels = max(1, inputAudioFormat.channelCount)
         rate = max(8_000, inputAudioFormat.sampleRate)

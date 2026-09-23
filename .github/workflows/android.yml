@@ -51,4 +51,6 @@ jobs:
       - name: Error summary
         if: failure()
         run: |
-          grep -E "^e: |error:|: Error: |What went wrong|FAILED|Lint found|tests completed" build.log | grep -v "^w: " | head -200 || true
+          grep -E "^e: |error:|What went wrong|FAILED|Lint found|tests completed" build.log | grep -v "^w: " | head -200 || true
+          # Lint prints only its first failure; show the whole text report.
+          find app/build -name "lint-results-debug.txt" -exec cat {} \; 2>/dev/null | head -300 || true

@@ -255,13 +255,13 @@ fun LazyListScope.songItems(
         val selecting = selection?.active == true
         SongRow(
             song = song,
-            onClick = { if (selecting) selection?.toggle(song.id) else onPlay(index) },
+            onClick = { if (selecting) selection.toggle(song.id) else onPlay(index) },
             onLongClick = selection?.let { { it.toggle(song.id) } },
             number = if (numbered) song.track ?: (index + 1) else null,
             showArtwork = showArtwork,
             isCurrent = song.id == currentId,
             downloaded = song.id in downloaded,
-            selected = selecting && selection?.ids?.contains(song.id) == true,
+            selected = selecting && song.id in selection.ids,
             selecting = selecting,
             compact = compact,
             extraActions = extraActions(index, song),

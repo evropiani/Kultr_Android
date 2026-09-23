@@ -56,7 +56,7 @@ data class TrackAnalysis(
                 bpmSource = if (useTag) BpmSource.TAG else BpmSource.DSP,
                 // Prefer the server's duration; decoded duration can drift on VBR files.
                 duration = song.duration?.toDouble()?.takeIf { it > 0 } ?: pcm.duration,
-                bpm = if (useTag) tagBpm!! else pcm.bpm,
+                bpm = if (useTag) tagBpm else pcm.bpm,
                 bpmConfidence = if (useTag) 0.8 else pcm.bpmConfidence,
                 beatOffset = pcm.beatOffset,
                 downbeatOffset = pcm.downbeatOffset,

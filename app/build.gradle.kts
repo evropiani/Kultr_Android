@@ -46,9 +46,6 @@ android {
         disable += "UnsafeOptInUsageError"
         abortOnError = true
         checkReleaseBuilds = false
-        // Print every issue into the build log, not just the first one.
-        textReport = true
-        textOutput = file("stdout")
     }
 }
 
