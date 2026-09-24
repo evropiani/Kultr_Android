@@ -17,19 +17,29 @@ downloads for offline listening.
   crossfade (with a choice of curves), play gapless albums seamlessly, or cut.
 - **InjeKt transitions.** Tracks are analysed on the phone (tempo, beat grid,
   key, energy and intro/outro structure) and transitions are planned from
-  that: tempo-matched blends that land on the downbeat, a bass swap, a
-  filter sweep, and key-aware ordering for an endless automatic queue.
+  that, as soon as a track starts: tempo-matched blends that land on the
+  downbeat, a bass swap, a filter sweep, and key-aware ordering for an
+  endless automatic queue.
 - **Offline.** Download albums, playlists, favourites or the whole library, at
   a bitrate of your choosing, on Wi-Fi only if you like. A Downloads page shows
   what is coming down, what is queued or failed, and what is already on the
   phone. Downloads play first, before the network is tried, and a stream cache
   keeps recent tracks too.
+- **Liquid glass.** The tab bar, mini player and download progress float over
+  the page, which scrolls behind them blurred. The tab bar's selection is a
+  lens you can slide along it with your finger.
+- **Listening on your server.** Plays are sent to Navidrome with the time
+  they happened (offline plays later, exactly once) and read back, so
+  "Jump back in", "Played the most" and the Listening page agree across
+  devices.
 - **Cast** to a Chromecast or speaker group from the player.
 - **Home screen widget**: centred artwork, title and controls that scale with
   the widget as you resize it, with the artwork optional and the background
   opacity you choose; media buttons, KWGT and other controllers work too.
 - **Drag and drop** tracks, albums, artists and playlists onto Play next, Add to
   queue, Favourite, Sync offline or Delete downloads.
+- **Swipe between Library tabs**: albums, artists, songs, playlists, genres,
+  favourites, downloads and radio.
 - **Several servers.** Sign in to more than one server and switch between them;
   each has its own library, downloads and history. Passwords are sealed with a
   key held in the Android Keystore.
@@ -40,8 +50,8 @@ downloads for offline listening.
   per-network streaming bitrate, sleep timer (after minutes or at the end of
   the track).
 - **Also:** synced and plain lyrics, ratings and favourites, playlist editing,
-  scrobbling with an offline queue, listening stats, internet radio, a
-  now-playing screen tinted by the artwork, and settings backup and restore.
+  internet radio, a now-playing screen tinted by the artwork, and settings
+  backup and restore.
 
 ## Getting it
 
