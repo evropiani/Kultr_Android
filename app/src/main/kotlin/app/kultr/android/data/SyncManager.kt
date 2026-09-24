@@ -1,7 +1,9 @@
 package app.kultr.android.data
 
-import app.kultr.android.AppGraph
 import android.content.Context
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -9,14 +11,17 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import app.kultr.android.AppGraph
 import app.kultr.android.KultrApp
 import app.kultr.android.data.db.RoomLibraryStore
 import app.kultr.android.data.db.syncState
 import app.kultr.core.api.describeError
 import app.kultr.core.sync.LibrarySync
+import app.kultr.core.sync.ListeningSync
 import app.kultr.core.sync.SyncMode
 import app.kultr.core.sync.SyncProgress
 import app.kultr.core.sync.SyncSummary
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -25,7 +30,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
 
 /** Runs library syncs and remembers how the last one went, for the Sync page. */
 class SyncManager(private val graph: AppGraph) {
@@ -42,6 +46,18 @@ class SyncManager(private val graph: AppGraph) {
     val error: StateFlow<String?> = _error.asStateFlow()
 
     private var job: Job? = null
+
+    private val _listening = MutableStateFlow(false)
+
+    /** True while plays are being sent and play counts read back. */
+    val listening: StateFlow<Boolean> = _listening.asStateFlow()
+
+    private val _listeningVersion = MutableStateFlow(0)
+
+    /** Bumped when listening data changed on the way in or out, so views re-read it. */
+    val listeningVersion: StateFlow<Int> = _listeningVersion.asStateFlow()
+
+    private var lastListening = 0L
 
     /** Start a sync unless one is already running. */
     fun start(mode: SyncMode, quiet: Boolean = false) {
@@ -90,7 +106,8 @@ class SyncManager(private val graph: AppGraph) {
                     },
                 )
             }
-            graph.scrobbles.flush()
+            // Plays made offline go up, and anything played elsewhere since comes down.
+            refreshListeningNow()
             null
         } catch (err: CancellationException) {
             if (!quiet) graph.messages.show("Sync cancelled.")
@@ -106,11 +123,55 @@ class SyncManager(private val graph: AppGraph) {
     }
 
     /**
+     * Send plays still waiting for the server, then read back play counts and
+     * last-played times for albums played since (here or on another device).
+     * Cheap; skipped if it ran in the last minute unless [force]d.
+     */
+    fun refreshListening(force: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (_listening.value || (!force && now - lastListening < 60_000)) return
+        lastListening = now
+        graph.scope.launch { refreshListeningNow() }
+    }
+
+    /** [refreshListening], waiting for it. Returns false if the server could not be reached. */
+    suspend fun refreshListeningNow(): Boolean {
+        val client = graph.auth.client.value ?: return false
+        val db = graph.database.value ?: return false
+        if (_listening.value) return true
+        _listening.value = true
+        return try {
+            val sent = graph.scrobbles.flush()
+            // A library that was never synced has nothing to compare against yet.
+            val pulled = if (withContext(Dispatchers.IO) { db.syncState() }.lastCheck == null) {
+                0
+            } else {
+                withContext(Dispatchers.IO) { ListeningSync(client, RoomLibraryStore(db)).pull() }.albumsChanged
+            }
+            if (sent > 0 || pulled > 0) _listeningVersion.value++
+            true
+        } catch (err: CancellationException) {
+            throw err
+        } catch (_: Exception) {
+            false
+        } finally {
+            _listening.value = false
+        }
+    }
+
+    /**
      * On startup: if the library has been synced before and the server looks
      * different, pull in the changes. A never-synced library waits for the
      * person to press the button, since the first sync is the expensive one.
+     * Listening data is exchanged every time the app comes to the front,
+     * which is usually when you come back from another device.
      */
     fun onAppStart() {
+        ProcessLifecycleOwner.get().lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) = refreshListening()
+            },
+        )
         if (!graph.settings.current.autoSyncOnStart) return
         graph.scope.launch {
             val client = graph.auth.client.value ?: return@launch
@@ -121,7 +182,6 @@ class SyncManager(private val graph: AppGraph) {
                 withContext(Dispatchers.IO) { LibrarySync(client, RoomLibraryStore(db)).quickCheck() }
             }.getOrNull() ?: return@launch
             if (check.changed) runNow(SyncMode.CHECK, quiet = true)
-            graph.scrobbles.flush()
         }
         schedulePeriodic(graph.app)
     }
@@ -153,8 +213,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         if (db.syncState().lastCheck == null) return Result.success()
         return try {
             val check = LibrarySync(client, RoomLibraryStore(db)).quickCheck()
-            if (check.changed) graph.sync.runNow(SyncMode.CHECK, quiet = true)
-            graph.scrobbles.flush()
+            if (check.changed) graph.sync.runNow(SyncMode.CHECK, quiet = true) else graph.sync.refreshListeningNow()
             Result.success()
         } catch (err: CancellationException) {
             throw err

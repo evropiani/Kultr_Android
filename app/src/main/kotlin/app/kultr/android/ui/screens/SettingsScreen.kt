@@ -56,6 +56,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,7 +79,9 @@ import app.kultr.android.ui.components.BrandIcons
 import app.kultr.android.ui.components.ConfirmDialog
 import app.kultr.android.ui.components.GlassPanel
 import app.kultr.android.ui.components.Pill
+import app.kultr.android.ui.components.Segmented
 import app.kultr.android.ui.components.SettingRow
+import app.kultr.android.ui.components.animatePlacement
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.settings.AccentMode
 import app.kultr.core.settings.CornerStyle
@@ -168,9 +171,7 @@ private fun <T> Choice(label: String, options: List<Pair<T, String>>, selected: 
         Text(label, style = MaterialTheme.typography.bodyLarge, color = Kultr.colors.ink)
         if (hint != null) Text(hint, style = MaterialTheme.typography.bodySmall, color = Kultr.colors.ink3)
         Spacer(Modifier.height(8.dp))
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            options.forEach { (value, text) -> Pill(text, onClick = { onSelect(value) }, accent = value == selected) }
-        }
+        Segmented(options, selected, onSelect, Modifier.horizontalScroll(rememberScrollState()))
     }
 }
 
@@ -270,19 +271,22 @@ private fun HomeSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) 
         modifier = Modifier.padding(horizontal = 16.dp),
     )
     on.forEachIndexed { index, tile ->
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
-                Text(tile.title, color = Kultr.colors.ink)
-                Text(tile.note, color = Kultr.colors.ink3, style = MaterialTheme.typography.bodySmall)
-            }
-            IconButton(enabled = index > 0, onClick = {
-                update { st -> st.copy(homeTiles = on.map { it.id }.toMutableList().apply { add(index - 1, removeAt(index)) }) }
-            }) { Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Move up") }
-            IconButton(enabled = index < on.size - 1, onClick = {
-                update { st -> st.copy(homeTiles = on.map { it.id }.toMutableList().apply { add(index + 1, removeAt(index)) }) }
-            }) { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Move down") }
-            IconButton(onClick = { update { st -> st.copy(homeTiles = on.map { it.id } - tile.id) } }) {
-                Icon(Icons.Rounded.Close, contentDescription = "Remove from the home page")
+        // Keyed, so moving a shelf slides both rows past each other.
+        key(tile.id) {
+            Row(Modifier.animatePlacement().fillMaxWidth().padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
+                    Text(tile.title, color = Kultr.colors.ink)
+                    Text(tile.note, color = Kultr.colors.ink3, style = MaterialTheme.typography.bodySmall)
+                }
+                IconButton(enabled = index > 0, onClick = {
+                    update { st -> st.copy(homeTiles = on.map { it.id }.toMutableList().apply { add(index - 1, removeAt(index)) }) }
+                }) { Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Move up") }
+                IconButton(enabled = index < on.size - 1, onClick = {
+                    update { st -> st.copy(homeTiles = on.map { it.id }.toMutableList().apply { add(index + 1, removeAt(index)) }) }
+                }) { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Move down") }
+                IconButton(onClick = { update { st -> st.copy(homeTiles = on.map { it.id } - tile.id) } }) {
+                    Icon(Icons.Rounded.Close, contentDescription = "Remove from the home page")
+                }
             }
         }
     }
@@ -316,7 +320,11 @@ private fun PlaybackSettings(s: Settings, update: ((Settings) -> Settings) -> Un
     Toggle("Also fade when you skip", s.crossfadeOnSkip, hint = "A short fade instead of a hard cut on next and previous.") { v -> update { it.copy(crossfadeOnSkip = v) } }
     Toggle("Gapless playback", s.gapless, hint = "With crossfade off, the next track starts the instant this one ends.") { v -> update { it.copy(gapless = v) } }
     Toggle("Resume where you left off", s.resumeOnStart, hint = "Restores the queue and position when Kultr opens.") { v -> update { it.copy(resumeOnStart = v) } }
-    Toggle("Scrobble plays", s.scrobble, hint = "Tells your server what you listened to. Plays made offline are sent later.") { v -> update { it.copy(scrobble = v) } }
+    Toggle(
+        "Send plays to Navidrome",
+        s.scrobble,
+        hint = "Counts each play on your server, so recently and most played are the same on every device and survive reinstalling. Plays made offline are sent, with their real time, once you are back.",
+    ) { v -> update { it.copy(scrobble = v) } }
 }
 
 // --------------------------------------------------------------- injekt --
@@ -342,7 +350,12 @@ private fun InjektSettings(s: Settings, update: ((Settings) -> Settings) -> Unit
     Toggle("Harmonic mixing", s.injektHarmonic, enabled = on, hint = "When keys clash, filter out of the old track instead of blending.") { v -> update { it.copy(injektHarmonic = v) } }
     Toggle("Skip long intros", s.injektSkipIntro, enabled = on, hint = "Bring the next track in at its first real downbeat.") { v -> update { it.copy(injektSkipIntro = v) } }
     Toggle("Keep playing similar music", s.injektAutoQueue, hint = "When the queue runs out, continue with tracks chosen by tempo, key and energy.") { v -> update { it.copy(injektAutoQueue = v) } }
-    Toggle("Analyse ahead", s.injektAnalyseAhead, enabled = on, hint = "Measure the next track while this one plays.") { v -> update { it.copy(injektAnalyseAhead = v) } }
+    Toggle(
+        "Analyse ahead",
+        s.injektAnalyseAhead,
+        enabled = on,
+        hint = "The current and next track are always analysed when a track starts. This also measures the one after, so skipping ahead lands on a transition that is ready too.",
+    ) { v -> update { it.copy(injektAnalyseAhead = v) } }
     Toggle("Analyse on Wi-Fi only", s.injektAnalyseOnWifiOnly, enabled = on, hint = "Never spend mobile data on analysis.") { v -> update { it.copy(injektAnalyseOnWifiOnly = v) } }
 }
 

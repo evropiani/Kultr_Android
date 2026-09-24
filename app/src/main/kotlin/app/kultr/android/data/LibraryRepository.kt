@@ -1,6 +1,7 @@
 package app.kultr.android.data
 
 import app.kultr.android.AppGraph
+import app.kultr.android.data.db.ArtistPlays
 import app.kultr.android.data.db.Counts
 import app.kultr.android.data.db.HistoryEntity
 import app.kultr.android.data.db.KultrDatabase
@@ -27,6 +28,8 @@ import app.kultr.core.api.describeError
 import app.kultr.core.sync.SyncState
 import app.kultr.core.util.LyricsDoc
 import app.kultr.core.util.LyricsParser
+import java.time.Instant
+import java.time.OffsetDateTime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,7 +39,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import java.time.Instant
 
 data class PlaylistDetail(val playlist: Playlist, val songs: List<Song>, val entryIds: List<String>)
 
@@ -127,6 +129,14 @@ class LibraryRepository(private val graph: AppGraph) {
 
     fun history(limit: Int): Flow<List<HistoryEntity>> = fromDb(emptyList()) { it.history().recentFlow(limit) }
 
+    fun artistPlays(limit: Int): Flow<List<ArtistPlays>> = fromDb(emptyList()) { it.library().artistPlays(limit) }
+
+    /** All plays the server has counted, across the library. */
+    fun totalPlays(): Flow<Long> = fromDb(0L) { it.library().totalPlays() }
+
+    /** Plays on this phone still waiting to reach the server. */
+    fun pendingPlays(): Flow<Int> = fromDb(0) { it.history().pendingCount() }
+
     /** Playlists with their tracks resolved from the mirror, in playlist order. */
     fun playlist(id: String): Flow<PlaylistDetail?> = fromDb(null) { db ->
         db.library().playlist(id).map { entity ->
@@ -207,10 +217,26 @@ class LibraryRepository(private val graph: AppGraph) {
     suspend fun randomArtists(count: Int): List<Artist> =
         db()?.let { db -> io { db.library().randomArtists(count).map { it.toArtist() } } }.orEmpty()
 
-    /** Tracks played most recently, newest first, without repeats. */
+    /**
+     * Tracks played most recently, newest first, one entry each. Two sources,
+     * merged: each track's last-played time as the server keeps it (plays from
+     * every device, and it survives a fresh install), and this phone's own
+     * history (exact, and all a server without last-played times offers).
+     * Whichever is later wins for each track.
+     */
     suspend fun recentlyPlayed(limit: Int): List<Song> {
         val db = db() ?: return emptyList()
-        val ids = io { db.history().recent(limit * 4) }.map { it.songId }.distinct().take(limit)
+        val ids = io {
+            val latest = HashMap<String, Long>()
+            for (song in db.library().recentlyPlayedSongs(limit * 2)) {
+                val at = song.played?.let { runCatching { OffsetDateTime.parse(it).toInstant().toEpochMilli() }.getOrNull() }
+                if (at != null) latest[song.id] = at
+            }
+            for (entry in db.history().recent(limit * 4)) {
+                if ((latest[entry.songId] ?: 0L) < entry.playedAt) latest[entry.songId] = entry.playedAt
+            }
+            latest.entries.sortedByDescending { it.value }.take(limit).map { it.key }
+        }
         return songsByIds(ids)
     }
 

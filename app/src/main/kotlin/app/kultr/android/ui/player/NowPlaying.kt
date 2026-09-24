@@ -92,6 +92,7 @@ import app.kultr.android.ui.components.ArtworkFill
 import app.kultr.android.ui.components.Eyebrow
 import app.kultr.android.ui.components.GlassPanel
 import app.kultr.android.ui.components.Pill
+import app.kultr.android.ui.components.Segmented
 import app.kultr.android.ui.components.Tag
 import app.kultr.android.ui.components.rememberArtworkUrl
 import app.kultr.android.ui.theme.Kultr
@@ -100,8 +101,8 @@ import app.kultr.core.dsp.TrackAnalysis
 import app.kultr.core.util.Format
 import app.kultr.core.util.LyricsDoc
 import coil3.compose.AsyncImage
-import kotlinx.coroutines.CancellationException
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CancellationException
 
 private enum class PlayerTab(val label: String) { QUEUE("Up next"), LYRICS("Lyrics"), INJEKT("InjeKt") }
 
@@ -245,11 +246,11 @@ fun NowPlayingScreen(state: PlayerUiState, onClose: () -> Unit) {
                     )
                     Transport(state, current)
                     Spacer(Modifier.height(12.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PlayerTab.entries.filter { it != PlayerTab.LYRICS || settings.showLyrics }.forEach { entry ->
-                            Pill(entry.label, onClick = { tab = entry }, accent = tab == entry)
-                        }
-                    }
+                    Segmented(
+                        options = PlayerTab.entries.filter { it != PlayerTab.LYRICS || settings.showLyrics }.map { it to it.label },
+                        selected = tab,
+                        onSelect = { tab = it },
+                    )
                     Spacer(Modifier.height(12.dp))
                 }
             }

@@ -76,7 +76,7 @@ abstract class LibraryDao {
     @Query("SELECT id, albumId FROM songs")
     abstract suspend fun songAlbumPairs(): List<SongAlbum>
 
-    @Query("SELECT id, songCount, changed, duration FROM albums")
+    @Query("SELECT id, songCount, changed, duration, playCount, played FROM albums")
     abstract suspend fun albumStamps(): List<AlbumStampRow>
 
     @Transaction
@@ -226,6 +226,21 @@ abstract class LibraryDao {
     @Query("SELECT * FROM songs WHERE playCount > 0 ORDER BY playCount DESC LIMIT :limit")
     abstract fun mostPlayedSongs(limit: Int): Flow<List<SongEntity>>
 
+    /** Tracks by when they were last played, as the server (and this phone) last recorded it. */
+    @Query("SELECT * FROM songs WHERE played IS NOT NULL AND played != '' ORDER BY played DESC LIMIT :limit")
+    abstract suspend fun recentlyPlayedSongs(limit: Int): List<SongEntity>
+
+    /** Artists by the summed play counts of their tracks. */
+    @Query(
+        "SELECT COALESCE(artists.name, p.artist) AS name, p.artistId AS artistId, p.plays AS plays FROM " +
+            "(SELECT artistId, MAX(artist) AS artist, SUM(COALESCE(playCount, 0)) AS plays FROM songs GROUP BY artistId) p " +
+            "LEFT JOIN artists ON artists.id = p.artistId WHERE p.plays > 0 ORDER BY p.plays DESC LIMIT :limit",
+    )
+    abstract fun artistPlays(limit: Int): Flow<List<ArtistPlays>>
+
+    @Query("SELECT COALESCE(SUM(playCount), 0) FROM songs")
+    abstract fun totalPlays(): Flow<Long>
+
     @Query("SELECT * FROM albums WHERE playCount > 0 ORDER BY playCount DESC LIMIT :limit")
     abstract fun mostPlayedAlbums(limit: Int): Flow<List<AlbumEntity>>
 
@@ -268,7 +283,14 @@ abstract class LibraryDao {
 
 data class SongAlbum(val id: String, val albumId: String?)
 
-data class AlbumStampRow(val id: String, val songCount: Int?, val changed: String?, val duration: Int?)
+data class AlbumStampRow(
+    val id: String,
+    val songCount: Int?,
+    val changed: String?,
+    val duration: Int?,
+    val playCount: Long?,
+    val played: String?,
+)
 
 @Dao
 interface AnalysisDao {
@@ -321,11 +343,22 @@ interface HistoryDao {
     @Query("UPDATE history SET submitted = 1 WHERE id = :id")
     suspend fun markSubmitted(id: Long)
 
-    @Query("DELETE FROM history")
+    /** Plays still waiting to reach the server. */
+    @Query("SELECT COUNT(*) FROM history WHERE submitted = 0")
+    fun pendingCount(): Flow<Int>
+
+    /**
+     * Forget the history on this phone, except plays still waiting to be
+     * sent: those are the queue for the server, and clearing them would lose
+     * them for good.
+     */
+    @Query("DELETE FROM history WHERE submitted = 1")
     suspend fun clear()
 }
 
 data class DownloadUsage(val count: Int, val bytes: Long)
+
+data class ArtistPlays(val name: String?, val artistId: String?, val plays: Long)
 
 @Dao
 interface DownloadDao {

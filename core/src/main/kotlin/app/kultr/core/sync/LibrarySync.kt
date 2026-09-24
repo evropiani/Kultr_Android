@@ -51,6 +51,8 @@ data class SyncState(
     val serverType: String? = null,
     /** Newest album `created` timestamp seen, used for cheap delta checks. */
     val newestAlbumCreated: String? = null,
+    /** Newest album `played` time read by [ListeningSync]; older plays are already known. */
+    val listeningPulledThrough: String? = null,
 )
 
 data class SyncSummary(
@@ -64,10 +66,29 @@ data class SyncSummary(
     val songsRemoved: Int,
     val upToDate: Boolean,
     val errors: List<String>,
+    /** Albums re-read only because they were played since, here or on another device. */
+    val albumsPlayed: Int = 0,
 )
 
 /** What an album looked like last time, to decide whether its tracks need re-reading. */
-data class AlbumStamp(val songCount: Int?, val changed: String?, val duration: Int?)
+data class AlbumStamp(
+    val songCount: Int?,
+    val changed: String?,
+    val duration: Int?,
+    val playCount: Long? = null,
+    val played: String? = null,
+) {
+    /** The album itself (its tracks, their tags) is different from [album]. */
+    fun contentDiffers(album: Album): Boolean =
+        songCount != album.songCount || changed != album.changed || duration != album.duration
+
+    /**
+     * It has been played since: its tracks' play counts and last-played times
+     * on this phone are out of date.
+     */
+    fun playsDiffer(album: Album): Boolean =
+        (playCount ?: 0) != (album.playCount ?: 0) || (played ?: "") != (album.played ?: "")
+}
 
 /**
  * Where the mirrored library lives. On Android this is Room; in tests, maps.
@@ -104,7 +125,9 @@ private fun Int.pretty(): String = NumberFormat.getIntegerInstance().format(this
  *
  * [SyncMode.FULL] re-reads every album's track list: slow but exhaustive.
  * [SyncMode.CHECK] re-reads the album index (cheap) and only pulls tracks for
- * albums that are new or whose `changed`/`songCount`/`duration` moved.
+ * albums that are new, whose `changed`/`songCount`/`duration` moved, or that
+ * have been played since: re-reading those is what brings their tracks' play
+ * counts and last-played times across from other devices.
  */
 class LibrarySync(
     private val client: SubsonicClient,
@@ -159,10 +182,14 @@ class LibrarySync(
             val stale = albums.filter { album ->
                 if (mode == SyncMode.FULL) return@filter true
                 val before = previous[album.id] ?: return@filter true
-                before.songCount != album.songCount || before.changed != album.changed || before.duration != album.duration
+                before.contentDiffers(album) || before.playsDiffer(album)
             }
             val albumsAdded = albums.count { it.id !in previous }
-            val albumsUpdated = max(0, stale.size - albumsAdded)
+            // Played-only changes are not news about the library itself.
+            val albumsPlayed = if (mode == SyncMode.FULL) 0 else stale.count { album ->
+                previous[album.id]?.let { !it.contentDiffers(album) } == true
+            }
+            val albumsUpdated = max(0, stale.size - albumsAdded - albumsPlayed)
 
             emit(
                 SyncPhase.SONGS,
@@ -263,7 +290,7 @@ class LibrarySync(
             val newest = albums.mapNotNull { it.created }.maxOrNull()
             val before = store.syncState()
             store.setSyncState(
-                SyncState(
+                before.copy(
                     lastFullSync = if (mode == SyncMode.FULL) startedAt else before.lastFullSync,
                     lastCheck = startedAt,
                     counts = counts,
@@ -284,6 +311,7 @@ class LibrarySync(
                 songsRemoved = songsRemoved,
                 upToDate = mode == SyncMode.CHECK && albumsAdded == 0 && albumsUpdated == 0 && albumsRemoved == 0,
                 errors = errors,
+                albumsPlayed = albumsPlayed,
             )
         } catch (err: CancellationException) {
             onProgress(SyncProgress(SyncPhase.CANCELLED, "Sync cancelled", 0, 1, 0.0))

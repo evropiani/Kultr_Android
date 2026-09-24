@@ -33,7 +33,7 @@ class RoomLibraryStore(private val db: KultrDatabase) : LibraryStore {
     private val dao = db.library()
 
     override suspend fun albumStamps(): Map<String, AlbumStamp> =
-        dao.albumStamps().associate { it.id to AlbumStamp(it.songCount, it.changed, it.duration) }
+        dao.albumStamps().associate { it.id to AlbumStamp(it.songCount, it.changed, it.duration, it.playCount, it.played) }
 
     override suspend fun putArtists(artists: List<Artist>) {
         artists.chunked(SQL_CHUNK).forEach { chunk -> dao.upsertArtists(chunk.map { it.toEntity() }) }

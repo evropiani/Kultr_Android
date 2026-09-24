@@ -325,7 +325,7 @@ private fun SongsTab(query: String) {
         }
     }
     Column(Modifier.fillMaxSize()) {
-        if (selection.active) SelectionBar(selection, shown)
+        SelectionBar(selection, shown)
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = chromePadding(8.dp))) {
             item(key = "actions") {
                 Row(
@@ -462,7 +462,7 @@ private fun FavouritesTab() {
         return
     }
     Column(Modifier.fillMaxSize()) {
-        if (selection.active) SelectionBar(selection, songs)
+        SelectionBar(selection, songs)
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = chromePadding(8.dp))) {
             item(key = "actions") {
                 Row(

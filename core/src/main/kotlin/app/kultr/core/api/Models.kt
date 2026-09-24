@@ -77,6 +77,8 @@ data class Album(
     val songCount: Int? = null,
     val duration: Int? = null,
     val playCount: Long? = null,
+    /** When any of its tracks was last played (OpenSubsonic; Navidrome sends it). */
+    val played: String? = null,
     val created: String? = null,
     val changed: String? = null,
     val starred: String? = null,

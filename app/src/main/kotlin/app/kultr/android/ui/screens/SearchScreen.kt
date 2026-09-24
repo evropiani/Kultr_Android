@@ -101,7 +101,7 @@ fun SearchScreen() {
             )
             if (counts.songs > 0) Switch(checked = serverSearch, onCheckedChange = { serverSearch = it })
         }
-        if (selection.active) SelectionBar(selection, results.songs)
+        SelectionBar(selection, results.songs)
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = chromePadding())) {
             when {
                 query.trim().length < 2 -> item {

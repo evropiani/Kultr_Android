@@ -24,7 +24,7 @@ import kotlinx.serialization.json.Json
 
 @Entity(
     tableName = "songs",
-    indices = [Index("albumId"), Index("artistId"), Index("genre"), Index("starred"), Index("created"), Index("sortTitle")],
+    indices = [Index("albumId"), Index("artistId"), Index("genre"), Index("starred"), Index("created"), Index("sortTitle"), Index("played")],
 )
 data class SongEntity(
     @PrimaryKey val id: String,
@@ -81,6 +81,8 @@ data class AlbumEntity(
     val genre: String?,
     val userRating: Int?,
     val isCompilation: Boolean?,
+    /** When any of its tracks was last played, as the server says (added in version 2). */
+    val played: String? = null,
 )
 
 @Entity(tableName = "artists", indices = [Index("sortName"), Index("starred")])
@@ -273,6 +275,7 @@ fun Album.toEntity(): AlbumEntity = AlbumEntity(
     genre = genre,
     userRating = userRating,
     isCompilation = isCompilation,
+    played = played,
 )
 
 fun AlbumEntity.toAlbum(): Album = Album(
@@ -291,6 +294,7 @@ fun AlbumEntity.toAlbum(): Album = Album(
     genre = genre,
     userRating = userRating,
     isCompilation = isCompilation,
+    played = played,
 )
 
 fun Artist.toEntity(): ArtistEntity = ArtistEntity(

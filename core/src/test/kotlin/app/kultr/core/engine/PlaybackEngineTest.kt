@@ -211,7 +211,7 @@ class PlaybackEngineTest {
     fun crossfadesIntoTheNextTrack() {
         start("1", "2")
         advance(30_000)
-        // Planned 35s before the end, primed on the idle deck at level zero.
+        // Planned when the track started, primed on the idle deck (at level zero) 30s before the fade.
         assertEquals("2", b.item?.song?.id)
         assertFalse(b.isPlaying)
         assertEquals(TransitionType.CROSSFADE, engine.currentPlan?.type)
@@ -233,6 +233,42 @@ class PlaybackEngineTest {
         assertEquals(1f, b.level)
         // The incoming track has been playing since 54s, and it is now 61s.
         assertTrue(abs(engine.positionMs - 7_000) < 100, "position ${engine.positionMs}")
+    }
+
+    @Test
+    fun plansWhenATrackStartsButLoadsTheNextOnlyNearTheMix() {
+        start("1", "2", seconds = 300)
+        advance(1_000)
+        // The plan is ready (and showing) within a second of the track starting...
+        assertEquals(TransitionType.CROSSFADE, engine.currentPlan?.type)
+        // ...but no stream is opened for a mix four and a half minutes away.
+        assertNull(b.item)
+
+        advance(262_000) // 263s: the fade starts at 294s, 31s away
+        assertNull(b.item)
+        advance(2_000) // 265s: within 30s of it
+        assertEquals("2", b.item?.song?.id)
+        assertFalse(b.isPlaying)
+
+        advance(30_000)
+        assertEquals(1, engine.index)
+        assertTrue(engine.isTransitioning)
+    }
+
+    @Test
+    fun aQueueEditWhilePlanningPlansAgain() {
+        val planned = mutableListOf<String>()
+        planOverride = { current, next, context ->
+            planned += next.id
+            // Something is queued to play next while the first plan is being made.
+            if (planned.size == 1) engine.addItems(engine.index + 1, engine.newItems(songs("late")))
+            planTransition(current, next, context, settings, null, null)
+        }
+        start("1", "2")
+        advance(1_000)
+        assertEquals(listOf("2", "late"), planned)
+        advance(54_000)
+        assertEquals("late" to TrackChangeReason.TRANSITION, started.last())
     }
 
     @Test

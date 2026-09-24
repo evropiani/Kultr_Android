@@ -361,9 +361,9 @@ class PlaybackService : MediaLibraryService() {
 
         override fun onTrackStarted(item: QueueItem, reason: TrackChangeReason) {
             tracker.start(item.song)
-            graph.analysis.analyseAhead(item.song)
-            val next = engine.queue.getOrNull(engine.index + 1)
-            if (next != null) graph.analysis.analyseAhead(next.song)
+            // This track and the next are analysed for the plan made now; look
+            // one further, so skipping ahead lands on a transition that is ready too.
+            for (ahead in 1..2) engine.queue.getOrNull(engine.index + ahead)?.let { graph.analysis.analyseAhead(it.song) }
             saveSession()
         }
 

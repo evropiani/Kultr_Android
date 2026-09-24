@@ -386,7 +386,7 @@ fun OfflineContent() {
     var confirmClear by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
-        if (selection.active) SelectionBar(selection, songs)
+        SelectionBar(selection, songs)
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = chromePadding())) {
             item(key = "summary") {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -63,6 +63,9 @@ val LocalKultrColors = staticCompositionLocalOf {
 }
 val LocalRadii = staticCompositionLocalOf { radiiFor(CornerStyle.SOFT) }
 
+/** The Reduce motion setting: sliding highlights and reordering snap instead of moving. */
+val LocalReduceMotion = staticCompositionLocalOf { false }
+
 val DEFAULT_ACCENT = Color(0xFF7C8CFF)
 
 fun radiiFor(style: CornerStyle): KultrRadii = when (style) {
@@ -207,7 +210,12 @@ fun KultrTheme(settings: Settings, accent: Color, content: @Composable () -> Uni
             extraLarge = RoundedCornerShape(radii.xl),
         ),
     ) {
-        CompositionLocalProvider(LocalKultrColors provides colors, LocalRadii provides radii, content = content)
+        CompositionLocalProvider(
+            LocalKultrColors provides colors,
+            LocalRadii provides radii,
+            LocalReduceMotion provides settings.reduceMotion,
+            content = content,
+        )
     }
 }
 

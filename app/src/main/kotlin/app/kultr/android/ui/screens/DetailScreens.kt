@@ -142,7 +142,7 @@ private fun DetailScaffold(selection: SongSelection, songs: List<Song>, content:
         AccentWash()
         Column(Modifier.fillMaxSize()) {
             BackBar()
-            if (selection.active) SelectionBar(selection, songs)
+            SelectionBar(selection, songs)
             LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = chromePadding()), content = content)
         }
     }

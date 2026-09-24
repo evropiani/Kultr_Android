@@ -1,5 +1,10 @@
 package app.kultr.android.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -22,8 +27,8 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.GraphicEq
@@ -286,6 +291,18 @@ fun LazyListScope.songItems(
 /** The bar shown while tracks are selected. */
 @Composable
 fun SelectionBar(selection: SongSelection, songs: List<Song>, modifier: Modifier = Modifier) {
+    // Slides open when something is selected, and closed again when it is cleared.
+    AnimatedVisibility(
+        visible = selection.active,
+        enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
+        exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
+    ) {
+        SelectionBarContent(selection, songs, modifier)
+    }
+}
+
+@Composable
+private fun SelectionBarContent(selection: SongSelection, songs: List<Song>, modifier: Modifier) {
     val actions = LocalActions.current
     val picked = selection.picked(songs)
     var more by remember { mutableStateOf(false) }

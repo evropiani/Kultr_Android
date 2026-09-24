@@ -169,6 +169,8 @@ private fun HomeShelf(tile: HomeTile, counts: Counts, lastCheck: Long?) {
     val settings by graph.settings.settings.collectAsStateWithLifecycle()
     val playing by graph.player.state.collectAsStateWithLifecycle()
     val downloaded by graph.offline.downloadedIds.collectAsStateWithLifecycle()
+    // Bumped when plays went up to the server or came down from other devices.
+    val listening by graph.sync.listeningVersion.collectAsStateWithLifecycle()
     val seeAllTab = when (tile.id) {
         "mostPlayedAlbums", "recentlyAdded", "randomAlbums" -> LibraryTab.ALBUMS
         "mostPlayedArtists", "randomArtists" -> LibraryTab.ARTISTS
@@ -185,7 +187,7 @@ private fun HomeShelf(tile: HomeTile, counts: Counts, lastCheck: Long?) {
             val songs by when (tile.id) {
                 "mostPlayedSongs" -> remember { library.mostPlayedSongs(10) }.collectAsStateWithLifecycle(emptyList<Song>())
                 "favouriteSongs" -> remember { library.starredSongs() }.collectAsStateWithLifecycle(emptyList())
-                "recentlyPlayed" -> produceState(emptyList<Song>(), playing.current?.id, lastCheck) { value = library.recentlyPlayed(10) }
+                "recentlyPlayed" -> produceState(emptyList<Song>(), playing.current?.id, lastCheck, listening) { value = library.recentlyPlayed(10) }
                 else -> produceState(emptyList<Song>(), counts.songs, lastCheck) { value = library.randomSongs(10) }
             }
             val shown = songs.take(10)

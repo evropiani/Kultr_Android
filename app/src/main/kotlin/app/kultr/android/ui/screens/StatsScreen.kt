@@ -1,6 +1,7 @@
 package app.kultr.android.ui.screens
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -51,79 +56,126 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.TextStyle
 
-private data class StatsSummary(
-    val plays: Int,
-    val seconds: Long,
-    val topSongs: List<Pair<Song, Int>>,
-    val topArtists: List<Pair<String, Long>>,
-    val days: List<Pair<LocalDate, Long>>,
-)
-
 /**
- * Listening stats from Kultr's own history on this phone, not the server's
- * counters — so they reflect what you actually played here.
+ * Listening, from your server's numbers: every device's plays count, and they
+ * survive reinstalling. What was played last merges the server's last-played
+ * times with this phone's own history; the day-by-day chart is this phone's
+ * alone, since the server keeps a count per track rather than a log of every
+ * play.
  */
 @Composable
 fun StatsScreen() {
     val actions = LocalActions.current
     val graph = actions.graph
+    val colors = Kultr.colors
     val history by remember { graph.library.history(5000) }.collectAsStateWithLifecycle(emptyList())
+    val mostPlayed by remember { graph.library.mostPlayedSongs(20) }.collectAsStateWithLifecycle(emptyList())
+    val artists by remember { graph.library.artistPlays(10) }.collectAsStateWithLifecycle(emptyList())
+    val total by remember { graph.library.totalPlays() }.collectAsStateWithLifecycle(0L)
+    val pending by remember { graph.library.pendingPlays() }.collectAsStateWithLifecycle(0)
+    val refreshing by graph.sync.listening.collectAsStateWithLifecycle()
+    val version by graph.sync.listeningVersion.collectAsStateWithLifecycle()
+    val recent by produceState(emptyList<Song>(), history.firstOrNull()?.id, version, total) {
+        value = graph.library.recentlyPlayed(12)
+    }
+    val days = remember(history) { lastTwoWeeks(history) }
     var confirm by remember { mutableStateOf(false) }
-    val summary by produceState<StatsSummary?>(null, history) { value = summarise(history, graph.library.songsByIds(history.map { it.songId }.distinct())) }
 
     Box(Modifier.fillMaxSize()) {
         AccentWash()
         Column(Modifier.fillMaxSize()) {
             BackBar("Listening")
-            val s = summary
-            if (history.isEmpty()) {
-                EmptyState(Icons.Rounded.BarChart, "No listening history yet", body = "Play something and Kultr starts keeping track. History stays on this phone.")
+            if (total == 0L && history.isEmpty() && recent.isEmpty()) {
+                EmptyState(
+                    Icons.Rounded.BarChart,
+                    "Nothing played yet",
+                    body = "Play something and it shows up here — along with what you play on your server from other devices.",
+                )
                 return@Column
             }
             LazyColumn(contentPadding = PaddingValues(bottom = chromePadding())) {
                 item(key = "head") {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            "${Format.count(s?.plays ?: history.size, "play")} · ${Format.duration(s?.seconds ?: 0)} of music",
+                            "${Format.count(total.toInt(), "play")} on your server",
                             style = MaterialTheme.typography.titleLarge,
-                            color = Kultr.colors.ink,
+                            color = colors.ink,
                         )
-                        Pill("Clear history", icon = Icons.Rounded.Delete, onClick = { confirm = true })
+                        Text(
+                            if (pending > 0) {
+                                "${Format.count(pending, "play")} from this phone waiting to be sent."
+                            } else {
+                                "Counted on your server, so every device sees the same."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (pending > 0) colors.warning else colors.ink3,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Pill(
+                                if (refreshing) "Refreshing…" else "Refresh",
+                                icon = Icons.Rounded.Refresh,
+                                onClick = { if (!refreshing) graph.sync.refreshListening(force = true) },
+                            )
+                        }
                     }
                 }
-                if (s != null) {
-                    item(key = "chart") {
-                        SectionHeader("The last two weeks", icon = Icons.Rounded.BarChart)
-                        GlassPanel(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) { DayChart(s.days) }
+                if (recent.isNotEmpty()) {
+                    item(key = "recent-head") { SectionHeader("Played recently", icon = Icons.Rounded.History) }
+                    items(recent, key = { "recent-${it.id}" }) { song ->
+                        SongRow(song, onClick = { actions.play(recent, recent.indexOfFirst { it.id == song.id }) })
                     }
-                    if (s.topArtists.isNotEmpty()) {
-                        item(key = "artists") {
-                            SectionHeader("Top artists")
-                            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                val max = s.topArtists.first().second.coerceAtLeast(1)
-                                val accent = Kultr.colors.accent
-                                s.topArtists.forEach { (name, seconds) ->
+                }
+                if (mostPlayed.isNotEmpty()) {
+                    item(key = "most-head") { SectionHeader("Played the most", icon = Icons.Rounded.PlayArrow) }
+                    items(mostPlayed, key = { "most-${it.id}" }) { song ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.weight(1f)) {
+                                SongRow(song, onClick = { actions.play(mostPlayed, mostPlayed.indexOfFirst { it.id == song.id }) })
+                            }
+                            Text("${song.playCount ?: 0}×", color = colors.ink3, modifier = Modifier.padding(end = 12.dp))
+                        }
+                    }
+                }
+                if (artists.isNotEmpty()) {
+                    item(key = "artists") {
+                        SectionHeader("Top artists")
+                        Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            val max = artists.first().plays.coerceAtLeast(1)
+                            val accent = colors.accent
+                            artists.forEach { artist ->
+                                Column(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .then(
+                                            artist.artistId?.let { id -> Modifier.clickable { actions.openArtist(id) } } ?: Modifier,
+                                        ),
+                                ) {
                                     Row {
-                                        Text(name, color = Kultr.colors.ink, modifier = Modifier.weight(1f), maxLines = 1)
-                                        Text(Format.duration(seconds), color = Kultr.colors.ink3)
+                                        Text(artist.name ?: "Unknown artist", color = colors.ink, modifier = Modifier.weight(1f), maxLines = 1)
+                                        Text(Format.count(artist.plays.toInt(), "play"), color = colors.ink3)
                                     }
-                                    Canvas(Modifier.fillMaxWidth(seconds.toFloat() / max).height(4.dp)) {
+                                    Canvas(Modifier.fillMaxWidth(artist.plays.toFloat() / max).height(4.dp)) {
                                         drawRect(Brush.horizontalGradient(listOf(accent, accent.copy(alpha = 0.3f))))
                                     }
                                 }
                             }
                         }
                     }
-                    if (s.topSongs.isNotEmpty()) {
-                        item(key = "songs-head") { SectionHeader("Most played here") }
-                        items(s.topSongs, key = { it.first.id }) { (song, count) ->
-                            Row {
-                                Box(Modifier.weight(1f)) {
-                                    SongRow(song, onClick = { actions.play(s.topSongs.map { it.first }, s.topSongs.indexOfFirst { it.first.id == song.id }) })
-                                }
-                                Text("$count×", color = Kultr.colors.ink3, modifier = Modifier.padding(top = 20.dp, end = 12.dp))
-                            }
+                }
+                item(key = "chart") {
+                    SectionHeader("The last two weeks on this phone", icon = Icons.Rounded.BarChart)
+                    GlassPanel(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            DayChart(days)
+                            Text(
+                                "Your server counts plays per track, not each play, so this chart comes from this phone's own history.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.ink3,
+                            )
                         }
+                    }
+                    Row(Modifier.padding(16.dp)) {
+                        Pill("Clear this phone's history", icon = Icons.Rounded.Delete, onClick = { confirm = true })
                     }
                 }
             }
@@ -131,13 +183,25 @@ fun StatsScreen() {
     }
     if (confirm) {
         ConfirmDialog(
-            title = "Clear listening history?",
-            body = "Your stats on this phone start again from nothing. Play counts on the server are not touched.",
+            title = "Clear this phone's history?",
+            body = "The chart starts again from nothing. Play counts on your server are not touched, and plays not sent yet are kept until they are.",
             confirm = "Clear",
             onConfirm = { actions.launch { graph.library.clearHistory() } },
             onDismiss = { confirm = false },
         )
     }
+}
+
+/** Seconds listened on each of the last fourteen days, oldest first. */
+private fun lastTwoWeeks(history: List<HistoryEntity>): List<Pair<LocalDate, Long>> {
+    val zone = ZoneId.systemDefault()
+    val daySeconds = HashMap<LocalDate, Long>()
+    for (entry in history) {
+        val day = Instant.ofEpochMilli(entry.playedAt).atZone(zone).toLocalDate()
+        daySeconds[day] = (daySeconds[day] ?: 0) + entry.seconds
+    }
+    val today = LocalDate.now(zone)
+    return (13 downTo 0).map { back -> today.minusDays(back.toLong()).let { it to (daySeconds[it] ?: 0L) } }
 }
 
 @Composable
@@ -171,29 +235,4 @@ private fun DayChart(days: List<Pair<LocalDate, Long>>) {
             }
         }
     }
-}
-
-private fun summarise(history: List<HistoryEntity>, songs: List<Song>): StatsSummary {
-    val byId = songs.associateBy { it.id }
-    val zone = ZoneId.systemDefault()
-    val plays = HashMap<String, Int>()
-    val artistSeconds = HashMap<String, Long>()
-    val daySeconds = HashMap<LocalDate, Long>()
-    var total = 0L
-    for (entry in history) {
-        total += entry.seconds
-        plays[entry.songId] = (plays[entry.songId] ?: 0) + 1
-        byId[entry.songId]?.artist?.let { artistSeconds[it] = (artistSeconds[it] ?: 0) + entry.seconds }
-        val day = Instant.ofEpochMilli(entry.playedAt).atZone(zone).toLocalDate()
-        daySeconds[day] = (daySeconds[day] ?: 0) + entry.seconds
-    }
-    val today = LocalDate.now(zone)
-    val days = (13 downTo 0).map { back -> today.minusDays(back.toLong()).let { it to (daySeconds[it] ?: 0L) } }
-    return StatsSummary(
-        plays = history.size,
-        seconds = total,
-        topSongs = plays.entries.sortedByDescending { it.value }.mapNotNull { (id, count) -> byId[id]?.let { it to count } }.take(20),
-        topArtists = artistSeconds.entries.sortedByDescending { it.value }.take(10).map { it.key to it.value },
-        days = days,
-    )
 }

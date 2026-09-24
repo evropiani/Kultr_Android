@@ -120,7 +120,10 @@ class PlaybackEngine(
 
     // ---------------------------------------------------------- transitions --
 
-    private class Pending(val item: QueueItem, val plan: TransitionPlan)
+    private class Pending(val item: QueueItem, val plan: TransitionPlan) {
+        /** Whether the next track's audio has been loaded for it yet (see [PRIME_LEAD_MS]). */
+        var primed = false
+    }
 
     private class Transition(
         val plan: TransitionPlan,
@@ -466,6 +469,10 @@ class PlaybackEngine(
         if (duration <= 0) return
         val p = pending
         if (p != null) {
+            if (!p.primed) {
+                if (dueMs(p, duration) - position > PRIME_LEAD_MS) return
+                prime(p)
+            }
             if (p.plan.type == TransitionType.GAPLESS || p.plan.type == TransitionType.CUT) return
             val startMs = min((p.plan.startAt * 1000).roundToLong(), duration - 50)
             val rampMs = (p.plan.outgoingRamp * 1000).roundToLong()
@@ -475,9 +482,17 @@ class PlaybackEngine(
                 approach = Approach(deck, p.plan.outgoingRate, position, startMs)
             }
             if (position >= startMs) executeTransition(p)
-        } else if (duration - position <= PREPARE_LEAD_MS && preparedFor != item.uid && !pauseAtEndOfTrack) {
+        } else if (preparedFor != item.uid && !pauseAtEndOfTrack) {
+            // Plan as soon as the track plays: the planner then has the whole
+            // track to choose a mix-out point from, and the plan shows at once.
             prepareNext()
         }
+    }
+
+    /** Where in the current track the hand-over in [p] happens. */
+    private fun dueMs(p: Pending, duration: Long): Long = when (p.plan.type) {
+        TransitionType.GAPLESS, TransitionType.CUT -> duration
+        else -> min((p.plan.startAt * 1000).roundToLong(), duration - 50)
     }
 
     private fun runApproach(deck: Deck, position: Long) {
@@ -589,7 +604,12 @@ class PlaybackEngine(
             } catch (_: Exception) {
                 fallbackPlan(context.durationA)
             }
-            if (currentItem?.uid != current.uid || peekNext()?.uid != next.uid) return@launch
+            if (currentItem?.uid != current.uid) return@launch
+            if (peekNext()?.uid != next.uid) {
+                // The queue changed while this was being planned: plan again.
+                preparedFor = null
+                return@launch
+            }
             setPending(next, plan)
         }
     }
@@ -621,14 +641,23 @@ class PlaybackEngine(
     }
 
     private fun setPending(item: QueueItem, plan: TransitionPlan) {
-        pending = Pending(item, plan)
+        val p = Pending(item, plan)
+        pending = p
         currentItem?.let { lastPlan = it.uid to plan }
-        when (plan.type) {
-            TransitionType.GAPLESS -> active.setNext(item)
-            TransitionType.CUT -> primeIdle(item, 0)
-            else -> primeIdle(item, (plan.inStartOffset * 1000).roundToLong())
-        }
+        // Load the next track now only if the hand-over is close; otherwise
+        // tick() does it nearer the time, so no stream is held open for minutes.
+        val duration = durationMs
+        if (duration <= 0 || dueMs(p, duration) - active.positionMs <= PRIME_LEAD_MS) prime(p)
         host.onStateChanged()
+    }
+
+    private fun prime(p: Pending) {
+        p.primed = true
+        when (p.plan.type) {
+            TransitionType.GAPLESS -> active.setNext(p.item)
+            TransitionType.CUT -> primeIdle(p.item, 0)
+            else -> primeIdle(p.item, (p.plan.inStartOffset * 1000).roundToLong())
+        }
     }
 
     private fun primeIdle(item: QueueItem, startMs: Long) {
@@ -931,8 +960,11 @@ class PlaybackEngine(
     }
 
     companion object {
-        /** How early the next transition is planned. */
-        const val PREPARE_LEAD_MS = 35_000L
+        /**
+         * How long before a hand-over the next track's audio is loaded. The
+         * hand-over itself is planned as soon as the current track starts.
+         */
+        const val PRIME_LEAD_MS = 30_000L
         const val INCOMING_START_TIMEOUT_MS = 5_000L
         const val BASS_CUT_DB = -26.0
         const val SWEEP_FROM_HZ = 20.0
