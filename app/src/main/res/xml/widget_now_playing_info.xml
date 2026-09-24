@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Now-playing widget: 4×1 by default, resizable. The configure activity
-     opens when it is placed (and again on reconfigure) to set its opacity. -->
+<!-- Now-playing widget: 4×1 by default, resizable in both directions (its
+     content scales to fit). The configure activity opens when it is placed,
+     and again on reconfigure, to choose the artwork and background opacity. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:configure="app.kultr.android.widget.WidgetConfigActivity"
     android:description="@string/widget_description"

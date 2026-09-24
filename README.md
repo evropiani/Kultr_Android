@@ -25,7 +25,8 @@ downloads for offline listening.
   phone. Downloads play first, before the network is tried, and a stream cache
   keeps recent tracks too.
 - **Cast** to a Chromecast or speaker group from the player.
-- **Home screen widget** with artwork and playback controls, with the background
+- **Home screen widget**: centred artwork, title and controls that scale with
+  the widget as you resize it, with the artwork optional and the background
   opacity you choose; media buttons, KWGT and other controllers work too.
 - **Drag and drop** tracks, albums, artists and playlists onto Play next, Add to
   queue, Favourite, Sync offline or Delete downloads.
