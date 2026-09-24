@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AccentWash
 import app.kultr.android.ui.components.AlbumCard
 import app.kultr.android.ui.components.ArtistCard
@@ -142,7 +143,7 @@ private fun DetailScaffold(selection: SongSelection, songs: List<Song>, content:
         Column(Modifier.fillMaxSize()) {
             BackBar()
             if (selection.active) SelectionBar(selection, songs)
-            LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 24.dp), content = content)
+            LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = chromePadding()), content = content)
         }
     }
 }

@@ -8,23 +8,24 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -35,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -45,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -57,7 +60,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.kultr.android.AppGraph
-import app.kultr.android.data.DownloadStatus
 import app.kultr.android.data.MessageKind
 import app.kultr.android.data.ServerProfile
 import app.kultr.android.ui.components.AddToPlaylistDialog
@@ -65,16 +67,19 @@ import app.kultr.android.ui.components.ArtworkBackdropPlain
 import app.kultr.android.ui.components.DragDropState
 import app.kultr.android.ui.components.DropZoneOverlay
 import app.kultr.android.ui.components.LocalDragDrop
+import app.kultr.android.ui.components.LocalGlassBackdrop
 import app.kultr.android.ui.components.RatingDialog
 import app.kultr.android.ui.components.SleepTimerDialog
+import app.kultr.android.ui.components.glassSource
 import app.kultr.android.ui.components.rememberArtworkUrl
+import app.kultr.android.ui.components.rememberGlassBackdrop
 import app.kultr.android.ui.player.ArtworkBackdrop
 import app.kultr.android.ui.player.MiniPlayer
 import app.kultr.android.ui.player.NowPlayingScreen
 import app.kultr.android.ui.screens.AlbumScreen
+import app.kultr.android.ui.screens.ArtistScreen
 import app.kultr.android.ui.screens.DownloadIndicator
 import app.kultr.android.ui.screens.DownloadsScreen
-import app.kultr.android.ui.screens.ArtistScreen
 import app.kultr.android.ui.screens.GenreScreen
 import app.kultr.android.ui.screens.HomeScreen
 import app.kultr.android.ui.screens.LibraryScreen
@@ -103,6 +108,10 @@ private enum class Tab(val route: String, val label: String, val icon: ImageVect
     SEARCH(Routes.SEARCH, "Search", Icons.Rounded.Search),
     SETTINGS(Routes.SETTINGS, "Settings", Icons.Rounded.Settings),
 }
+
+/** The tabs in the floating bar; Search has its own round button beside it. */
+private val BAR_TABS = listOf(Tab.HOME, Tab.LIBRARY, Tab.SETTINGS)
+private val GLASS_TABS = BAR_TABS.map { GlassTab(it.label, it.icon) }
 
 /** A [UiMessage][app.kultr.android.data.UiMessage] on its way to the snackbar. */
 private class Message(override val message: String, val kind: MessageKind, long: Boolean) : SnackbarVisuals {
@@ -224,7 +233,6 @@ private fun MainUi(
     LaunchedEffect(openDownloadsRequest) {
         if (openDownloadsRequest > 0) actions.openDownloads()
     }
-    val downloadStatus by graph.offline.status.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) {
         graph.messages.messages.collect { message ->
             snackbar.currentSnackbarData?.dismiss()
@@ -237,23 +245,48 @@ private fun MainUi(
     val currentTab = Tab.entries.firstOrNull { it.route == backStack?.destination?.route }
     LaunchedEffect(currentTab) { if (currentTab != null) selectedTab = currentTab }
     val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val glass = rememberGlassBackdrop()
+    var chromeHeight by remember { mutableIntStateOf(0) }
+    val chromeInset = if (keyboardOpen) 0.dp else with(LocalDensity.current) { chromeHeight.toDp() }
 
-    CompositionLocalProvider(LocalActions provides actions, LocalDragDrop provides dragDrop) {
-        Box(Modifier.fillMaxSize()) {
-            if (settings.backdropArtwork && player.current != null) {
-                ArtworkBackdrop(player.current?.artworkId)
-            } else {
-                ArtworkBackdropPlain()
+    fun openTab(tab: Tab) {
+        selectedTab = tab
+        // A tab always opens at its own start page, dropping any album,
+        // artist or other page opened inside it. Already there: nothing to do.
+        if (backStack?.destination?.route == tab.route) return
+        if (tab == Tab.HOME) {
+            nav.popBackStack(Routes.HOME, inclusive = false)
+        } else {
+            nav.navigate(if (tab == Tab.LIBRARY) Routes.library() else tab.route) {
+                popUpTo(nav.graph.findStartDestination().id)
+                launchSingleTop = true
             }
-            Column(Modifier.fillMaxSize().imePadding()) {
+        }
+    }
+
+    CompositionLocalProvider(
+        LocalActions provides actions,
+        LocalDragDrop provides dragDrop,
+        LocalGlassBackdrop provides glass,
+        LocalChromeInset provides chromeInset,
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            // Everything the floating controls float over, recorded for their glass.
+            Box(Modifier.fillMaxSize().glassSource(glass)) {
+                if (settings.backdropArtwork && player.current != null) {
+                    ArtworkBackdrop(player.current?.artworkId)
+                } else {
+                    ArtworkBackdropPlain()
+                }
                 NavHost(
                     navController = nav,
                     startDestination = Routes.HOME,
-                    modifier = Modifier.weight(1f),
-                    enterTransition = { fadeIn(tween(180)) },
+                    modifier = Modifier.fillMaxSize().imePadding(),
+                    // Pages rise into place; the one left behind fades.
+                    enterTransition = { fadeIn(tween(200)) + slideInVertically(tween(260)) { it / 24 } },
                     exitTransition = { fadeOut(tween(120)) },
-                    popEnterTransition = { fadeIn(tween(180)) },
-                    popExitTransition = { fadeOut(tween(120)) },
+                    popEnterTransition = { fadeIn(tween(200)) },
+                    popExitTransition = { fadeOut(tween(140)) + slideOutVertically(tween(200)) { it / 24 } },
                 ) {
                     composable(Routes.HOME) { HomeScreen() }
                     composable(
@@ -283,25 +316,39 @@ private fun MainUi(
                         DownloadsScreen(page)
                     }
                 }
-                if (!keyboardOpen) {
+            }
+
+            if (!keyboardOpen) {
+                // The floating controls: downloads, the mini player and the tab bar,
+                // each a piece of glass over the page.
+                Column(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .onSizeChanged { chromeHeight = it.height }
+                        .navigationBarsPadding()
+                        .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     // The Downloads page shows all of this already.
                     if (backStack?.destination?.route != Routes.DOWNLOADS) {
                         DownloadIndicator(onOpen = { actions.openDownloads() })
                     }
                     MiniPlayer(player)
-                    BottomBar(selectedTab) { tab ->
-                        selectedTab = tab
-                        // A tab always opens at its own start page, dropping any album,
-                        // artist or other page opened inside it. Already there: nothing to do.
-                        if (backStack?.destination?.route == tab.route) return@BottomBar
-                        if (tab == Tab.HOME) {
-                            nav.popBackStack(Routes.HOME, inclusive = false)
-                        } else {
-                            nav.navigate(if (tab == Tab.LIBRARY) Routes.library() else tab.route) {
-                                popUpTo(nav.graph.findStartDestination().id)
-                                launchSingleTop = true
-                            }
-                        }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        GlassTabBar(
+                            tabs = GLASS_TABS,
+                            selected = BAR_TABS.indexOf(selectedTab),
+                            onSelect = { index -> openTab(BAR_TABS[index]) },
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        GlassRoundButton(
+                            icon = Tab.SEARCH.icon,
+                            label = Tab.SEARCH.label,
+                            selected = selectedTab == Tab.SEARCH,
+                            onClick = { openTab(Tab.SEARCH) },
+                        )
                     }
                 }
             }
@@ -311,13 +358,7 @@ private fun MainUi(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .imePadding()
-                    .padding(
-                        bottom = when {
-                            keyboardOpen -> 8.dp
-                            else -> (if (player.current != null) 150.dp else 90.dp) +
-                                (if (downloadStatus != DownloadStatus.Idle) 48.dp else 0.dp)
-                        },
-                    ),
+                    .padding(bottom = if (keyboardOpen) 8.dp else chromeInset),
             ) { data ->
                 val colors = Kultr.colors
                 val kind = (data.visuals as? Message)?.kind ?: MessageKind.INFO
@@ -348,31 +389,5 @@ private fun MainUi(
         dialogs.addToPlaylist?.let { songs -> AddToPlaylistDialog(songs, onDismiss = { dialogs.addToPlaylist = null }) }
         dialogs.rate?.let { song -> RatingDialog(song, onDismiss = { dialogs.rate = null }) }
         if (dialogs.sleepTimer) SleepTimerDialog(onDismiss = { dialogs.sleepTimer = false })
-    }
-}
-
-@Composable
-private fun BottomBar(selected: Tab, onSelect: (Tab) -> Unit) {
-    val colors = Kultr.colors
-    NavigationBar(
-        modifier = Modifier.fillMaxWidth(),
-        containerColor = colors.elevated.copy(alpha = 0.92f),
-        tonalElevation = 0.dp,
-    ) {
-        Tab.entries.forEach { tab ->
-            NavigationBarItem(
-                selected = tab == selected,
-                onClick = { onSelect(tab) },
-                icon = { Icon(tab.icon, contentDescription = null) },
-                label = { Text(tab.label) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = colors.accent,
-                    selectedTextColor = colors.ink,
-                    indicatorColor = colors.accentSoft,
-                    unselectedIconColor = colors.ink3,
-                    unselectedTextColor = colors.ink3,
-                ),
-            )
-        }
     }
 }

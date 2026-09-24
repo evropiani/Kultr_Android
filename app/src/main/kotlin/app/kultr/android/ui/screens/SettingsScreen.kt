@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Backup
@@ -41,7 +42,6 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
-import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material3.AlertDialog
@@ -73,6 +73,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.BuildConfig
 import app.kultr.android.data.ServerProfile
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.BrandIcons
 import app.kultr.android.ui.components.ConfirmDialog
 import app.kultr.android.ui.components.GlassPanel
@@ -109,7 +110,7 @@ fun SettingsScreen(onAddServer: () -> Unit, onSignIn: (ServerProfile) -> Unit) {
     var open by rememberSaveable { mutableStateOf(setOf<String>()) }
     fun update(transform: (Settings) -> Settings) = graph.settings.update(transform)
 
-    LazyColumn(Modifier.fillMaxSize().statusBarsPadding(), contentPadding = PaddingValues(bottom = 32.dp)) {
+    LazyColumn(Modifier.fillMaxSize().statusBarsPadding(), contentPadding = PaddingValues(bottom = chromePadding(32.dp))) {
         item {
             Text(
                 "Settings",

@@ -3,11 +3,9 @@ package app.kultr.android.ui.player
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,13 +44,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.playback.PlayerUiState
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.components.Artwork
+import app.kultr.android.ui.components.glass
 import app.kultr.android.ui.theme.Kultr
-import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlinx.coroutines.launch
 
 /**
- * The strip above the navigation bar: what is playing, previous, play/pause
- * and next. Swipe it left for the next track and right for the previous one.
+ * The glass capsule above the tab bar: what is playing, previous,
+ * play/pause and next. Swipe it left for the next track and right for the
+ * previous one.
  */
 @Composable
 fun MiniPlayer(state: PlayerUiState, modifier: Modifier = Modifier) {
@@ -67,15 +67,12 @@ fun MiniPlayer(state: PlayerUiState, modifier: Modifier = Modifier) {
     val live by remember(song.id) { actions.graph.library.song(song.id) }.collectAsStateWithLifecycle(null)
     val starred = live?.isStarred ?: song.isStarred
     val position by rememberPosition(500)
-    val shape = RoundedCornerShape(Kultr.radii.lg)
+    val shape = RoundedCornerShape(30.dp)
 
     Column(
         modifier
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .glass(shape)
             .clip(shape)
-            .background(colors.elevated.copy(alpha = 0.94f))
-            .background(colors.accent.copy(alpha = 0.10f))
-            .border(BorderStroke(1.dp, colors.edge), shape)
             .pointerInput(Unit) {
                 val width = size.width.toFloat()
                 detectHorizontalDragGestures(
@@ -106,14 +103,14 @@ fun MiniPlayer(state: PlayerUiState, modifier: Modifier = Modifier) {
     ) {
         Row(
             Modifier
-                .padding(8.dp)
+                .padding(start = 8.dp, end = 6.dp, top = 8.dp, bottom = 4.dp)
                 .graphicsLayer {
                     translationX = swipe.value
                     alpha = 1f - (abs(swipe.value) / size.width).coerceIn(0f, 0.7f)
                 },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Artwork(song.artworkId, size = 44.dp)
+            Artwork(song.artworkId, size = 44.dp, shape = RoundedCornerShape(22.dp))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
@@ -156,7 +153,15 @@ fun MiniPlayer(state: PlayerUiState, modifier: Modifier = Modifier) {
             }
         }
         val fraction = if (state.durationMs > 0) (position.toFloat() / state.durationMs).coerceIn(0f, 1f) else 0f
-        Box(Modifier.fillMaxWidth().height(2.dp).background(colors.ink4)) {
+        // Inset, so the line stays clear of the rounded ends.
+        Box(
+            Modifier
+                .padding(start = 30.dp, end = 30.dp, bottom = 5.dp)
+                .fillMaxWidth()
+                .height(2.dp)
+                .clip(RoundedCornerShape(1.dp))
+                .background(colors.ink4),
+        ) {
             Box(Modifier.fillMaxWidth(fraction).height(2.dp).background(colors.accent))
         }
     }

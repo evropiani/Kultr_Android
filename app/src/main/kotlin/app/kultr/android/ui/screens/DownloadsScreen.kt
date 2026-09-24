@@ -64,6 +64,7 @@ import app.kultr.android.data.db.DownloadUsage
 import app.kultr.android.ui.DownloadsPage
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.Routes
+import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AccentWash
 import app.kultr.android.ui.components.AlbumCard
 import app.kultr.android.ui.components.Artwork
@@ -74,6 +75,7 @@ import app.kultr.android.ui.components.Pill
 import app.kultr.android.ui.components.SectionHeader
 import app.kultr.android.ui.components.SelectionBar
 import app.kultr.android.ui.components.Shelf
+import app.kultr.android.ui.components.glass
 import app.kultr.android.ui.components.rememberSelection
 import app.kultr.android.ui.components.songItems
 import app.kultr.android.ui.theme.Kultr
@@ -147,7 +149,7 @@ private fun DownloadQueue() {
     val failedSongs = rememberSongs(failed)
     var confirmStop by remember { mutableStateOf(false) }
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = chromePadding())) {
         item(key = "status") {
             GlassPanel(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -385,7 +387,7 @@ fun OfflineContent() {
 
     Column(Modifier.fillMaxSize()) {
         if (selection.active) SelectionBar(selection, songs)
-        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 24.dp)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = chromePadding())) {
             item(key = "summary") {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -458,14 +460,21 @@ fun DownloadIndicator(onOpen: () -> Unit, modifier: Modifier = Modifier, inline:
     val active by graph.offline.active.collectAsStateWithLifecycle()
     val visible = status != DownloadStatus.Idle
     AnimatedVisibility(visible, modifier = modifier, enter = expandVertically(), exit = shrinkVertically()) {
-        val shape = RoundedCornerShape(Kultr.radii.md)
+        val shape = if (inline) RoundedCornerShape(Kultr.radii.md) else RoundedCornerShape(24.dp)
         Column(
             Modifier
                 .fillMaxWidth()
-                .then(if (inline) Modifier else Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
-                .clip(shape)
-                .background(colors.elevated.copy(alpha = 0.94f))
-                .background(colors.accent.copy(alpha = 0.08f))
+                .then(
+                    if (inline) {
+                        Modifier
+                            .clip(shape)
+                            .background(colors.elevated.copy(alpha = 0.94f))
+                            .background(colors.accent.copy(alpha = 0.08f))
+                    } else {
+                        // Floating over the page with the mini player and tab bar.
+                        Modifier.glass(shape).clip(shape)
+                    },
+                )
                 .clickable(onClick = onOpen)
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),

@@ -1,5 +1,6 @@
 package app.kultr.android.ui.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CloudSync
@@ -31,6 +31,7 @@ import app.kultr.android.data.Connection
 import app.kultr.android.data.db.Counts
 import app.kultr.android.data.db.DownloadUsage
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AccentWash
 import app.kultr.android.ui.components.Eyebrow
 import app.kultr.android.ui.components.GlassPanel
@@ -66,7 +67,8 @@ fun SyncScreen() {
         Column(Modifier.fillMaxSize()) {
             BackBar("Sync")
             Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                    .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = chromePadding(16.dp)),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 GlassPanel(Modifier.fillMaxWidth()) {

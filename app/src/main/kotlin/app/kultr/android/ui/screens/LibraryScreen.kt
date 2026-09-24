@@ -1,6 +1,7 @@
 package app.kultr.android.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,8 +21,9 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.Add
@@ -46,6 +48,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,16 +56,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.data.db.DownloadUsage
 import app.kultr.android.ui.LibraryTab
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AlbumCard
 import app.kultr.android.ui.components.ArtistCard
 import app.kultr.android.ui.components.Artwork
@@ -84,15 +91,33 @@ import app.kultr.core.api.Song
 import app.kultr.core.api.asSong
 import app.kultr.core.api.describeError
 import app.kultr.core.util.Format
+import kotlin.math.abs
+import kotlinx.coroutines.launch
 
 private enum class AlbumSort(val label: String) { NAME("Name"), ARTIST("Artist"), YEAR("Year"), ADDED("Recently added"), PLAYS("Most played") }
 private enum class SongSort(val label: String) { TITLE("Title"), ARTIST("Artist"), ALBUM("Album"), ADDED("Recently added"), PLAYS("Most played"), RATING("Rating") }
 
+/** Tabs whose lists can be filtered by typing. */
+private val FILTERABLE = setOf(LibraryTab.ALBUMS, LibraryTab.ARTISTS, LibraryTab.SONGS, LibraryTab.PLAYLISTS, LibraryTab.GENRES, LibraryTab.RADIO)
+
+/**
+ * The library, one page per tab. Swipe sideways to move between them; the
+ * tab row's underline follows the finger.
+ */
 @Composable
 fun LibraryScreen(initialTab: LibraryTab) {
-    var tab by rememberSaveable { mutableStateOf(initialTab) }
-    LaunchedEffect(initialTab) { tab = initialTab }
-    var query by rememberSaveable { mutableStateOf("") }
+    val tabs = LibraryTab.entries
+    val pager = rememberPagerState(initialPage = initialTab.ordinal) { tabs.size }
+    val scope = rememberCoroutineScope()
+    // A link to a particular tab (from Home, say) moves the pager there; coming
+    // back to the page after rotating keeps wherever it was.
+    var opened by rememberSaveable { mutableStateOf(initialTab) }
+    LaunchedEffect(initialTab) {
+        if (initialTab != opened) {
+            opened = initialTab
+            pager.scrollToPage(initialTab.ordinal)
+        }
+    }
 
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Text(
@@ -102,27 +127,64 @@ fun LibraryScreen(initialTab: LibraryTab) {
             modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
         )
         PrimaryScrollableTabRow(
-            selectedTabIndex = tab.ordinal,
+            selectedTabIndex = pager.currentPage,
             edgePadding = 8.dp,
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            indicator = {
+                TabRowDefaults.PrimaryIndicator(
+                    Modifier.tabIndicatorLayout { measurable, constraints, positions ->
+                        if (positions.isEmpty()) return@tabIndicatorLayout layout(0, 0) {}
+                        // Between the page showing and the one being swiped towards.
+                        val current = pager.currentPage.coerceIn(0, positions.lastIndex)
+                        val fraction = pager.currentPageOffsetFraction
+                        val next = (current + if (fraction > 0f) 1 else -1).coerceIn(0, positions.lastIndex)
+                        val from = positions[current]
+                        val to = positions[next]
+                        val t = abs(fraction)
+                        val width = lerp(from.contentWidth, to.contentWidth, t).roundToPx()
+                        val centre = lerp(from.left + from.width / 2, to.left + to.width / 2, t).roundToPx()
+                        val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+                        // The row centres the indicator in the current tab; undo that, then place it.
+                        val shift = maxOf(0, (from.width.roundToPx() - width) / 2)
+                        layout(placeable.width, placeable.height) { placeable.place(centre - width / 2 - shift, 0) }
+                    },
+                    width = Dp.Unspecified,
+                )
+            },
         ) {
-            LibraryTab.entries.forEach { entry ->
-                Tab(selected = tab == entry, onClick = { tab = entry; query = "" }, text = { Text(entry.label) })
+            tabs.forEachIndexed { index, entry ->
+                Tab(
+                    selected = pager.currentPage == index,
+                    onClick = { scope.launch { pager.animateScrollToPage(index) } },
+                    text = { Text(entry.label) },
+                )
             }
         }
-        if (tab in setOf(LibraryTab.ALBUMS, LibraryTab.ARTISTS, LibraryTab.SONGS, LibraryTab.PLAYLISTS, LibraryTab.GENRES, LibraryTab.RADIO)) {
-            FilterField(query, onChange = { query = it }, placeholder = "Filter ${tab.label.lowercase()}")
-        }
-        Box(Modifier.weight(1f)) {
-            when (tab) {
-                LibraryTab.ALBUMS -> AlbumsTab(query)
-                LibraryTab.ARTISTS -> ArtistsTab(query)
-                LibraryTab.SONGS -> SongsTab(query)
-                LibraryTab.PLAYLISTS -> PlaylistsTab(query)
-                LibraryTab.GENRES -> GenresTab(query)
-                LibraryTab.FAVOURITES -> FavouritesTab()
-                LibraryTab.DOWNLOADS -> DownloadsTab()
-                LibraryTab.RADIO -> RadioTab(query)
+        HorizontalPager(
+            state = pager,
+            modifier = Modifier.weight(1f),
+            key = { tabs[it].name },
+            verticalAlignment = Alignment.Top,
+        ) { page ->
+            val tab = tabs[page]
+            // Each tab keeps its own filter.
+            var query by rememberSaveable { mutableStateOf("") }
+            Column(Modifier.fillMaxSize()) {
+                if (tab in FILTERABLE) {
+                    FilterField(query, onChange = { query = it }, placeholder = "Filter ${tab.label.lowercase()}")
+                }
+                Box(Modifier.weight(1f)) {
+                    when (tab) {
+                        LibraryTab.ALBUMS -> AlbumsTab(query)
+                        LibraryTab.ARTISTS -> ArtistsTab(query)
+                        LibraryTab.SONGS -> SongsTab(query)
+                        LibraryTab.PLAYLISTS -> PlaylistsTab(query)
+                        LibraryTab.GENRES -> GenresTab(query)
+                        LibraryTab.FAVOURITES -> FavouritesTab()
+                        LibraryTab.DOWNLOADS -> DownloadsTab()
+                        LibraryTab.RADIO -> RadioTab(query)
+                    }
+                }
             }
         }
     }
@@ -184,7 +246,7 @@ private fun AlbumsTab(query: String) {
     if (list.isEmpty()) return EmptyLibrary()
     LazyVerticalGrid(
         columns = GridCells.Adaptive(settings.gridSize.minCell()),
-        contentPadding = PaddingValues(10.dp),
+        contentPadding = PaddingValues(start = 10.dp, top = 10.dp, end = 10.dp, bottom = chromePadding(10.dp)),
         modifier = Modifier.fillMaxSize(),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
@@ -223,7 +285,7 @@ private fun ArtistsTab(query: String) {
     }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(settings.gridSize.minCell()),
-        contentPadding = PaddingValues(10.dp),
+        contentPadding = PaddingValues(start = 10.dp, top = 10.dp, end = 10.dp, bottom = chromePadding(10.dp)),
         modifier = Modifier.fillMaxSize(),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
@@ -264,7 +326,7 @@ private fun SongsTab(query: String) {
     }
     Column(Modifier.fillMaxSize()) {
         if (selection.active) SelectionBar(selection, shown)
-        LazyColumn(Modifier.weight(1f)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = chromePadding(8.dp))) {
             item(key = "actions") {
                 Row(
                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
@@ -313,7 +375,7 @@ private fun PlaylistsTab(query: String) {
     }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(settings.gridSize.minCell()),
-        contentPadding = PaddingValues(10.dp),
+        contentPadding = PaddingValues(start = 10.dp, top = 10.dp, end = 10.dp, bottom = chromePadding(10.dp)),
         modifier = Modifier.fillMaxSize(),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
@@ -358,7 +420,7 @@ private fun GenresTab(query: String) {
         val needle = query.trim().lowercase()
         if (needle.isEmpty()) list else list.filter { it.value.lowercase().contains(needle) }
     }
-    LazyColumn(Modifier.fillMaxSize()) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = chromePadding(8.dp))) {
         items(shown, key = { it.value }) { genre ->
             Row(
                 Modifier.fillMaxWidth().clickable { actions.openGenre(genre.value) }.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -401,7 +463,7 @@ private fun FavouritesTab() {
     }
     Column(Modifier.fillMaxSize()) {
         if (selection.active) SelectionBar(selection, songs)
-        LazyColumn(Modifier.weight(1f)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = chromePadding(8.dp))) {
             item(key = "actions") {
                 Row(
                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -481,7 +543,7 @@ private fun RadioTab(query: String) {
         )
         return
     }
-    LazyColumn(Modifier.fillMaxSize()) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = chromePadding(8.dp))) {
         items(shown, key = { it.id }) { station ->
             val favourite = station.id in settings.favouriteRadios
             Row(

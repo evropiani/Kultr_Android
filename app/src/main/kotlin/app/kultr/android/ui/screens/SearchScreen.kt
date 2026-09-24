@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.data.SearchResults
 import app.kultr.android.data.db.Counts
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AlbumCard
 import app.kultr.android.ui.components.ArtistCard
 import app.kultr.android.ui.components.EmptyState
@@ -101,7 +102,7 @@ fun SearchScreen() {
             if (counts.songs > 0) Switch(checked = serverSearch, onCheckedChange = { serverSearch = it })
         }
         if (selection.active) SelectionBar(selection, results.songs)
-        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 24.dp)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = chromePadding())) {
             when {
                 query.trim().length < 2 -> item {
                     EmptyState(Icons.Rounded.Search, "Find anything", body = "Type at least two letters.")

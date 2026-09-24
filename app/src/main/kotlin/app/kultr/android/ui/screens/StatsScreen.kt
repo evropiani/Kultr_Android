@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.data.db.HistoryEntity
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AccentWash
 import app.kultr.android.ui.components.ConfirmDialog
 import app.kultr.android.ui.components.EmptyState
@@ -79,7 +80,7 @@ fun StatsScreen() {
                 EmptyState(Icons.Rounded.BarChart, "No listening history yet", body = "Play something and Kultr starts keeping track. History stays on this phone.")
                 return@Column
             }
-            LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+            LazyColumn(contentPadding = PaddingValues(bottom = chromePadding())) {
                 item(key = "head") {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(

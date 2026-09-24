@@ -1,6 +1,7 @@
 package app.kultr.android.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,18 +15,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BarChart
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Radio
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.Sync
-import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,17 +43,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.data.db.Counts
 import app.kultr.android.ui.LibraryTab
 import app.kultr.android.ui.LocalActions
-import app.kultr.android.ui.player.CastButton
 import app.kultr.android.ui.Routes
+import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AlbumCard
 import app.kultr.android.ui.components.ArtistCard
+import app.kultr.android.ui.components.ArtworkFill
 import app.kultr.android.ui.components.EmptyState
 import app.kultr.android.ui.components.Pill
 import app.kultr.android.ui.components.PlaylistCard
 import app.kultr.android.ui.components.SectionHeader
 import app.kultr.android.ui.components.Shelf
 import app.kultr.android.ui.components.SongRow
-import app.kultr.android.ui.components.ArtworkFill
+import app.kultr.android.ui.player.CastButton
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.RadioStation
 import app.kultr.core.api.Song
@@ -88,7 +89,7 @@ fun HomeScreen() {
     val tiles = remember(settings.homeTiles) { resolveHomeTiles(settings.homeTiles) }
     val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = chromePadding())) {
         item(key = "head") {
             Column(Modifier.statusBarsPadding().padding(start = 16.dp, end = 4.dp, top = 12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
