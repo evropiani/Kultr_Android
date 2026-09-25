@@ -1,48 +1,54 @@
 # Kultr for Android
 
 A native Android client for [Navidrome](https://www.navidrome.org/) and other
-Subsonic-compatible servers — the Android counterpart of the
-[Kultr web client](https://github.com/evropiani/Kultr). It keeps the web
-client's behaviour and settings (a settings file exported from one opens in
-the other) while running as a proper Android music app: background playback,
-a media notification, lock-screen and Bluetooth controls, Android Auto, and
+Subsonic-compatible servers. It's the Android counterpart of the
+[Kultr web client](https://github.com/evropiani/Kultr) and of
+[Kultr for iOS](https://github.com/evropiani/Kultr_iOS). It keeps their
+behaviour and settings (a settings file exported from one opens in the
+others) and runs as a proper Android music app: background playback, a media
+notification, lock-screen and Bluetooth controls, Android Auto, Cast, and
 downloads for offline listening.
 
 ## Features
 
+- **Liquid glass.** The tab bar, mini player and download progress float over
+  the page, which scrolls behind them blurred (Android 12 and later; on
+  Android 13 the edges bend the light like a lens). The selected tab is a lens
+  you can slide along the bar with your finger, and the round search button
+  grows into the search field, riding on the keyboard. Light and dark follow
+  the phone's own setting, and a pale colour taken from the artwork is
+  deepened in light mode so it stays readable.
 - **Library mirror.** The whole library is synced into a local database, so
   browsing and search are instant and work offline. Later syncs fetch only
   what changed; they can run at start-up and periodically in the background.
+  Swipe between the Library's tabs: albums, artists, songs, playlists, genres,
+  favourites, downloads and radio.
 - **Two-deck playback.** Every track plays on one of two players, so Kultr can
   crossfade (with a choice of curves), play gapless albums seamlessly, or cut.
 - **InjeKt transitions.** Tracks are analysed on the phone (tempo, beat grid,
-  key, energy and intro/outro structure) and transitions are planned from
-  that, as soon as a track starts: tempo-matched blends that land on the
-  downbeat, a bass swap, a filter sweep, and key-aware ordering for an
-  endless automatic queue.
+  key, energy and intro/outro structure), and each transition is planned as
+  soon as a track starts: tempo-matched blends that land on the downbeat, a
+  bass swap, a filter sweep, and key-aware ordering for an endless automatic
+  queue.
 - **Offline.** Download albums, playlists, favourites or the whole library, at
   a bitrate of your choosing, on Wi-Fi only if you like. A Downloads page shows
   what is coming down, what is queued or failed, and what is already on the
   phone. Downloads play first, before the network is tried, and a stream cache
   keeps recent tracks too.
-- **Liquid glass.** The tab bar, mini player and download progress float over
-  the page, which scrolls behind them blurred. The tab bar's selection is a
-  lens you can slide along it with your finger.
-- **Listening on your server.** Plays are sent to Navidrome with the time
-  they happened (offline plays later, exactly once) and read back, so
-  "Jump back in", "Played the most" and the Listening page agree across
-  devices.
+- **Listening on your server.** Every play is sent to Navidrome with the time
+  it happened (offline plays go later, exactly once), and plays from your
+  other devices come back, so "Jump back in", "Played the most" and the
+  Listening page are the same everywhere.
 - **Cast** to a Chromecast or speaker group from the player.
-- **Home screen widget**: centred artwork, title and controls that scale with
-  the widget as you resize it, with the artwork optional and the background
-  opacity you choose; media buttons, KWGT and other controllers work too.
+- **Home screen widget.** Centred artwork, title and controls that scale as you
+  resize it, with the artwork optional and the background opacity you choose.
+  Media buttons, KWGT and other controllers work too.
 - **Drag and drop** tracks, albums, artists and playlists onto Play next, Add to
   queue, Favourite, Sync offline or Delete downloads.
-- **Swipe between Library tabs**: albums, artists, songs, playlists, genres,
-  favourites, downloads and radio.
-- **Several servers.** Sign in to more than one server and switch between them;
-  each has its own library, downloads and history. Passwords are sealed with a
-  key held in the Android Keystore.
+- **Several servers.** Sign in to more than one server, name them as you like,
+  and switch between them; change a server's password from its menu. Each has
+  its own library, downloads and history. Passwords are sealed with a key held
+  in the Android Keystore.
 - **Home shelves** you choose and reorder: jump back in, recently added, most
   played, albums at random, favourites, playlists on repeat, internet radio
   and more.
@@ -50,8 +56,8 @@ downloads for offline listening.
   per-network streaming bitrate, sleep timer (after minutes or at the end of
   the track).
 - **Also:** synced and plain lyrics, ratings and favourites, playlist editing,
-  internet radio, a now-playing screen tinted by the artwork, and settings
-  backup and restore.
+  internet radio, listening stats, a now-playing screen tinted by the artwork
+  (pull it down to close), and settings backup and restore.
 
 ## Getting it
 
@@ -95,10 +101,10 @@ safe: without it, no update can be signed to install over existing copies.
 
 | Module | What it holds |
 | --- | --- |
-| `core` | Plain Kotlin, no Android: the Subsonic API client, the audio analysis (FFT, tempo, key, structure), the InjeKt transition planner, the two-deck playback engine, the library sync, and the settings model with its import/export. Unit-tested on the JVM. |
-| `app` | The Android app: a Room database per server, WorkManager jobs for sync, downloads and analysis, a Media3 `MediaLibraryService` whose player drives two ExoPlayer decks through the core engine (with a custom audio processor for fades, EQ and filters), and the Jetpack Compose interface. |
+| `core` | Plain Kotlin, no Android: the Subsonic API client, the audio analysis (FFT, tempo, key, structure), the InjeKt transition planner, the two-deck playback engine, the library and listening sync, and the settings model with its import/export. Unit-tested on the JVM. |
+| `app` | The Android app: a Room database per server, WorkManager jobs for sync, downloads and analysis, a Media3 `MediaLibraryService` whose player drives two ExoPlayer decks through the core engine (with a custom audio processor for fades, EQ and filters), the home screen widget, and the Jetpack Compose interface with its liquid glass. |
 
-Libraries: Jetpack Compose with Material 3, Media3 (ExoPlayer and session),
+Libraries: Jetpack Compose with Material 3, Media3 (ExoPlayer, session and Cast),
 Room, WorkManager, Navigation, Coil, OkHttp and kotlinx.serialization.
 
 ## License
