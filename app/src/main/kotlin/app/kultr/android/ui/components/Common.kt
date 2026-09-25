@@ -86,7 +86,8 @@ fun Pill(
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        // Centred, for a pill stretched wider than its label.
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
         if (icon != null) Icon(icon, contentDescription = null, tint = content.copy(alpha = if (enabled) 1f else 0.5f), modifier = Modifier.size(18.dp))
         Text(text, color = content.copy(alpha = if (enabled) 1f else 0.5f), style = MaterialTheme.typography.labelLarge, maxLines = 1)

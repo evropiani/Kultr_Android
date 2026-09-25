@@ -62,6 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.starredShown
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.Song
 import app.kultr.core.util.Format
@@ -173,7 +174,7 @@ fun SongRow(
             Icon(Icons.Rounded.DownloadDone, contentDescription = "Downloaded", tint = colors.ink3, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
         }
-        if (song.isStarred) {
+        if (starredShown(song)) {
             Icon(Icons.Rounded.Favorite, contentDescription = "Favourite", tint = colors.accent, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
         }
@@ -210,7 +211,7 @@ fun SongMenu(
         MenuItem("Add to queue", Icons.AutoMirrored.Rounded.QueueMusic, onDismiss) { actions.enqueue(listOf(song)) }
         if (!song.isRadio) {
             MenuItem("Add to playlist…", Icons.AutoMirrored.Rounded.PlaylistAdd, onDismiss) { actions.addToPlaylist(listOf(song)) }
-            if (song.isStarred) {
+            if (starredShown(song)) {
                 MenuItem("Remove from favourites", Icons.Rounded.FavoriteBorder, onDismiss) { actions.setFavourite(song, false) }
             } else {
                 MenuItem("Add to favourites", Icons.Rounded.Favorite, onDismiss) { actions.setFavourite(song, true) }

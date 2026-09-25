@@ -34,7 +34,10 @@ import kotlin.math.abs
  */
 @UnstableApi
 class DeckSources(context: Context, private val graph: AppGraph) {
-    private val extractors = DefaultExtractorsFactory().setConstantBitrateSeekingEnabled(true)
+    // A transcoded stream has no length up front, so seek by bitrate even without one.
+    private val extractors = DefaultExtractorsFactory()
+        .setConstantBitrateSeekingEnabled(true)
+        .setConstantBitrateSeekingAlwaysEnabled(true)
     private val http = OkHttpDataSource.Factory(graph.http)
     private val plain = DefaultMediaSourceFactory(DefaultDataSource.Factory(context, http), extractors)
     private val cached = DefaultMediaSourceFactory(

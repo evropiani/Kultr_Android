@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -25,6 +26,7 @@ import app.kultr.core.settings.CornerStyle
 import app.kultr.core.settings.Settings
 import app.kultr.core.settings.SurfaceBorder
 import app.kultr.core.settings.ThemeMode
+import app.kultr.core.util.ArtworkColor
 
 /**
  * Kultr's palette is deliberately almost colourless. Colour arrives at
@@ -67,6 +69,13 @@ val LocalRadii = staticCompositionLocalOf { radiiFor(CornerStyle.SOFT) }
 val LocalReduceMotion = staticCompositionLocalOf { false }
 
 val DEFAULT_ACCENT = Color(0xFF7C8CFF)
+
+/** A pale colour from the artwork washes out on the light background; deepen it just enough to read. */
+private fun readableOnLight(color: Color): Color {
+    val argb = color.toArgb()
+    val readable = ArtworkColor.readableOnLight(argb)
+    return if (readable == argb) color else Color(readable)
+}
 
 fun radiiFor(style: CornerStyle): KultrRadii = when (style) {
     CornerStyle.SHARP -> KultrRadii(3.dp, 4.dp, 6.dp, 8.dp, 10.dp)
@@ -144,7 +153,7 @@ fun KultrTheme(settings: Settings, accent: Color, content: @Composable () -> Uni
         animationSpec = tween(if (settings.reduceMotion) 0 else 900),
         label = "accent",
     )
-    val colors = kultrColors(dark, animatedAccent, settings)
+    val colors = kultrColors(dark, if (dark) animatedAccent else readableOnLight(animatedAccent), settings)
     val radii = radiiFor(settings.corners)
     val scheme = if (dark) {
         darkColorScheme(

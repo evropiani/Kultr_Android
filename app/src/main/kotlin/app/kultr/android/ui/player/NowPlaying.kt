@@ -69,6 +69,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -95,6 +96,7 @@ import app.kultr.android.ui.components.Pill
 import app.kultr.android.ui.components.Segmented
 import app.kultr.android.ui.components.Tag
 import app.kultr.android.ui.components.rememberArtworkUrl
+import app.kultr.android.ui.starredShown
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.Song
 import app.kultr.core.dsp.TrackAnalysis
@@ -153,11 +155,26 @@ fun NowPlayingScreen(state: PlayerUiState, onClose: () -> Unit) {
     Box(
         Modifier
             .fillMaxSize()
+            // Pulled down, the player is one card over the app, which dims behind it.
+            .drawBehind {
+                val shown = (pull.offset / 48.dp.toPx()).coerceIn(0f, 1f) * (1f - (pull.offset / size.height).coerceIn(0f, 1f))
+                if (shown > 0f) drawRect(Color.Black.copy(alpha = 0.5f * shown))
+            }
             .graphicsLayer {
                 translationY = pull.offset
                 val shrink = (pull.offset / size.height).coerceIn(0f, 1f) * 0.08f
                 scaleX = 1f - shrink
                 scaleY = 1f - shrink
+                // The screen's own rounded corners and a shadow, as soon as it moves.
+                val lifted = (pull.offset / 24.dp.toPx()).coerceIn(0f, 1f)
+                if (lifted > 0f) {
+                    shape = RoundedCornerShape((34 * lifted).dp)
+                    clip = true
+                    shadowElevation = 24.dp.toPx() * lifted
+                } else {
+                    clip = false
+                    shadowElevation = 0f
+                }
             }
             .nestedScroll(pull.connection),
     ) {
@@ -375,7 +392,9 @@ private fun Transport(state: PlayerUiState, song: Song) {
     val actions = LocalActions.current
     val player = actions.graph.player
     val colors = Kultr.colors
-    val starred = song.isStarred
+    // The library's copy, so the heart follows the track as it is now, not as it was queued.
+    val live by remember(song.id) { actions.graph.library.song(song.id) }.collectAsStateWithLifecycle(null)
+    val starred = starredShown(live ?: song)
     Row(
         Modifier.fillMaxWidth().padding(top = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -419,7 +438,7 @@ private fun Transport(state: PlayerUiState, song: Song) {
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
         if (!song.isRadio) {
-            IconButton(onClick = { actions.setFavourite(song, !starred) }) {
+            IconButton(onClick = { actions.setFavourite(live ?: song, !starred) }) {
                 Icon(
                     if (starred) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                     contentDescription = if (starred) "Remove from favourites" else "Add to favourites",

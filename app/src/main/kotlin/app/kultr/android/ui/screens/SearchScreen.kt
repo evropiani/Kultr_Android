@@ -22,8 +22,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.data.SearchResults
@@ -46,24 +44,23 @@ import kotlinx.coroutines.delay
 /**
  * Search runs against the local mirror, so it is instant and works offline.
  * Until the library has been synced — or when asked — it asks the server.
+ * The field itself is in the floating bar ([GlassNavigationBar][app.kultr.android.ui.GlassNavigationBar]),
+ * grown out of the search button; this page shows what it finds.
  */
 @Composable
-fun SearchScreen() {
+fun SearchScreen(query: String) {
     val actions = LocalActions.current
     val graph = actions.graph
     val counts by graph.library.counts.collectAsStateWithLifecycle(Counts(0, 0, 0, 0, 0))
     val player by graph.player.state.collectAsStateWithLifecycle()
     val downloaded by graph.offline.downloadedIds.collectAsStateWithLifecycle()
-    var query by rememberSaveable { mutableStateOf("") }
     var serverSearch by rememberSaveable { mutableStateOf(false) }
     var results by remember { mutableStateOf(SearchResults()) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    val focus = remember { FocusRequester() }
     val selection = rememberSelection()
     val useServer = serverSearch || counts.songs == 0
 
-    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     LaunchedEffect(query, useServer) {
         val q = query.trim()
         if (q.length < 2) {
@@ -91,8 +88,7 @@ fun SearchScreen() {
             color = Kultr.colors.ink,
             modifier = Modifier.padding(start = 16.dp, top = 12.dp),
         )
-        FilterField(query, onChange = { query = it }, placeholder = "Artists, albums, tracks", modifier = Modifier.focusRequester(focus))
-        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (counts.songs == 0) "Searching your server (the library is not synced yet)" else "Search on the server instead",
                 color = Kultr.colors.ink3,

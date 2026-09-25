@@ -69,6 +69,7 @@ import app.kultr.android.ui.components.Tag
 import app.kultr.android.ui.components.TextInputDialog
 import app.kultr.android.ui.components.rememberSelection
 import app.kultr.android.ui.components.songItems
+import app.kultr.android.ui.starredShown
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.Album
 import app.kultr.core.api.Artist
@@ -202,10 +203,11 @@ fun AlbumScreen(id: String) {
                 actions = {
                     Pill("Play", icon = Icons.Rounded.PlayArrow, accent = true, onClick = { actions.play(songs) })
                     Pill("Shuffle", icon = Icons.Rounded.Shuffle, onClick = { actions.shuffle(songs) })
+                    val favourite = starredShown(shown)
                     Pill(
-                        if (shown.isStarred) "Favourite" else "Favourite",
-                        icon = if (shown.isStarred) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                        onClick = { actions.setAlbumFavourite(shown, !shown.isStarred) },
+                        "Favourite",
+                        icon = if (favourite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                        onClick = { actions.setAlbumFavourite(shown, !favourite) },
                     )
                     Pill("Queue", icon = Icons.AutoMirrored.Rounded.QueueMusic, onClick = { actions.enqueue(songs) })
                     Pill("Add to playlist", icon = Icons.AutoMirrored.Rounded.PlaylistAdd, onClick = { actions.addToPlaylist(songs) })
@@ -298,10 +300,11 @@ fun ArtistScreen(id: String) {
                     Pill("Shuffle", icon = Icons.Rounded.Shuffle, onClick = {
                         actions.launch { actions.shuffle(graph.library.songsOfArtistNow(id)) }
                     })
+                    val favourite = starredShown(shown)
                     Pill(
                         "Favourite",
-                        icon = if (shown.isStarred) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                        onClick = { actions.setArtistFavourite(shown, !shown.isStarred) },
+                        icon = if (favourite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                        onClick = { actions.setArtistFavourite(shown, !favourite) },
                     )
                     Pill("InjeKt radio", icon = Icons.Rounded.AutoAwesome, onClick = {
                         actions.launch { songs.randomOrNull()?.let { actions.startInjektSet(it) } }

@@ -32,16 +32,20 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.DownloadForOffline
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material3.AlertDialog
@@ -81,6 +85,7 @@ import app.kultr.android.ui.components.GlassPanel
 import app.kultr.android.ui.components.Pill
 import app.kultr.android.ui.components.Segmented
 import app.kultr.android.ui.components.SettingRow
+import app.kultr.android.ui.components.TextInputDialog
 import app.kultr.android.ui.components.animatePlacement
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.settings.AccentMode
@@ -209,7 +214,7 @@ private fun SettingSlider(
 
 @Composable
 private fun AppearanceSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) {
-    Choice("Theme", listOf(ThemeMode.DARK to "Dark", ThemeMode.LIGHT to "Light", ThemeMode.SYSTEM to "System"), s.theme) { v -> update { it.copy(theme = v) } }
+    Choice("Theme", listOf(ThemeMode.SYSTEM to "System", ThemeMode.LIGHT to "Light", ThemeMode.DARK to "Dark"), s.theme) { v -> update { it.copy(theme = v) } }
     Toggle("Colour from artwork", s.accentMode == AccentMode.ARTWORK, hint = "The interface takes its colour from whatever is playing.") { v ->
         update { it.copy(accentMode = if (v) AccentMode.ARTWORK else AccentMode.FIXED) }
     }
@@ -429,6 +434,7 @@ private fun ServerSettings(onAddServer: () -> Unit, onSignIn: (ServerProfile) ->
     val profiles by graph.auth.profiles.collectAsStateWithLifecycle()
     val active by graph.auth.active.collectAsStateWithLifecycle()
     var forget by remember { mutableStateOf<ServerProfile?>(null) }
+    var renaming by remember { mutableStateOf<ServerProfile?>(null) }
     profiles.forEach { profile ->
         val isActive = profile.id == active?.id
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -445,12 +451,27 @@ private fun ServerSettings(onAddServer: () -> Unit, onSignIn: (ServerProfile) ->
                 !isActive && profile.enabled -> TextButton(onClick = { graph.auth.switchTo(profile.id) }) { Text("Use") }
             }
             Switch(checked = profile.enabled, onCheckedChange = { graph.auth.setEnabled(profile.id, it) })
-            IconButton(onClick = { forget = profile }) { Icon(Icons.Rounded.Close, contentDescription = "Forget ${profile.label}") }
+            ServerMenu(
+                profile,
+                onRename = { renaming = profile },
+                // Signing in again to the same address and user keeps the server and its name.
+                onChangePassword = { onSignIn(profile) },
+                onForget = { forget = profile },
+            )
         }
     }
     Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Pill("Add a server", icon = Icons.Rounded.Add, onClick = onAddServer)
         if (active != null) Pill("Sign out", icon = Icons.AutoMirrored.Rounded.Logout, onClick = { graph.player.stop(); graph.auth.signOut() })
+    }
+    renaming?.let { profile ->
+        TextInputDialog(
+            title = "Name this server",
+            initial = profile.label,
+            confirm = "Rename",
+            onConfirm = { graph.auth.rename(profile.id, it) },
+            onDismiss = { renaming = null },
+        )
     }
     forget?.let { profile ->
         ConfirmDialog(
@@ -464,6 +485,35 @@ private fun ServerSettings(onAddServer: () -> Unit, onSignIn: (ServerProfile) ->
             },
             onDismiss = { forget = null },
         )
+    }
+}
+
+@Composable
+private fun ServerMenu(profile: ServerProfile, onRename: () -> Unit, onChangePassword: () -> Unit, onForget: () -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(Icons.Rounded.MoreVert, contentDescription = "More for ${profile.label}", tint = Kultr.colors.ink3)
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text("Rename…") },
+                leadingIcon = { Icon(Icons.Rounded.Edit, null) },
+                onClick = { open = false; onRename() },
+            )
+            if (profile.hasCredentials) {
+                DropdownMenuItem(
+                    text = { Text("Change password…") },
+                    leadingIcon = { Icon(Icons.Rounded.Key, null) },
+                    onClick = { open = false; onChangePassword() },
+                )
+            }
+            DropdownMenuItem(
+                text = { Text("Forget", color = Kultr.colors.danger) },
+                leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = Kultr.colors.danger) },
+                onClick = { open = false; onForget() },
+            )
+        }
     }
 }
 

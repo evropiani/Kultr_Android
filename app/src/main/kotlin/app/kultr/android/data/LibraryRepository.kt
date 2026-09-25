@@ -38,6 +38,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 data class PlaylistDetail(val playlist: Playlist, val songs: List<Song>, val entryIds: List<String>)
@@ -59,6 +61,8 @@ class NotConnectedException : Exception("You are not connected to a server.")
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class LibraryRepository(private val graph: AppGraph) {
+    private val starring = Mutex()
+
     private fun <T> fromDb(empty: T, block: (KultrDatabase) -> Flow<T>): Flow<T> =
         graph.database.flatMapLatest { db -> if (db == null) flowOf(empty) else block(db) }
 
@@ -299,27 +303,37 @@ class LibraryRepository(private val graph: AppGraph) {
     private fun nowIso(): String = Instant.now().toString()
 
     /** Favourite or unfavourite a song. Returns an error message, or null. */
-    suspend fun setStarred(song: Song, starred: Boolean): String? = guard {
-        if (starred) client().star(id = song.id) else client().unstar(id = song.id)
-        db()?.library()?.setSongStarred(song.id, if (starred) nowIso() else null)
-    }
-
-    suspend fun setStarred(songs: List<Song>, starred: Boolean): String? = guard {
-        songs.chunked(100).forEach { chunk ->
-            chunk.forEach { if (starred) client().star(id = it.id) else client().unstar(id = it.id) }
-            val stamp = if (starred) nowIso() else null
-            chunk.forEach { db()?.library()?.setSongStarred(it.id, stamp) }
+    // Favourite changes go to the server one at a time, in the order they were
+    // made, so a quick tap and its undo arrive as star-then-unstar.
+    suspend fun setStarred(song: Song, starred: Boolean): String? = starring.withLock {
+        guard {
+            if (starred) client().star(id = song.id) else client().unstar(id = song.id)
+            db()?.library()?.setSongStarred(song.id, if (starred) nowIso() else null)
         }
     }
 
-    suspend fun setAlbumStarred(album: Album, starred: Boolean): String? = guard {
-        if (starred) client().star(albumId = album.id) else client().unstar(albumId = album.id)
-        db()?.library()?.setAlbumStarred(album.id, if (starred) nowIso() else null)
+    suspend fun setStarred(songs: List<Song>, starred: Boolean): String? = starring.withLock {
+        guard {
+            songs.chunked(100).forEach { chunk ->
+                chunk.forEach { if (starred) client().star(id = it.id) else client().unstar(id = it.id) }
+                val stamp = if (starred) nowIso() else null
+                chunk.forEach { db()?.library()?.setSongStarred(it.id, stamp) }
+            }
+        }
     }
 
-    suspend fun setArtistStarred(artist: Artist, starred: Boolean): String? = guard {
-        if (starred) client().star(artistId = artist.id) else client().unstar(artistId = artist.id)
-        db()?.library()?.setArtistStarred(artist.id, if (starred) nowIso() else null)
+    suspend fun setAlbumStarred(album: Album, starred: Boolean): String? = starring.withLock {
+        guard {
+            if (starred) client().star(albumId = album.id) else client().unstar(albumId = album.id)
+            db()?.library()?.setAlbumStarred(album.id, if (starred) nowIso() else null)
+        }
+    }
+
+    suspend fun setArtistStarred(artist: Artist, starred: Boolean): String? = starring.withLock {
+        guard {
+            if (starred) client().star(artistId = artist.id) else client().unstar(artistId = artist.id)
+            db()?.library()?.setArtistStarred(artist.id, if (starred) nowIso() else null)
+        }
     }
 
     suspend fun setRating(song: Song, rating: Int): String? = guard {

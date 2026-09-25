@@ -2,6 +2,7 @@ package app.kultr.android.ui
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -10,15 +11,28 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +47,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -42,6 +58,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -49,6 +66,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -57,11 +75,14 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import app.kultr.android.ui.components.glass
 import app.kultr.android.ui.theme.Kultr
+import app.kultr.android.ui.theme.LocalReduceMotion
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -283,5 +304,144 @@ fun GlassRoundButton(
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = label, tint = if (selected) colors.accent else colors.ink2, modifier = Modifier.size(26.dp))
+    }
+}
+
+/**
+ * The floating bar, with search in it. Choosing Search folds the tabs into a
+ * round button back to where you came from, and the search button grows to
+ * the left into the search field, which takes the keyboard straight away.
+ */
+@Composable
+fun GlassNavigationBar(
+    tabs: List<GlassTab>,
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    searching: Boolean,
+    onSearch: () -> Unit,
+    back: GlassTab,
+    onBack: () -> Unit,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val reduce = LocalReduceMotion.current
+    val progress by animateFloatAsState(
+        if (searching) 1f else 0f,
+        if (reduce) snap<Float>() else spring<Float>(dampingRatio = 0.84f, stiffness = 420f),
+        label = "search",
+    )
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(searching) {
+        if (searching) runCatching { focus.requestFocus() }
+    }
+
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val gap = 10.dp
+        val wide = maxWidth - gap - GlassBarHeight
+        val left = lerp(wide, GlassBarHeight, progress)
+        val right = lerp(GlassBarHeight, wide, progress)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.width(left).height(GlassBarHeight), contentAlignment = Alignment.CenterStart) {
+                if (progress < 0.999f) {
+                    GlassTabBar(
+                        tabs,
+                        selected,
+                        onSelect,
+                        Modifier.fillMaxWidth().graphicsLayer { alpha = (1f - progress * 1.6f).coerceIn(0f, 1f) },
+                    )
+                }
+                if (progress > 0.001f) {
+                    GlassRoundButton(
+                        icon = back.icon,
+                        label = "Back to ${back.label}",
+                        selected = false,
+                        onClick = onBack,
+                        modifier = Modifier.graphicsLayer { alpha = ((progress - 0.35f) / 0.65f).coerceIn(0f, 1f) },
+                    )
+                }
+            }
+            Spacer(Modifier.width(gap))
+            SearchCapsule(
+                progress = progress,
+                searching = searching,
+                query = query,
+                onQueryChange = onQueryChange,
+                onSearch = onSearch,
+                focus = focus,
+                modifier = Modifier.width(right),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchCapsule(
+    progress: Float,
+    searching: Boolean,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    focus: FocusRequester,
+    modifier: Modifier = Modifier,
+) {
+    val colors = Kultr.colors
+    val keyboard = LocalSoftwareKeyboardController.current
+    val interaction = remember { MutableInteractionSource() }
+    val down by interaction.collectIsPressedAsState()
+    val swell by animateFloatAsState(if (down && !searching) 1.1f else 1f, spring(dampingRatio = 0.5f, stiffness = 600f), label = "swell")
+    Row(
+        modifier
+            .height(GlassBarHeight)
+            .graphicsLayer {
+                scaleX = swell
+                scaleY = swell
+            }
+            .glass(RoundedCornerShape(50))
+            .then(
+                if (searching) {
+                    Modifier
+                } else {
+                    Modifier.clickable(interactionSource = interaction, indication = null, role = Role.Tab, onClickLabel = "Search", onClick = onSearch)
+                },
+            )
+            // The icon sits where it does in the round button, and the field grows beside it.
+            .padding(start = 19.dp, end = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Rounded.Search,
+            contentDescription = if (searching) null else "Search",
+            tint = if (searching) colors.accent else colors.ink2,
+            modifier = Modifier.size(26.dp),
+        )
+        // Composed as soon as search is chosen, so it can take the keyboard at once.
+        if (searching || progress > 0.05f) {
+            Spacer(Modifier.width(10.dp))
+            Box(Modifier.weight(1f).graphicsLayer { alpha = ((progress - 0.3f) / 0.7f).coerceIn(0f, 1f) }) {
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    enabled = searching,
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.ink),
+                    cursorBrush = SolidColor(colors.accent),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                    decorationBox = { field ->
+                        if (query.isEmpty()) {
+                            Text("Artists, albums, tracks", style = MaterialTheme.typography.bodyLarge, color = colors.ink3, maxLines = 1)
+                        }
+                        field()
+                    },
+                )
+            }
+            if (searching && query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Rounded.Clear, contentDescription = "Clear", tint = colors.ink3)
+                }
+            }
+        }
     }
 }

@@ -1,7 +1,9 @@
 package app.kultr.core.util
 
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 /**
@@ -61,6 +63,62 @@ object ArtworkColor {
     }
 
     fun toHex(argb: Int): String = "#%06x".format(argb and 0xffffff)
+
+    /** Relative luminance (as WCAG defines it): 0 for black, 1 for white. */
+    fun luminance(argb: Int): Double {
+        fun linear(c: Int): Double {
+            val v = (c and 0xff) / 255.0
+            return if (v <= 0.04045) v / 12.92 else ((v + 0.055) / 1.055).pow(2.4)
+        }
+        return 0.2126 * linear(argb shr 16) + 0.7152 * linear(argb shr 8) + 0.0722 * linear(argb)
+    }
+
+    /**
+     * [argb] darkened until it reads as text on a light background (luminance
+     * at most 0.22). The hue stays, and pale colours gain a little saturation
+     * so they turn deeper rather than grey. Dark enough colours are unchanged.
+     */
+    fun readableOnLight(argb: Int): Int {
+        val target = 0.22
+        if (luminance(argb) <= target) return argb
+        val r = (argb shr 16 and 0xff) / 255.0
+        val g = (argb shr 8 and 0xff) / 255.0
+        val b = (argb and 0xff) / 255.0
+        val hi = max(r, max(g, b))
+        val lo = min(r, min(g, b))
+        val hue = when {
+            hi == lo -> 0.0
+            hi == r -> 60 * (((g - b) / (hi - lo)).mod(6.0))
+            hi == g -> 60 * ((b - r) / (hi - lo) + 2)
+            else -> 60 * ((r - g) / (hi - lo) + 4)
+        }
+        var saturation = if (hi == 0.0) 0.0 else (hi - lo) / hi
+        if (saturation > 0.05) saturation = min(1.0, max(saturation, 0.45) * 1.1)
+        var value = hi
+        var color = argb
+        while (value > 0.3) {
+            color = fromHsv(hue, saturation, value)
+            if (luminance(color) <= target) break
+            value -= 0.02
+        }
+        return color
+    }
+
+    private fun fromHsv(hue: Double, saturation: Double, value: Double): Int {
+        val c = value * saturation
+        val x = c * (1 - abs((hue / 60).mod(2.0) - 1))
+        val m = value - c
+        val (r, g, b) = when {
+            hue < 60 -> Triple(c, x, 0.0)
+            hue < 120 -> Triple(x, c, 0.0)
+            hue < 180 -> Triple(0.0, c, x)
+            hue < 240 -> Triple(0.0, x, c)
+            hue < 300 -> Triple(x, 0.0, c)
+            else -> Triple(c, 0.0, x)
+        }
+        fun ch(v: Double) = ((v + m) * 255).roundToInt().coerceIn(0, 255)
+        return rgb(ch(r), ch(g), ch(b))
+    }
 
     /** Mix [b] into [a] by [amount] (0..1). */
     fun mix(a: Int, b: Int, amount: Double): Int {

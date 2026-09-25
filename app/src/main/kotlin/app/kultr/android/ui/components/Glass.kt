@@ -90,12 +90,14 @@ fun Modifier.glass(shape: Shape, tint: Color? = null, blur: Dp = 18.dp): Modifie
     val effects = remember(density) { GlassEffects(with(density) { blur.toPx() }, with(density) { 8.dp.toPx() }) }
     var position by remember { mutableStateOf(Offset.Zero) }
 
+    // A thin tint, so the colours behind show through; without a blur it has
+    // to carry the legibility on its own, so it is nearly solid.
     val fill = tint ?: when {
-        layer == null -> colors.elevated.copy(alpha = 0.94f)
-        colors.dark -> Color(0xFF15151E).copy(alpha = 0.52f)
-        else -> Color.White.copy(alpha = 0.5f)
+        layer == null -> colors.elevated.copy(alpha = 0.92f)
+        colors.dark -> Color(0xFF15151E).copy(alpha = 0.4f)
+        else -> Color.White.copy(alpha = 0.42f)
     }
-    val light = if (colors.dark) Color.White.copy(alpha = 0.26f) else Color.White.copy(alpha = 0.9f)
+    val light = if (colors.dark) Color.White.copy(alpha = 0.34f) else Color.White
     val shade = if (colors.dark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.07f)
 
     this

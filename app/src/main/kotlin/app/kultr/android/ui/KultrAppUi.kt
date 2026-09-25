@@ -11,8 +11,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +18,6 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LibraryMusic
@@ -247,7 +244,13 @@ private fun MainUi(
     val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val glass = rememberGlassBackdrop()
     var chromeHeight by remember { mutableIntStateOf(0) }
-    val chromeInset = if (keyboardOpen) 0.dp else with(LocalDensity.current) { chromeHeight.toDp() }
+    // Search lives in the bar, so while searching the bar stays, riding on the keyboard.
+    val searching = backStack?.destination?.route == Routes.SEARCH
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var lastTab by rememberSaveable { mutableStateOf(Tab.HOME) }
+    LaunchedEffect(selectedTab) { if (selectedTab != Tab.SEARCH) lastTab = selectedTab }
+    val showChrome = !keyboardOpen || searching
+    val chromeInset = if (showChrome) with(LocalDensity.current) { chromeHeight.toDp() } else 0.dp
 
     fun openTab(tab: Tab) {
         selectedTab = tab
@@ -298,7 +301,7 @@ private fun MainUi(
                             ?: LibraryTab.ALBUMS
                         LibraryScreen(tab)
                     }
-                    composable(Routes.SEARCH) { SearchScreen() }
+                    composable(Routes.SEARCH) { SearchScreen(searchQuery) }
                     composable(Routes.SETTINGS) { SettingsScreen(onAddServer = onAddServer, onSignIn = onSignIn) }
                     composable(Routes.ALBUM) { AlbumScreen(it.arguments?.getString("id").orEmpty()) }
                     composable(Routes.ARTIST) { ArtistScreen(it.arguments?.getString("id").orEmpty()) }
@@ -318,38 +321,37 @@ private fun MainUi(
                 }
             }
 
-            if (!keyboardOpen) {
+            if (showChrome) {
                 // The floating controls: downloads, the mini player and the tab bar,
                 // each a piece of glass over the page.
                 Column(
                     Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
+                        .imePadding()
                         .onSizeChanged { chromeHeight = it.height }
                         .navigationBarsPadding()
                         .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    // The Downloads page shows all of this already.
-                    if (backStack?.destination?.route != Routes.DOWNLOADS) {
-                        DownloadIndicator(onOpen = { actions.openDownloads() })
+                    if (!keyboardOpen) {
+                        // The Downloads page shows all of this already.
+                        if (backStack?.destination?.route != Routes.DOWNLOADS) {
+                            DownloadIndicator(onOpen = { actions.openDownloads() })
+                        }
+                        MiniPlayer(player)
                     }
-                    MiniPlayer(player)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        GlassTabBar(
-                            tabs = GLASS_TABS,
-                            selected = BAR_TABS.indexOf(selectedTab),
-                            onSelect = { index -> openTab(BAR_TABS[index]) },
-                            modifier = Modifier.weight(1f),
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        GlassRoundButton(
-                            icon = Tab.SEARCH.icon,
-                            label = Tab.SEARCH.label,
-                            selected = selectedTab == Tab.SEARCH,
-                            onClick = { openTab(Tab.SEARCH) },
-                        )
-                    }
+                    GlassNavigationBar(
+                        tabs = GLASS_TABS,
+                        selected = BAR_TABS.indexOf(selectedTab),
+                        onSelect = { index -> openTab(BAR_TABS[index]) },
+                        searching = searching,
+                        onSearch = { openTab(Tab.SEARCH) },
+                        back = GlassTab(lastTab.label, lastTab.icon),
+                        onBack = { openTab(lastTab) },
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it },
+                    )
                 }
             }
 

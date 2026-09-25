@@ -45,6 +45,7 @@ import app.kultr.android.playback.PlayerUiState
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.components.Artwork
 import app.kultr.android.ui.components.glass
+import app.kultr.android.ui.starredShown
 import app.kultr.android.ui.theme.Kultr
 import kotlin.math.abs
 import kotlinx.coroutines.launch
@@ -65,7 +66,7 @@ fun MiniPlayer(state: PlayerUiState, modifier: Modifier = Modifier) {
     val threshold = with(LocalDensity.current) { 72.dp.toPx() }
     // Favourite state comes from the library, so it updates when toggled anywhere.
     val live by remember(song.id) { actions.graph.library.song(song.id) }.collectAsStateWithLifecycle(null)
-    val starred = live?.isStarred ?: song.isStarred
+    val starred = starredShown(live ?: song)
     val position by rememberPosition(500)
     val shape = RoundedCornerShape(30.dp)
 
@@ -153,10 +154,10 @@ fun MiniPlayer(state: PlayerUiState, modifier: Modifier = Modifier) {
             }
         }
         val fraction = if (state.durationMs > 0) (position.toFloat() / state.durationMs).coerceIn(0f, 1f) else 0f
-        // Inset, so the line stays clear of the rounded ends.
+        // From under the title to clear of the rounded end.
         Box(
             Modifier
-                .padding(start = 30.dp, end = 30.dp, bottom = 5.dp)
+                .padding(start = 64.dp, end = 28.dp, bottom = 5.dp)
                 .fillMaxWidth()
                 .height(2.dp)
                 .clip(RoundedCornerShape(1.dp))

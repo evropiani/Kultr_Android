@@ -89,4 +89,19 @@ class UtilTest {
         assertTrue(abs(album - 0.7079f) < 0.001f)
         assertEquals(1f, replayGainFor(song, Settings(replayGainMode = ReplayGainMode.OFF)))
     }
+
+    @Test
+    fun paleAccentsAreDeepenedForLightModeKeepingTheirHue() {
+        val paleYellow = ArtworkColor.rgb(0xff, 0xe0, 0x66)
+        val deep = ArtworkColor.readableOnLight(paleYellow)
+        assertTrue(ArtworkColor.luminance(deep) <= 0.22, "luminance ${ArtworkColor.luminance(deep)}")
+        // Still a yellow: red and green well above blue.
+        val r = deep shr 16 and 0xff
+        val g = deep shr 8 and 0xff
+        val b = deep and 0xff
+        assertTrue(r > b + 40 && g > b + 30, "not yellow any more: $r $g $b")
+
+        val darkBlue = ArtworkColor.rgb(0x2a, 0x3a, 0x9a)
+        assertEquals(darkBlue, ArtworkColor.readableOnLight(darkBlue))
+    }
 }

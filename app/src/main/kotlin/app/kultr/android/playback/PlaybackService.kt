@@ -79,23 +79,43 @@ private class SessionStore(context: Context) {
     }
 }
 
-/** Counts how long a track has really been listened to, for scrobbling. */
+/**
+ * Counts how much of a track has really been heard, for sending the play.
+ *
+ * Measured by how far the track moved on between ticks, not by how often
+ * the tick ran: a late tick (a busy phone, the app in the background) still
+ * counts in full. A jump the clock cannot account for is a seek, and is not
+ * counted.
+ */
 private class ListeningTracker(private val graph: AppGraph) {
     private var song: Song? = null
     private var listenedMs = 0L
     private var scrobbled = false
 
+    /** Position at the previous tick; null after a new track or a pause. */
+    private var lastPositionMs: Long? = null
+
     fun start(song: Song) {
         this.song = song
         listenedMs = 0
         scrobbled = false
+        lastPositionMs = null
         graph.scrobbles.nowPlaying(song)
     }
 
-    fun advance(deltaMs: Long, durationMs: Long, positionMs: Long) {
+    /** Not playing: whatever happens to the position until it plays again is not listening. */
+    fun hold() {
+        lastPositionMs = null
+    }
+
+    fun advance(wallMs: Long, durationMs: Long, positionMs: Long) {
         val current = song ?: return
-        if (scrobbled || current.isRadio) return
-        listenedMs += deltaMs.coerceIn(0, 1_000)
+        val last = lastPositionMs
+        lastPositionMs = positionMs
+        if (scrobbled || current.isRadio || last == null) return
+        val moved = positionMs - last
+        // Tempo-matched playback runs a few percent fast; allow for timer jitter too.
+        if (moved > 0 && moved <= wallMs * 1.15 + 500) listenedMs += moved
         val length = if (durationMs > 0) durationMs else (current.duration ?: 0) * 1000L
         val threshold = (length / 2).coerceIn(20_000, 240_000)
         if (listenedMs >= threshold) {
@@ -314,6 +334,8 @@ class PlaybackService : MediaLibraryService() {
         engine.tick()
         if (engine.playWhenReady && engine.status == EngineStatus.READY) {
             tracker.advance(delta, engine.durationMs, engine.positionMs)
+        } else {
+            tracker.hold()
         }
         graph.hub.sleepTimer.value?.endsAtMillis?.let { ends ->
             if (System.currentTimeMillis() >= ends) {

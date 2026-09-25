@@ -182,10 +182,11 @@ fun LoginScreen(
                         }
                     }
                     error?.let { Text(it, color = colors.danger, style = MaterialTheme.typography.bodyMedium) }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Pill(
                             if (busy) "Connecting…" else "Connect",
                             onClick = { submit() },
+                            modifier = Modifier.weight(1f),
                             accent = true,
                             enabled = !busy && url.isNotBlank() && user.isNotBlank(),
                         )

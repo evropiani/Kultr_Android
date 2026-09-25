@@ -1,7 +1,9 @@
 package app.kultr.android.ui
 
 import android.net.Uri
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -14,6 +16,8 @@ import app.kultr.core.api.Album
 import app.kultr.core.api.Artist
 import app.kultr.core.api.Song
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 enum class LibraryTab(val label: String) {
@@ -109,23 +113,45 @@ class AppActions(
         if (error != null) messages.error(error) else if (success != null) messages.show(success, MessageKind.SUCCESS)
     }
 
+    /**
+     * Favourite states as last set here, by "kind:id". A heart shows this from
+     * the moment it is tapped, whichever copy of the track (or album, or
+     * artist) it is drawn from, so a second tap always undoes the first. If
+     * the server refuses, the entry goes and the heart shows the stored state.
+     */
+    val favourites = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+
+    private suspend fun favourite(keys: List<String>, starred: Boolean, send: suspend () -> String?): String? {
+        favourites.update { current -> current + keys.associateWith { starred } }
+        val error = send()
+        // A later tap may have changed its mind already; only undo our own entries.
+        if (error != null) favourites.update { current -> current - keys.filter { current[it] == starred }.toSet() }
+        return error
+    }
+
     fun setFavourite(song: Song, starred: Boolean) = scope.launch {
-        report(graph.library.setStarred(song, starred), if (starred) "Added to favourites" else null)
+        report(favourite(listOf(songKey(song.id)), starred) { graph.library.setStarred(song, starred) }, if (starred) "Added to favourites" else null)
     }
 
     fun setFavourite(songs: List<Song>, starred: Boolean) = scope.launch {
         report(
-            graph.library.setStarred(songs, starred),
+            favourite(songs.map { songKey(it.id) }, starred) { graph.library.setStarred(songs, starred) },
             if (starred) "Added ${songs.size} to favourites" else "Removed ${songs.size} from favourites",
         )
     }
 
     fun setAlbumFavourite(album: Album, starred: Boolean) = scope.launch {
-        report(graph.library.setAlbumStarred(album, starred), if (starred) "Added “${album.name}” to favourites" else null)
+        report(
+            favourite(listOf(albumKey(album.id)), starred) { graph.library.setAlbumStarred(album, starred) },
+            if (starred) "Added “${album.name}” to favourites" else null,
+        )
     }
 
     fun setArtistFavourite(artist: Artist, starred: Boolean) = scope.launch {
-        report(graph.library.setArtistStarred(artist, starred), if (starred) "Added “${artist.name}” to favourites" else null)
+        report(
+            favourite(listOf(artistKey(artist.id)), starred) { graph.library.setArtistStarred(artist, starred) },
+            if (starred) "Added “${artist.name}” to favourites" else null,
+        )
     }
 
     fun setRating(song: Song, rating: Int) = scope.launch {
@@ -168,12 +194,13 @@ class AppActions(
             DropAction.PLAY_NEXT -> playNext(songs)
             DropAction.QUEUE -> enqueue(songs)
             DropAction.FAVOURITE -> {
-                val missing = songs.filter { !it.isStarred }
+                val shown = favourites.value
+                val missing = songs.filter { !(shown[songKey(it.id)] ?: it.isStarred) }
                 if (missing.isEmpty()) {
                     messages.show("Already in your favourites.")
                 } else {
                     report(
-                        graph.library.setStarred(missing, true),
+                        favourite(missing.map { songKey(it.id) }, true) { graph.library.setStarred(missing, true) },
                         "Favourited ${missing.size} track${if (missing.size == 1) "" else "s"}",
                     )
                 }
@@ -190,3 +217,26 @@ class AppActions(
 }
 
 val LocalActions = staticCompositionLocalOf<AppActions> { error("AppActions not provided") }
+
+private fun songKey(id: String) = "song:$id"
+private fun albumKey(id: String) = "album:$id"
+private fun artistKey(id: String) = "artist:$id"
+
+/** Whether [song]'s heart is filled: as last tapped here, else as stored. */
+@Composable
+fun starredShown(song: Song): Boolean {
+    val overrides by LocalActions.current.favourites.collectAsState()
+    return overrides[songKey(song.id)] ?: song.isStarred
+}
+
+@Composable
+fun starredShown(album: Album): Boolean {
+    val overrides by LocalActions.current.favourites.collectAsState()
+    return overrides[albumKey(album.id)] ?: album.isStarred
+}
+
+@Composable
+fun starredShown(artist: Artist): Boolean {
+    val overrides by LocalActions.current.favourites.collectAsState()
+    return overrides[artistKey(artist.id)] ?: artist.isStarred
+}

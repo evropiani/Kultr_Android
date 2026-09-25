@@ -83,7 +83,8 @@ val EQ_PRESETS: Map<String, List<Double>> = linkedMapOf(
 @Serializable
 data class Settings(
     // ---- appearance
-    val theme: ThemeMode = ThemeMode.DARK,
+    /** Follows the phone's own light or dark setting unless one is picked. */
+    val theme: ThemeMode = ThemeMode.SYSTEM,
     val accentMode: AccentMode = AccentMode.ARTWORK,
     val accent: String = "#7c8cff",
     /** How strongly `accent` is mixed into the colour taken from the artwork, 0–100. */

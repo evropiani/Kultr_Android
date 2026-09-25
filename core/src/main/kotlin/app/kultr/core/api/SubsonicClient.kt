@@ -412,7 +412,15 @@ class SubsonicClient(
 
     // ------------------------------------------------------------- media --
 
-    /** Streaming URL for the player. Stable for the lifetime of this client. */
+    /**
+     * Streaming URL for the player. Stable for the lifetime of this client.
+     *
+     * No `estimateContentLength`: when the server transcodes, it would announce
+     * a size worked out from the bitrate and cut the connection there, and the
+     * real output is often larger, so tracks stopped a moment before their end
+     * and seeking failed. Without it the stream is read to its real end, and
+     * the duration comes from the track's metadata.
+     */
     fun streamUrl(id: String, maxBitRate: Int? = null, format: String? = null): String =
         buildUrl(
             "stream",
@@ -420,7 +428,6 @@ class SubsonicClient(
                 "id" to id,
                 "maxBitRate" to maxBitRate?.takeIf { it > 0 },
                 "format" to format?.takeIf { it.isNotBlank() },
-                "estimateContentLength" to true,
             ),
             stable = true,
         )
