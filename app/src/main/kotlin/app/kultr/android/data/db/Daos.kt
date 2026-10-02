@@ -151,6 +151,18 @@ abstract class LibraryDao {
     @Query("SELECT * FROM songs")
     abstract suspend fun allSongs(): List<SongEntity>
 
+    @Query("SELECT * FROM albums")
+    abstract suspend fun allAlbumsNow(): List<AlbumEntity>
+
+    @Query("SELECT * FROM artists")
+    abstract suspend fun allArtistsNow(): List<ArtistEntity>
+
+    @Query("SELECT * FROM playlists WHERE id = :id")
+    abstract suspend fun playlistNow(id: String): PlaylistEntity?
+
+    @Query("DELETE FROM playlists WHERE id = :id")
+    abstract suspend fun deletePlaylist(id: String)
+
     @Query("SELECT * FROM playlists ORDER BY position")
     abstract fun playlists(): Flow<List<PlaylistEntity>>
 

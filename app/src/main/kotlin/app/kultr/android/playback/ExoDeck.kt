@@ -21,6 +21,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.extractor.DefaultExtractorsFactory
 import app.kultr.android.AppGraph
+import app.kultr.android.data.LocalLibrary
 import app.kultr.core.engine.Deck
 import app.kultr.core.engine.DeckListener
 import app.kultr.core.engine.DeckStatus
@@ -54,6 +55,10 @@ class DeckSources(context: Context, private val graph: AppGraph) {
         song.kultrStreamUrl?.let { url ->
             return plain.createMediaSource(builder.setUri(url).build())
         }
+        // Music on the phone plays straight from its file.
+        LocalLibrary.uriOf(song)?.let { uri ->
+            return plain.createMediaSource(builder.setUri(uri).build())
+        }
         val settings = graph.settings.current
         if (settings.offlineFirst) {
             graph.offline.fileFor(song.id)?.let { file ->
@@ -69,7 +74,8 @@ class DeckSources(context: Context, private val graph: AppGraph) {
         return cached.createMediaSource(builder.setUri(url).setCustomCacheKey(cacheKey).build())
     }
 
-    fun hasLocalCopy(item: QueueItem): Boolean = graph.offline.fileFor(item.song.id)?.let(File::isFile) == true
+    fun hasLocalCopy(item: QueueItem): Boolean =
+        LocalLibrary.isLocal(item.song) || graph.offline.fileFor(item.song.id)?.let(File::isFile) == true
 }
 
 /** One of the engine's two players: an ExoPlayer with [DeckProcessor] in its audio sink. */

@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.KultrApp
+import app.kultr.android.data.LocalLibrary
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.util.Format
 import coil3.compose.AsyncImage
@@ -41,7 +42,7 @@ fun rememberArtworkUrl(coverId: String?, size: Int): String? {
         size <= 400 -> 400
         else -> 800
     }
-    return remember(client, coverId, bucket) { client?.coverArtUrl(coverId, bucket) }
+    return remember(client, coverId, bucket) { LocalLibrary.artwork(coverId, bucket, client) }
 }
 
 /**

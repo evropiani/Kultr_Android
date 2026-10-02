@@ -163,7 +163,8 @@ fun KultrAppUi(graph: AppGraph, openPlayerRequest: Int, openDownloadsRequest: In
 
     when {
         profile == null -> LoginScreen(graph)
-        client == null -> LoginScreen(
+        // The music on the phone needs no server and no sign-in.
+        client == null && !profile.local -> LoginScreen(
             graph,
             prefillUrl = profile.serverUrl,
             prefillUser = profile.username,
@@ -267,11 +268,13 @@ private fun MainUi(
         }
     }
 
+    val activeProfile by graph.auth.active.collectAsStateWithLifecycle()
     CompositionLocalProvider(
         LocalActions provides actions,
         LocalDragDrop provides dragDrop,
         LocalGlassBackdrop provides glass,
         LocalChromeInset provides chromeInset,
+        LocalMusicMode provides (activeProfile?.local == true),
     ) {
         Box(Modifier.fillMaxSize()) {
             // Everything the floating controls float over, recorded for their glass.

@@ -10,6 +10,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.PlayerTransferState
 import androidx.media3.common.util.UnstableApi
+import app.kultr.android.data.LocalLibrary
 import app.kultr.core.api.Song
 import app.kultr.core.api.SubsonicClient
 import com.google.android.gms.cast.MediaInfo
@@ -28,6 +29,8 @@ object CastSupport {
     /** URL and MIME type for a receiver, or null when there is no way to stream [song]. */
     fun streamFor(song: Song, client: SubsonicClient?): Pair<String, String>? {
         song.kultrStreamUrl?.let { return it to (song.contentType ?: "audio/mpeg") }
+        // A file on the phone is out of the receiver's reach.
+        if (LocalLibrary.isLocal(song)) return null
         client ?: return null
         val suffix = song.suffix?.lowercase()
         return if (suffix != null && suffix in native) {

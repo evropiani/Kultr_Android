@@ -81,33 +81,44 @@ class SyncManager(private val graph: AppGraph) {
         }
     }
 
-    /** Run a sync and wait for it. Returns null on success, or an error message. */
+    /**
+     * Run a sync and wait for it: from the server, or, for the music on the
+     * phone, a scan of its folders. Returns null on success, or an error message.
+     */
     suspend fun runNow(mode: SyncMode, quiet: Boolean = false): String? {
-        val client = graph.auth.client.value ?: return "Not signed in."
         val db = graph.database.value ?: return "Not signed in."
+        val local = graph.isLocal
+        val client = graph.auth.client.value
+        if (!local && client == null) return "Not signed in."
         if (_running.value) return null
         _running.value = true
         _error.value = null
         return try {
             val summary = withContext(Dispatchers.IO) {
-                LibrarySync(client, RoomLibraryStore(db)).run(
-                    mode = mode,
-                    includePlaylistContents = graph.settings.current.syncPlaylistContents,
-                    onProgress = { _progress.value = it },
-                )
+                if (local) {
+                    graph.local.scan(db, mode) { _progress.value = it }
+                } else {
+                    LibrarySync(checkNotNull(client), RoomLibraryStore(db)).run(
+                        mode = mode,
+                        includePlaylistContents = graph.settings.current.syncPlaylistContents,
+                        onProgress = { _progress.value = it },
+                    )
+                }
             }
             _summary.value = summary
             if (!quiet) {
                 graph.messages.success(
                     when {
                         summary.upToDate -> "Everything is up to date."
+                        summary.mode == SyncMode.FULL && local -> "Found ${summary.counts.songs} tracks in ${summary.counts.albums} albums."
                         summary.mode == SyncMode.FULL -> "Library synced: ${summary.counts.songs} tracks in ${summary.counts.albums} albums."
                         else -> "Updated: ${summary.albumsAdded} new, ${summary.albumsUpdated} changed, ${summary.albumsRemoved} removed."
                     },
                 )
+                summary.errors.firstOrNull()?.let { if (local) graph.messages.error(it) }
             }
             // Plays made offline go up, and anything played elsewhere since comes down.
-            refreshListeningNow()
+            if (!local) refreshListeningNow()
             null
         } catch (err: CancellationException) {
             if (!quiet) graph.messages.show("Sync cancelled.")
@@ -174,6 +185,12 @@ class SyncManager(private val graph: AppGraph) {
         )
         if (!graph.settings.current.autoSyncOnStart) return
         graph.scope.launch {
+            if (graph.isLocal) {
+                // New or changed files in the folders since last time.
+                val db = graph.database.value ?: return@launch
+                if (withContext(Dispatchers.IO) { db.syncState() }.lastCheck != null) runNow(SyncMode.CHECK, quiet = true)
+                return@launch
+            }
             val client = graph.auth.client.value ?: return@launch
             val db = graph.database.value ?: return@launch
             val state = withContext(Dispatchers.IO) { db.syncState() }
@@ -208,6 +225,10 @@ class SyncManager(private val graph: AppGraph) {
 class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val graph = KultrApp.graph
+        if (graph.isLocal) {
+            graph.sync.runNow(SyncMode.CHECK, quiet = true)
+            return Result.success()
+        }
         val client = graph.auth.client.value ?: return Result.success()
         val db = graph.database.value ?: return Result.success()
         if (db.syncState().lastCheck == null) return Result.success()

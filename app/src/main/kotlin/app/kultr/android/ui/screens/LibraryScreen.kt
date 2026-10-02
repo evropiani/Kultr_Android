@@ -69,6 +69,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.data.db.DownloadUsage
 import app.kultr.android.ui.LibraryTab
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AlbumCard
 import app.kultr.android.ui.components.ArtistCard
@@ -106,8 +107,13 @@ private val FILTERABLE = setOf(LibraryTab.ALBUMS, LibraryTab.ARTISTS, LibraryTab
  */
 @Composable
 fun LibraryScreen(initialTab: LibraryTab) {
-    val tabs = LibraryTab.entries
-    val pager = rememberPagerState(initialPage = initialTab.ordinal) { tabs.size }
+    // Music on the phone has no internet radio, and nothing to download.
+    val local = LocalMusicMode.current
+    val tabs = remember(local) {
+        if (local) LibraryTab.entries.filter { it != LibraryTab.RADIO && it != LibraryTab.DOWNLOADS } else LibraryTab.entries
+    }
+    fun pageOf(tab: LibraryTab) = tabs.indexOf(tab).coerceAtLeast(0)
+    val pager = rememberPagerState(initialPage = pageOf(initialTab)) { tabs.size }
     val scope = rememberCoroutineScope()
     // A link to a particular tab (from Home, say) moves the pager there; coming
     // back to the page after rotating keeps wherever it was.
@@ -115,7 +121,7 @@ fun LibraryScreen(initialTab: LibraryTab) {
     LaunchedEffect(initialTab) {
         if (initialTab != opened) {
             opened = initialTab
-            pager.scrollToPage(initialTab.ordinal)
+            pager.scrollToPage(pageOf(initialTab))
         }
     }
 

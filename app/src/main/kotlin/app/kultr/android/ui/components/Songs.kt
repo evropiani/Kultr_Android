@@ -62,6 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.starredShown
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.Song
@@ -221,10 +222,13 @@ fun SongMenu(
             HorizontalDivider()
             if (song.albumId != null) MenuItem("Go to album", Icons.Rounded.Album, onDismiss) { actions.openAlbum(song.albumId) }
             if (song.artistId != null) MenuItem("Go to artist", Icons.Rounded.Person, onDismiss) { actions.openArtist(song.artistId) }
-            if (downloaded) {
-                MenuItem("Remove download", Icons.Rounded.Delete, onDismiss) { actions.removeDownloads(listOf(song)) }
-            } else {
-                MenuItem("Download", Icons.Rounded.Download, onDismiss) { actions.download(listOf(song), song.title) }
+            // Music on the phone is there already.
+            if (!LocalMusicMode.current) {
+                if (downloaded) {
+                    MenuItem("Remove download", Icons.Rounded.Delete, onDismiss) { actions.removeDownloads(listOf(song)) }
+                } else {
+                    MenuItem("Download", Icons.Rounded.Download, onDismiss) { actions.download(listOf(song), song.title) }
+                }
             }
         }
         if (extraActions.isNotEmpty()) {
@@ -336,16 +340,18 @@ private fun SelectionBarContent(selection: SongSelection, songs: List<Song>, mod
                         leadingIcon = { Icon(Icons.Rounded.FavoriteBorder, null) },
                         onClick = { more = false; actions.setFavourite(picked, false); selection.clear() },
                     )
-                    DropdownMenuItem(
-                        text = { Text("Download") },
-                        leadingIcon = { Icon(Icons.Rounded.Download, null) },
-                        onClick = { more = false; actions.download(picked); selection.clear() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Remove downloads") },
-                        leadingIcon = { Icon(Icons.Rounded.Delete, null) },
-                        onClick = { more = false; actions.removeDownloads(picked); selection.clear() },
-                    )
+                    if (!LocalMusicMode.current) {
+                        DropdownMenuItem(
+                            text = { Text("Download") },
+                            leadingIcon = { Icon(Icons.Rounded.Download, null) },
+                            onClick = { more = false; actions.download(picked); selection.clear() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Remove downloads") },
+                            leadingIcon = { Icon(Icons.Rounded.Delete, null) },
+                            onClick = { more = false; actions.removeDownloads(picked); selection.clear() },
+                        )
+                    }
                 }
             }
         }

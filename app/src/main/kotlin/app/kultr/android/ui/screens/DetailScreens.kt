@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AccentWash
 import app.kultr.android.ui.components.AlbumCard
@@ -129,7 +130,7 @@ private fun DownloadPill(songs: List<Song>, label: String) {
     val actions = LocalActions.current
     val downloaded by actions.graph.offline.downloadedIds.collectAsStateWithLifecycle()
     val missing = songs.count { !it.isRadio && it.id !in downloaded }
-    if (songs.isEmpty()) return
+    if (songs.isEmpty() || LocalMusicMode.current) return
     if (missing == 0) {
         Pill("Remove download", icon = Icons.Rounded.DownloadDone, onClick = { actions.removeDownloads(songs) })
     } else {

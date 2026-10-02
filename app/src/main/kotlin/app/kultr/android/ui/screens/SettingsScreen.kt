@@ -47,7 +47,9 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.PlayCircle
+import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -78,6 +80,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.BuildConfig
 import app.kultr.android.data.ServerProfile
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.MusicFolders
 import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.BrandIcons
 import app.kultr.android.ui.components.ConfirmDialog
@@ -102,6 +105,7 @@ import app.kultr.core.settings.SurfaceBorder
 import app.kultr.core.settings.ThemeMode
 import app.kultr.core.settings.availableHomeTiles
 import app.kultr.core.settings.resolveHomeTiles
+import app.kultr.core.sync.SyncMode
 import app.kultr.core.util.ArtworkColor
 import java.time.Instant
 import kotlin.math.roundToInt
@@ -139,6 +143,7 @@ fun SettingsScreen(onAddServer: () -> Unit, onSignIn: (ServerProfile) -> Unit) {
         section("Audio", Icons.Rounded.GraphicEq) { AudioSettings(settings, ::update) }
         section("Equaliser", Icons.Rounded.Equalizer) { EqualiserSettings(settings, ::update) }
         section("Offline and cache", Icons.Rounded.DownloadForOffline) { OfflineSettings(settings, ::update) }
+        section("Music on this phone", Icons.Rounded.PhoneAndroid) { LocalMusicSettings() }
         section("Servers", Icons.Rounded.Dns) { ServerSettings(onAddServer, onSignIn) }
         section("Backup and reset", Icons.Rounded.Backup) { BackupSettings(settings) }
         section("About", Icons.Rounded.Info) { AboutSection() }
@@ -441,13 +446,17 @@ private fun ServerSettings(onAddServer: () -> Unit, onSignIn: (ServerProfile) ->
             Column(Modifier.weight(1f)) {
                 Text(profile.label + if (isActive) " · in use" else "", color = if (isActive) Kultr.colors.accent else Kultr.colors.ink, fontWeight = FontWeight.SemiBold)
                 Text(
-                    listOf(profile.username.ifBlank { "not signed in" }, profile.serverUrl).joinToString(" · "),
+                    if (profile.local) {
+                        "Folders on this phone, no server"
+                    } else {
+                        listOf(profile.username.ifBlank { "not signed in" }, profile.serverUrl).joinToString(" · ")
+                    },
                     color = Kultr.colors.ink3,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
             when {
-                !profile.hasCredentials -> TextButton(onClick = { onSignIn(profile) }) { Text("Sign in") }
+                !profile.usable -> TextButton(onClick = { onSignIn(profile) }) { Text("Sign in") }
                 !isActive && profile.enabled -> TextButton(onClick = { graph.auth.switchTo(profile.id) }) { Text("Use") }
             }
             Switch(checked = profile.enabled, onCheckedChange = { graph.auth.setEnabled(profile.id, it) })
@@ -513,6 +522,54 @@ private fun ServerMenu(profile: ServerProfile, onRename: () -> Unit, onChangePas
                 leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = Kultr.colors.danger) },
                 onClick = { open = false; onForget() },
             )
+        }
+    }
+}
+
+// ------------------------------------------------------- music on phone --
+
+/**
+ * The library on the phone: the folders it is read from, and scanning them.
+ * Before there is one, a way to start it.
+ */
+@Composable
+private fun LocalMusicSettings() {
+    val graph = LocalActions.current.graph
+    val colors = Kultr.colors
+    val profiles by graph.auth.profiles.collectAsStateWithLifecycle()
+    val active by graph.auth.active.collectAsStateWithLifecycle()
+    val scanning by graph.sync.running.collectAsStateWithLifecycle()
+    val localProfile = profiles.firstOrNull { it.local }
+    val inUse = active?.local == true
+
+    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            if (localProfile == null) {
+                "Play the music stored on this phone, without a server. Choose the folders it is in; Kultr gets access to those and nothing else."
+            } else {
+                "Kultr reads these folders. New and changed files are picked up when it starts, or when you scan."
+            },
+            color = colors.ink3,
+            style = MaterialTheme.typography.bodySmall,
+        )
+        MusicFolders(onChanged = {
+            // The first folder starts the library on the phone; while it is in use, folders are read in at once.
+            graph.auth.ensureLocalLibrary()
+            if (graph.isLocal) graph.sync.start(SyncMode.CHECK, quiet = true)
+        })
+        if (localProfile != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (inUse) {
+                    Pill(if (scanning) "Scanning…" else "Scan now", icon = Icons.Rounded.Sync, enabled = !scanning, onClick = { graph.sync.start(SyncMode.CHECK) })
+                    Pill("Read all tags again", enabled = !scanning, onClick = { graph.sync.start(SyncMode.FULL) })
+                } else {
+                    Pill("Play music on this phone", icon = Icons.Rounded.PhoneAndroid, accent = true, onClick = {
+                        graph.player.stop()
+                        graph.auth.switchTo(localProfile.id)
+                        graph.sync.startFirstSyncIfNeeded()
+                    })
+                }
+            }
         }
     }
 }

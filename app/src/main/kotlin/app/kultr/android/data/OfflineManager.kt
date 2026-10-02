@@ -194,7 +194,8 @@ class OfflineManager(private val graph: AppGraph) {
 
     suspend fun download(songs: List<Song>, label: String? = null) {
         val db = graph.database.value ?: return
-        val wanted = songs.filter { !it.isRadio }.distinctBy { it.id }
+        // Radio is live, and music on the phone is there already.
+        val wanted = songs.filter { !it.isRadio && !LocalLibrary.isLocal(it) }.distinctBy { it.id }
         val pending = withContext(Dispatchers.IO) {
             val rows = HashMap<String, DownloadEntity>()
             wanted.map { it.id }.chunked(SQL_CHUNK).forEach { chunk -> db.downloads().getMany(chunk).forEach { rows[it.songId] = it } }

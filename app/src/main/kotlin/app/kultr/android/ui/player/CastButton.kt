@@ -6,6 +6,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.media3.cast.MediaRouteButton
+import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.theme.Kultr
 
 /**
@@ -15,6 +16,8 @@ import app.kultr.android.ui.theme.Kultr
  */
 @Composable
 fun CastButton(modifier: Modifier = Modifier, tint: Color = Kultr.colors.ink2) {
+    // Files on the phone are out of a Cast receiver's reach.
+    if (LocalMusicMode.current) return
     CompositionLocalProvider(LocalContentColor provides tint) {
         MediaRouteButton(modifier)
     }

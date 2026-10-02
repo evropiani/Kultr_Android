@@ -7,6 +7,7 @@ import androidx.media3.datasource.cache.SimpleCache
 import app.kultr.android.data.AnalysisManager
 import app.kultr.android.data.AuthRepository
 import app.kultr.android.data.LibraryRepository
+import app.kultr.android.data.LocalLibrary
 import app.kultr.android.data.NetworkMonitor
 import app.kultr.android.data.OfflineManager
 import app.kultr.android.data.Scrobbles
@@ -58,8 +59,13 @@ class AppGraph(val app: Application) {
         databases.remove(profileId)?.close()
         app.deleteDatabase(KultrDatabase.fileName(profileId))
         offline.directoryFor(profileId).deleteRecursively()
+        if (profileId == LocalLibrary.PROFILE_ID) local.forgetAll()
     }
 
+    /** Whether the library in use is the music on the phone, not a server. */
+    val isLocal: Boolean get() = auth.active.value?.local == true
+
+    val local = LocalLibrary(this)
     val library = LibraryRepository(this)
     val scrobbles = Scrobbles(this)
     val sync = SyncManager(this)

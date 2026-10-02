@@ -4,6 +4,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import app.kultr.android.data.LocalLibrary
 import app.kultr.core.api.Song
 import app.kultr.core.api.SubsonicClient
 import kotlinx.serialization.json.Json
@@ -18,7 +19,7 @@ object MediaItems {
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
 
     fun artworkUri(song: Song, client: SubsonicClient?, size: Int = 512): Uri? =
-        client?.coverArtUrl(song.artworkId, size)?.let(Uri::parse)
+        LocalLibrary.artwork(song.artworkId, size, client)?.let(Uri::parse)
 
     fun from(song: Song, client: SubsonicClient?): MediaItem {
         val extras = Bundle().apply { putString(EXTRA_SONG, json.encodeToString(Song.serializer(), song)) }

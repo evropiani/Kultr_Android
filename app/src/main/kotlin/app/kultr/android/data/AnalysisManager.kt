@@ -134,6 +134,14 @@ class AnalysisManager(private val graph: AppGraph) {
         val db = graph.database.value ?: return null
         val duration = song.duration ?: 0
         if (duration > MAX_ANALYSIS_SECONDS) return null
+        // Music on the phone is read straight from its file.
+        LocalLibrary.uriOf(song)?.let { uri ->
+            return withContext(Dispatchers.Default) {
+                val (pcm, rate) = AudioDecoder.decodeToMono(MAX_ANALYSIS_SECONDS) { it.setDataSource(graph.app, uri, null) }
+                if (pcm.size < rate * 5) return@withContext null
+                TrackAnalysis.from(song, analysePcm(pcm, rate)).also { db.analysis().put(it.toEntity()) }
+            }
+        }
         val local = graph.offline.fileFor(song.id)
         if (local == null && graph.settings.current.injektAnalyseOnWifiOnly && graph.network.isMetered) return null
         val client = graph.auth.client.value ?: return null
@@ -220,9 +228,13 @@ class AnalysisWorker(context: Context, params: WorkerParameters) : CoroutineWork
 object AudioDecoder {
     private const val TIMEOUT_US = 10_000L
 
-    fun decodeToMono(file: File, maxSeconds: Int): Pair<FloatArray, Int> {
+    fun decodeToMono(file: File, maxSeconds: Int): Pair<FloatArray, Int> =
+        decodeToMono(maxSeconds) { it.setDataSource(file.absolutePath) }
+
+    /** Decode whatever [open] points the extractor at: a file, or a content URI. */
+    fun decodeToMono(maxSeconds: Int, open: (MediaExtractor) -> Unit): Pair<FloatArray, Int> {
         val extractor = MediaExtractor()
-        extractor.setDataSource(file.absolutePath)
+        open(extractor)
         try {
             val track = (0 until extractor.trackCount).firstOrNull {
                 extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true

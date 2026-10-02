@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.data.db.Counts
 import app.kultr.android.ui.LibraryTab
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.Routes
 import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AlbumCard
@@ -55,6 +56,7 @@ import app.kultr.android.ui.components.SectionHeader
 import app.kultr.android.ui.components.Shelf
 import app.kultr.android.ui.components.SongRow
 import app.kultr.android.ui.player.CastButton
+import app.kultr.android.ui.rememberFolderPicker
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.RadioStation
 import app.kultr.core.api.Song
@@ -86,6 +88,7 @@ fun HomeScreen() {
     val syncState by graph.library.syncState.collectAsStateWithLifecycle(SyncState())
     val syncing by graph.sync.running.collectAsStateWithLifecycle()
     val progress by graph.sync.progress.collectAsStateWithLifecycle()
+    val local = LocalMusicMode.current
     val tiles = remember(settings.homeTiles) { resolveHomeTiles(settings.homeTiles) }
     val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
 
@@ -126,7 +129,9 @@ fun HomeScreen() {
             }
         }
 
-        if (counts.albums == 0) {
+        if (counts.albums == 0 && local) {
+            item(key = "empty") { LocalEmptyState(syncing) }
+        } else if (counts.albums == 0) {
             item(key = "empty") {
                 EmptyState(
                     icon = Icons.Rounded.Album,
@@ -280,4 +285,37 @@ fun StationCard(station: RadioStation, modifier: Modifier = Modifier, onClick: (
         Text(station.name, style = MaterialTheme.typography.bodyMedium, color = Kultr.colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text("Radio", style = MaterialTheme.typography.bodySmall, color = Kultr.colors.ink3)
     }
+}
+
+/** The phone's own library, still empty: choose a folder, or read the chosen ones. */
+@Composable
+private fun LocalEmptyState(scanning: Boolean) {
+    val graph = LocalActions.current.graph
+    val folders by graph.local.folders.collectAsStateWithLifecycle()
+    val pick = rememberFolderPicker { graph.sync.start(SyncMode.FULL) }
+    EmptyState(
+        icon = Icons.Rounded.Album,
+        title = when {
+            scanning -> "Reading your music…"
+            folders.isEmpty() -> "Where is your music?"
+            else -> "No music found yet"
+        },
+        body = if (folders.isEmpty()) {
+            "Choose the folders your music is in. Kultr reads them and builds a library of your albums, artists and covers."
+        } else {
+            "Kultr looked through ${folders.joinToString { it.name }} and found nothing it can play yet. Add another folder, or scan again after copying music in."
+        },
+        action = {
+            when {
+                folders.isEmpty() -> Pill("Choose a folder", icon = Icons.Rounded.Album, accent = true, onClick = pick)
+                else -> Pill(
+                    if (scanning) "Reading…" else "Scan again",
+                    icon = Icons.Rounded.Sync,
+                    accent = true,
+                    enabled = !scanning,
+                    onClick = { graph.sync.start(SyncMode.FULL) },
+                )
+            }
+        },
+    )
 }

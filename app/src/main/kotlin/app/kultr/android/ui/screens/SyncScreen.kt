@@ -31,6 +31,7 @@ import app.kultr.android.data.Connection
 import app.kultr.android.data.db.Counts
 import app.kultr.android.data.db.DownloadUsage
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AccentWash
 import app.kultr.android.ui.components.Eyebrow
@@ -61,6 +62,8 @@ fun SyncScreen() {
     val usage by graph.offline.usage.collectAsStateWithLifecycle(DownloadUsage(0, 0))
     val download by graph.offline.progress.collectAsStateWithLifecycle()
     val colors = Kultr.colors
+    val local = LocalMusicMode.current
+    val folders by graph.local.folders.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize()) {
         AccentWash()
@@ -89,13 +92,17 @@ fun SyncScreen() {
                             style = MaterialTheme.typography.bodySmall,
                         )
                         Text(
-                            when (val c = connection) {
-                                is Connection.Online -> "Connected to ${c.info.description}"
-                                is Connection.Offline -> "Server unreachable: ${c.message}"
-                                Connection.Connecting -> "Connecting…"
-                                Connection.Idle -> "Not connected"
+                            if (local) {
+                                "Read from ${Format.count(folders.size, "folder")} on this phone: ${folders.joinToString { it.name }}"
+                            } else {
+                                when (val c = connection) {
+                                    is Connection.Online -> "Connected to ${c.info.description}"
+                                    is Connection.Offline -> "Server unreachable: ${c.message}"
+                                    Connection.Connecting -> "Connecting…"
+                                    Connection.Idle -> "Not connected"
+                                }
                             },
-                            color = if (connection is Connection.Offline) colors.warning else colors.ink3,
+                            color = if (connection is Connection.Offline && !local) colors.warning else colors.ink3,
                             style = MaterialTheme.typography.bodySmall,
                         )
                         val p = progress
@@ -111,7 +118,11 @@ fun SyncScreen() {
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                                 if (s.errors.isNotEmpty()) {
-                                    Text("${s.errors.size} albums could not be read: ${s.errors.take(3).joinToString("; ")}", color = colors.warning, style = MaterialTheme.typography.bodySmall)
+                                    Text(
+                                        if (local) s.errors.take(3).joinToString(" ") else "${s.errors.size} albums could not be read: ${s.errors.take(3).joinToString("; ")}",
+                                        color = colors.warning,
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
                                 }
                             }
                         }
@@ -121,13 +132,22 @@ fun SyncScreen() {
                                 Pill("Stop", icon = Icons.Rounded.Stop, onClick = { graph.sync.cancel() })
                             } else {
                                 Pill(
-                                    if (counts.albums == 0) "Sync my library" else "Check for updates",
+                                    when {
+                                        local && counts.albums == 0 -> "Scan my folders"
+                                        local -> "Scan for changes"
+                                        counts.albums == 0 -> "Sync my library"
+                                        else -> "Check for updates"
+                                    },
                                     icon = Icons.Rounded.Sync,
                                     accent = true,
                                     onClick = { graph.sync.start(if (counts.albums == 0) SyncMode.FULL else SyncMode.CHECK) },
                                 )
                                 if (counts.albums > 0) {
-                                    Pill("Full resync", icon = Icons.Rounded.CloudSync, onClick = { graph.sync.start(SyncMode.FULL) })
+                                    Pill(
+                                        if (local) "Read all tags again" else "Full resync",
+                                        icon = Icons.Rounded.CloudSync,
+                                        onClick = { graph.sync.start(SyncMode.FULL) },
+                                    )
                                 }
                             }
                         }
@@ -178,7 +198,8 @@ fun SyncScreen() {
                     }
                 }
 
-                GlassPanel(Modifier.fillMaxWidth()) {
+                // Music on the phone is there already: nothing to download.
+                if (!local) GlassPanel(Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Eyebrow("Offline")
                         Text(

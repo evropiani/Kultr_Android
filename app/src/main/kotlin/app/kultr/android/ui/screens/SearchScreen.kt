@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.data.SearchResults
 import app.kultr.android.data.db.Counts
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AlbumCard
 import app.kultr.android.ui.components.ArtistCard
@@ -59,7 +60,9 @@ fun SearchScreen(query: String) {
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val selection = rememberSelection()
-    val useServer = serverSearch || counts.songs == 0
+    val local = LocalMusicMode.current
+    // The phone's own music is all in the library; only a server has more to ask.
+    val useServer = !local && (serverSearch || counts.songs == 0)
 
     LaunchedEffect(query, useServer) {
         val q = query.trim()
@@ -88,14 +91,16 @@ fun SearchScreen(query: String) {
             color = Kultr.colors.ink,
             modifier = Modifier.padding(start = 16.dp, top = 12.dp),
         )
-        Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                if (counts.songs == 0) "Searching your server (the library is not synced yet)" else "Search on the server instead",
-                color = Kultr.colors.ink3,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.weight(1f),
-            )
-            if (counts.songs > 0) Switch(checked = serverSearch, onCheckedChange = { serverSearch = it })
+        if (!local) {
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (counts.songs == 0) "Searching your server (the library is not synced yet)" else "Search on the server instead",
+                    color = Kultr.colors.ink3,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f),
+                )
+                if (counts.songs > 0) Switch(checked = serverSearch, onCheckedChange = { serverSearch = it })
+            }
         }
         SelectionBar(selection, results.songs)
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = chromePadding())) {

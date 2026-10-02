@@ -35,8 +35,13 @@ data class ServerProfile(
     val enabled: Boolean = true,
     /** The password, sealed with [SecretBox]. Empty for imported profiles. */
     val secret: String = "",
+    /** The library on the phone itself: music from chosen folders, no server. */
+    val local: Boolean = false,
 ) {
     val hasCredentials: Boolean get() = username.isNotBlank() && secret.isNotEmpty()
+
+    /** Whether it can be switched to: a server Kultr can sign in to, or the phone's own music. */
+    val usable: Boolean get() = local || hasCredentials
 }
 
 sealed interface Connection {
@@ -117,6 +122,14 @@ class AuthRepository(
      * library and downloads work even if the server does not answer.
      */
     private fun activate(profile: ServerProfile, ping: Boolean) {
+        if (profile.local) {
+            pingJob?.cancel()
+            _active.value = profile
+            _client.value = null
+            _connection.value = Connection.Idle
+            saveActive(profile.id)
+            return
+        }
         val client = buildClient(profile)
         _active.value = profile
         _client.value = client
@@ -191,9 +204,25 @@ class AuthRepository(
         }
     }
 
+    /** The library on the phone, added to the list if it is not there yet (without switching to it). */
+    fun ensureLocalLibrary(): ServerProfile {
+        _profiles.value.firstOrNull { it.local }?.let { return it }
+        val profile = ServerProfile(id = LocalLibrary.PROFILE_ID, label = "Music on this phone", serverUrl = "", username = "", local = true)
+        saveProfiles(_profiles.value + profile)
+        return profile
+    }
+
+    /** Play the music on the phone: make the local library the active one, adding it if needed. */
+    fun useLocalLibrary(): ServerProfile {
+        val profile = ensureLocalLibrary().copy(enabled = true)
+        saveProfiles(_profiles.value.map { if (it.id == profile.id) profile else it })
+        activate(profile, ping = false)
+        return profile
+    }
+
     fun switchTo(id: String): Boolean {
         val profile = _profiles.value.firstOrNull { it.id == id } ?: return false
-        if (!profile.enabled || !profile.hasCredentials) return false
+        if (!profile.enabled || !profile.usable) return false
         activate(profile, ping = true)
         return true
     }

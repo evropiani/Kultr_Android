@@ -5,6 +5,7 @@ import app.kultr.android.data.db.ArtistPlays
 import app.kultr.android.data.db.Counts
 import app.kultr.android.data.db.HistoryEntity
 import app.kultr.android.data.db.KultrDatabase
+import app.kultr.android.data.db.PlaylistEntity
 import app.kultr.android.data.db.SQL_CHUNK
 import app.kultr.android.data.db.decodeIds
 import app.kultr.android.data.db.decodeSyncState
@@ -30,6 +31,7 @@ import app.kultr.core.util.LyricsDoc
 import app.kultr.core.util.LyricsParser
 import java.time.Instant
 import java.time.OffsetDateTime
+import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,6 +55,9 @@ data class SearchResults(
 }
 
 class NotConnectedException : Exception("You are not connected to a server.")
+
+/** Playlists made in the phone's own library. */
+private const val LOCAL_PLAYLIST_PREFIX = "local-playlist:"
 
 /**
  * Everything the screens read from the local mirror, and every change the
@@ -261,6 +266,7 @@ class LibraryRepository(private val graph: AppGraph) {
 
     /** The server's own search, for libraries that have not been synced (yet). */
     suspend fun searchServer(query: String): SearchResults {
+        if (local) return search(query)
         val result = client().search3(query, artistCount = 20, albumCount = 30, songCount = 60)
         return SearchResults(result.artist, result.album, result.song)
     }
@@ -302,12 +308,15 @@ class LibraryRepository(private val graph: AppGraph) {
 
     private fun nowIso(): String = Instant.now().toString()
 
+    /** Music on the phone: favourites, ratings and playlists live in its database alone. */
+    private val local: Boolean get() = graph.isLocal
+
     /** Favourite or unfavourite a song. Returns an error message, or null. */
     // Favourite changes go to the server one at a time, in the order they were
     // made, so a quick tap and its undo arrive as star-then-unstar.
     suspend fun setStarred(song: Song, starred: Boolean): String? = starring.withLock {
         guard {
-            if (starred) client().star(id = song.id) else client().unstar(id = song.id)
+            if (!local) if (starred) client().star(id = song.id) else client().unstar(id = song.id)
             db()?.library()?.setSongStarred(song.id, if (starred) nowIso() else null)
         }
     }
@@ -315,7 +324,7 @@ class LibraryRepository(private val graph: AppGraph) {
     suspend fun setStarred(songs: List<Song>, starred: Boolean): String? = starring.withLock {
         guard {
             songs.chunked(100).forEach { chunk ->
-                chunk.forEach { if (starred) client().star(id = it.id) else client().unstar(id = it.id) }
+                if (!local) chunk.forEach { if (starred) client().star(id = it.id) else client().unstar(id = it.id) }
                 val stamp = if (starred) nowIso() else null
                 chunk.forEach { db()?.library()?.setSongStarred(it.id, stamp) }
             }
@@ -324,52 +333,114 @@ class LibraryRepository(private val graph: AppGraph) {
 
     suspend fun setAlbumStarred(album: Album, starred: Boolean): String? = starring.withLock {
         guard {
-            if (starred) client().star(albumId = album.id) else client().unstar(albumId = album.id)
+            if (!local) if (starred) client().star(albumId = album.id) else client().unstar(albumId = album.id)
             db()?.library()?.setAlbumStarred(album.id, if (starred) nowIso() else null)
         }
     }
 
     suspend fun setArtistStarred(artist: Artist, starred: Boolean): String? = starring.withLock {
         guard {
-            if (starred) client().star(artistId = artist.id) else client().unstar(artistId = artist.id)
+            if (!local) if (starred) client().star(artistId = artist.id) else client().unstar(artistId = artist.id)
             db()?.library()?.setArtistStarred(artist.id, if (starred) nowIso() else null)
         }
     }
 
     suspend fun setRating(song: Song, rating: Int): String? = guard {
-        client().setRating(song.id, rating)
+        if (!local) client().setRating(song.id, rating)
         db()?.library()?.setSongRating(song.id, rating)
     }
 
     suspend fun createPlaylist(name: String, songs: List<Song>): String? = guard {
+        if (local) {
+            val db = db() ?: return@guard
+            val now = nowIso()
+            val position = (db.library().allPlaylists().maxOfOrNull { it.position } ?: -1) + 1
+            val entity = PlaylistEntity(
+                id = LOCAL_PLAYLIST_PREFIX + UUID.randomUUID(),
+                name = name.trim(),
+                comment = null,
+                owner = null,
+                isPublic = false,
+                songCount = 0,
+                duration = 0,
+                created = now,
+                changed = now,
+                coverArt = null,
+                entryIds = encodeIds(emptyList()),
+                position = position,
+            )
+            saveLocalPlaylist(db, entity, songs.map { it.id })
+            return@guard
+        }
         client().createPlaylist(name.trim(), songs.map { it.id })
         refreshPlaylistsNow()
     }
 
     suspend fun addToPlaylist(playlistId: String, songs: List<Song>): String? = guard {
+        if (local) {
+            editLocalPlaylist(playlistId) { it + songs.map { song -> song.id } }
+            return@guard
+        }
         songs.chunked(200).forEach { chunk -> client().updatePlaylist(playlistId, songIdToAdd = chunk.map { it.id }) }
         refreshPlaylistNow(playlistId)
     }
 
     suspend fun removeFromPlaylist(playlistId: String, indices: List<Int>): String? = guard {
+        if (local) {
+            val gone = indices.toSet()
+            editLocalPlaylist(playlistId) { ids -> ids.filterIndexed { index, _ -> index !in gone } }
+            return@guard
+        }
         client().updatePlaylist(playlistId, songIndexToRemove = indices.sortedDescending())
         refreshPlaylistNow(playlistId)
     }
 
     suspend fun renamePlaylist(playlistId: String, name: String, comment: String? = null): String? = guard {
+        if (local) {
+            val db = db() ?: return@guard
+            val entity = db.library().playlistNow(playlistId) ?: return@guard
+            db.library().upsertPlaylists(listOf(entity.copy(name = name.trim(), comment = comment, changed = nowIso())))
+            return@guard
+        }
         client().updatePlaylist(playlistId, name = name.trim(), comment = comment)
         refreshPlaylistNow(playlistId)
     }
 
     suspend fun deletePlaylist(playlistId: String): String? = guard {
+        if (local) {
+            db()?.library()?.deletePlaylist(playlistId)
+            return@guard
+        }
         client().deletePlaylist(playlistId)
         refreshPlaylistsNow()
     }
 
     /** Re-read the playlist list (and every playlist's tracks) from the server. */
-    suspend fun refreshPlaylists(): String? = guard { refreshPlaylistsNow() }
+    suspend fun refreshPlaylists(): String? = if (local) null else guard { refreshPlaylistsNow() }
 
-    suspend fun refreshPlaylist(playlistId: String): String? = guard { refreshPlaylistNow(playlistId) }
+    suspend fun refreshPlaylist(playlistId: String): String? = if (local) null else guard { refreshPlaylistNow(playlistId) }
+
+    /** Change a playlist on the phone's own library: [edit] gets its track ids and returns the new ones. */
+    private suspend fun editLocalPlaylist(playlistId: String, edit: (List<String>) -> List<String>) {
+        val db = db() ?: return
+        val entity = db.library().playlistNow(playlistId) ?: return
+        saveLocalPlaylist(db, entity, edit(decodeIds(entity.entryIds)))
+    }
+
+    private suspend fun saveLocalPlaylist(db: KultrDatabase, entity: PlaylistEntity, ids: List<String>) {
+        val songs = songsInOrder(db, ids)
+        db.library().upsertPlaylists(
+            listOf(
+                entity.copy(
+                    songCount = ids.size,
+                    duration = songs.sumOf { it.duration ?: 0 },
+                    coverArt = songs.firstNotNullOfOrNull { it.coverArt },
+                    entryIds = encodeIds(ids),
+                    changed = nowIso(),
+                ),
+            ),
+        )
+    }
 
     private suspend fun refreshPlaylistsNow() {
         val db = db() ?: return

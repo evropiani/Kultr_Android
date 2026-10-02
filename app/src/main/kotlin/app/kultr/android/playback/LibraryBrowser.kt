@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import app.kultr.android.AppGraph
+import app.kultr.android.data.LocalLibrary
 import app.kultr.core.api.Song
 import kotlinx.coroutines.flow.first
 
@@ -54,7 +55,7 @@ class LibraryBrowser(private val graph: AppGraph) {
                 ALBUM + album.id,
                 album.name,
                 MediaMetadata.MEDIA_TYPE_ALBUM,
-                client()?.coverArtUrl(album.coverArt ?: album.id, 300)?.let(Uri::parse),
+                LocalLibrary.artwork(album.coverArt ?: album.id, 300, client())?.let(Uri::parse),
                 playable = true,
             )
         }
@@ -63,7 +64,7 @@ class LibraryBrowser(private val graph: AppGraph) {
                 PLAYLIST + playlist.id,
                 playlist.name,
                 MediaMetadata.MEDIA_TYPE_PLAYLIST,
-                client()?.coverArtUrl(playlist.coverArt, 300)?.let(Uri::parse),
+                LocalLibrary.artwork(playlist.coverArt, 300, client())?.let(Uri::parse),
                 playable = true,
             )
         }

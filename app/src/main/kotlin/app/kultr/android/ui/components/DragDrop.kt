@@ -21,8 +21,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
@@ -63,6 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.Song
 import kotlin.math.roundToInt
@@ -233,7 +234,9 @@ fun DropZoneOverlay(state: DragDropState, modifier: Modifier = Modifier) {
                     overflow = TextOverflow.Ellipsis,
                 )
                 // Three on top, two below: big enough to hit with a thumb.
-                val rows = listOf(DropAction.entries.take(3), DropAction.entries.drop(3))
+                // Music on the phone has nothing to download or delete downloads of.
+                val shown = if (LocalMusicMode.current) DropAction.entries.filter { it != DropAction.DOWNLOAD && it != DropAction.REMOVE } else DropAction.entries
+                val rows = listOf(shown.take(3), shown.drop(3)).filter { it.isNotEmpty() }
                 rows.forEach { row ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
                         row.forEach { action ->

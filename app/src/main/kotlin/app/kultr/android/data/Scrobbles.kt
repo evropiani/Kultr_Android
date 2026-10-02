@@ -34,7 +34,7 @@ class Scrobbles(private val graph: AppGraph) {
 
     /** Tell the server what is playing right now. Best-effort. */
     fun nowPlaying(song: Song) {
-        if (song.isRadio || !graph.settings.current.scrobble) return
+        if (song.isRadio || LocalLibrary.isLocal(song) || !graph.settings.current.scrobble) return
         val client = graph.auth.client.value ?: return
         graph.scope.launch(Dispatchers.IO) {
             runCatching { client.scrobble(song.id, submission = false) }
@@ -47,7 +47,8 @@ class Scrobbles(private val graph: AppGraph) {
         val db = graph.database.value ?: return
         graph.scope.launch(Dispatchers.IO) {
             val playedAt = System.currentTimeMillis()
-            val sending = graph.settings.current.scrobble
+            // Music on the phone has no server to tell; it is counted here only.
+            val sending = graph.settings.current.scrobble && !LocalLibrary.isLocal(song)
             // Recorded and claimed together, so a flush running now cannot send it too.
             val id = flushing.withLock {
                 val entry = HistoryEntity(
