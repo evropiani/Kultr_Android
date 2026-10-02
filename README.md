@@ -1,13 +1,17 @@
 # Kultr for Android
 
 A native Android client for [Navidrome](https://www.navidrome.org/) and other
-Subsonic-compatible servers. It's the Android counterpart of the
+Subsonic-compatible servers, and a music player for the files on your phone,
+no server needed. It's the Android counterpart of the
 [Kultr web client](https://github.com/evropiani/Kultr) and of
 [Kultr for iOS](https://github.com/evropiani/Kultr_iOS). It keeps their
 behaviour and settings (a settings file exported from one opens in the
 others) and runs as a proper Android music app: background playback, a media
 notification, lock-screen and Bluetooth controls, Android Auto, Cast, and
 downloads for offline listening.
+
+On first start a short welcome asks where your music is (a Navidrome server
+or folders on this phone) and shows around the app.
 
 ## Features
 
@@ -18,11 +22,19 @@ downloads for offline listening.
   grows into the search field, riding on the keyboard. Light and dark follow
   the phone's own setting, and a pale colour taken from the artwork is
   deepened in light mode so it stays readable.
-- **Library mirror.** The whole library is synced into a local database, so
-  browsing and search are instant and work offline. Later syncs fetch only
-  what changed; they can run at start-up and periodically in the background.
-  Swipe between the Library's tabs: albums, artists, songs, playlists, genres,
-  favourites, downloads and radio.
+- **Music on this phone.** Choose the folders your music is in (Music, a
+  memory card, anything the system's folder picker offers) and Kultr plays
+  your files without a server or an account. It reads their tags and covers
+  (a `cover.jpg` in the folder or the picture inside the file), groups them
+  into albums, artists and genres, and finds new and changed files on its
+  own. Favourites, ratings, play counts, playlists, InjeKt, the widget and
+  Android Auto all work; folders and scanning are in Settings → Music on this
+  phone.
+- **Library mirror.** A server's whole library is synced into a local
+  database, so browsing and search are instant and work offline. Later syncs
+  fetch only what changed; they can run at start-up and periodically in the
+  background. Swipe between the Library's tabs: albums, artists, songs,
+  playlists, genres, favourites, downloads and radio.
 - **Two-deck playback.** Every track plays on one of two players, so Kultr can
   crossfade (with a choice of curves), play gapless albums seamlessly, or cut.
 - **InjeKt transitions.** Tracks are analysed on the phone (tempo, beat grid,
@@ -46,15 +58,20 @@ downloads for offline listening.
 - **Drag and drop** tracks, albums, artists and playlists onto Play next, Add to
   queue, Favourite, Sync offline or Delete downloads.
 - **Several servers.** Sign in to more than one server, name them as you like,
-  and switch between them; change a server's password from its menu. Each has
-  its own library, downloads and history. Passwords are sealed with a key held
-  in the Android Keystore.
+  and switch between them and the music on the phone; change a server's
+  password from its menu. Each has its own library, downloads and history.
+  Passwords are sealed with a key held in the Android Keystore.
 - **Home shelves** you choose and reorder: jump back in, recently added, most
   played, albums at random, favourites, playlists on repeat, internet radio
   and more.
 - **Audio:** ten-band equaliser with presets, ReplayGain (track or album),
   per-network streaming bitrate, sleep timer (after minutes or at the end of
   the track).
+- **Updates in the app.** Kultr checks for new releases (at most twice a day,
+  or from Settings → About → Version → Check for updates) and shows a banner
+  you can dismiss. The update page has the release notes and an Update button
+  that downloads the new APK, checks its SHA-256, and hands it to Android's
+  installer.
 - **Also:** synced and plain lyrics, ratings and favourites, playlist editing,
   internet radio, listening stats, a now-playing screen tinted by the artwork
   (pull it down to close), and settings backup and restore.
@@ -67,6 +84,9 @@ and open it on a phone running Android 8.0 (API 26) or later. Releases are
 signed with the Kultr release key, so each one installs over the last; its
 certificate's SHA-256 fingerprint is
 `3C:26:16:4A:FD:6F:C1:30:F5:7D:A5:2B:4F:04:AB:2B:E8:3C:89:25:50:89:6F:C9:43:57:D2:E0:B8:51:6F:E0`.
+
+From 1.5.0 on, Kultr tells you itself when a new version is out and installs
+it from inside the app. Android asks once to allow Kultr to install apps.
 
 Every push to `main` is also built by GitHub Actions, with a debug APK attached
 to the run as the `kultr-debug-apk` artifact. Debug builds are signed with a
@@ -101,8 +121,8 @@ safe: without it, no update can be signed to install over existing copies.
 
 | Module | What it holds |
 | --- | --- |
-| `core` | Plain Kotlin, no Android: the Subsonic API client, the audio analysis (FFT, tempo, key, structure), the InjeKt transition planner, the two-deck playback engine, the library and listening sync, and the settings model with its import/export. Unit-tested on the JVM. |
-| `app` | The Android app: a Room database per server, WorkManager jobs for sync, downloads and analysis, a Media3 `MediaLibraryService` whose player drives two ExoPlayer decks through the core engine (with a custom audio processor for fades, EQ and filters), the home screen widget, and the Jetpack Compose interface with its liquid glass. |
+| `core` | Plain Kotlin, no Android: the Subsonic API client, the audio analysis (FFT, tempo, key, structure), the InjeKt transition planner, the two-deck playback engine, the library and listening sync, the catalogue that groups local files into albums and artists, version comparison and release notes, and the settings model with its import/export. Unit-tested on the JVM. |
+| `app` | The Android app: a Room database per library (each server, and the music on the phone), the folder scanner, WorkManager jobs for sync, downloads and analysis, the update checker, a Media3 `MediaLibraryService` whose player drives two ExoPlayer decks through the core engine (with a custom audio processor for fades, EQ and filters), the home screen widget, and the Jetpack Compose interface with its liquid glass. |
 
 Libraries: Jetpack Compose with Material 3, Media3 (ExoPlayer, session and Cast),
 Room, WorkManager, Navigation, Coil, OkHttp and kotlinx.serialization.
