@@ -106,6 +106,8 @@ class Updates(private val graph: AppGraph) {
 
     /** Look by itself, if it has not looked in the last twelve hours. */
     fun checkInBackground() {
+        // A debug build is signed with another key: a release cannot install over it.
+        if (BuildConfig.DEBUG) return
         val last = prefs.getLong(KEY_CHECKED_AT, 0)
         if (System.currentTimeMillis() - last < BACKGROUND_INTERVAL_MS) return
         graph.scope.launch { checkNow() }
