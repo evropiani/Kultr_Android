@@ -86,7 +86,8 @@ class SyncManager(private val graph: AppGraph) {
      * phone, a scan of its folders. Returns null on success, or an error message.
      */
     suspend fun runNow(mode: SyncMode, quiet: Boolean = false): String? {
-        val db = graph.database.value ?: return "Not signed in."
+        // The active library's own database: the database flow may not have caught up with a switch made just now.
+        val db = graph.auth.active.value?.id?.let(graph::databaseFor) ?: return "Not signed in."
         val local = graph.isLocal
         val client = graph.auth.client.value
         if (!local && client == null) return "Not signed in."
