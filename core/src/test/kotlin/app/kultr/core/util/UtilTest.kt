@@ -104,4 +104,18 @@ class UtilTest {
         val darkBlue = ArtworkColor.rgb(0x2a, 0x3a, 0x9a)
         assertEquals(darkBlue, ArtworkColor.readableOnLight(darkBlue))
     }
+
+    @Test
+    fun versionsCompareNumberByNumber() {
+        assertTrue(Versions.isNewer("v1.5.0", "1.4.0"))
+        assertTrue(Versions.isNewer("1.10.0", "1.9.2"))
+        assertTrue(Versions.isNewer("2.0", "1.99.99"))
+        assertTrue(!Versions.isNewer("1.4.0", "1.4.0"))
+        assertTrue(!Versions.isNewer("v1.4", "1.4.0"))
+        assertTrue(!Versions.isNewer("1.3.9", "1.4.0"))
+        assertTrue(Versions.isNewer("1.5.0", "1.5.0-beta"))
+        assertTrue(!Versions.isNewer("1.5.0-beta", "1.5.0"))
+        assertTrue(!Versions.isNewer("nightly", "1.4.0"))
+        assertEquals("1.4.0", Versions.fromTag("v1.4.0"))
+    }
 }

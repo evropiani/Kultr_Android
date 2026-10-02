@@ -50,7 +50,9 @@ import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -78,7 +80,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.BuildConfig
+import app.kultr.android.data.MessageKind
 import app.kultr.android.data.ServerProfile
+import app.kultr.android.data.UpdateCheck
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.MusicFolders
 import app.kultr.android.ui.chromePadding
@@ -673,8 +677,31 @@ private fun BackupSettings(s: Settings) {
 @Composable
 private fun AboutSection() {
     val context = LocalContext.current
+    val actions = LocalActions.current
+    val graph = actions.graph
+    val check by graph.updates.check.collectAsStateWithLifecycle()
+    val available by graph.updates.available.collectAsStateWithLifecycle()
     val open = { url: String -> runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) } }
-    SettingRow("Version", hint = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+    SettingRow(
+        "Version",
+        hint = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" +
+            (available?.let { " · ${it.version} is available" } ?: ""),
+    ) {
+        if (check is UpdateCheck.Checking) {
+            CircularProgressIndicator(color = Kultr.colors.accent, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+        } else {
+            Pill("Check for updates", icon = Icons.Rounded.SystemUpdate, accent = available != null, onClick = {
+                actions.launch {
+                    when (val result = graph.updates.checkNow()) {
+                        is UpdateCheck.Available -> actions.openUpdate()
+                        is UpdateCheck.UpToDate -> graph.messages.show("You have the latest version.", MessageKind.SUCCESS)
+                        is UpdateCheck.Failed -> graph.messages.error("Could not check for updates. ${result.message}")
+                        else -> Unit
+                    }
+                }
+            })
+        }
+    }
     SettingRow("Source", hint = "github.com/evropiani/Kultr_Android — issues and pull requests welcome.", onClick = {
         open("https://github.com/evropiani/Kultr_Android")
     })

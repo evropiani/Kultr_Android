@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LibraryMusic
@@ -48,6 +49,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -86,6 +88,9 @@ import app.kultr.android.ui.screens.SearchScreen
 import app.kultr.android.ui.screens.SettingsScreen
 import app.kultr.android.ui.screens.StatsScreen
 import app.kultr.android.ui.screens.SyncScreen
+import app.kultr.android.ui.screens.UpdateBanner
+import app.kultr.android.ui.screens.UpdateScreen
+import app.kultr.android.ui.screens.WelcomeFlow
 import app.kultr.android.ui.theme.DEFAULT_ACCENT
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.settings.AccentMode
@@ -160,9 +165,19 @@ fun KultrAppUi(graph: AppGraph, openPlayerRequest: Int, openDownloadsRequest: In
     val client by graph.auth.client.collectAsStateWithLifecycle()
     var login by remember { mutableStateOf<LoginRequest?>(null) }
     val profile = active
+    // The welcome runs once. Anyone who had a library before it existed has seen enough of Kultr already.
+    val prefs = remember { graph.app.getSharedPreferences(UI_PREFS, Context.MODE_PRIVATE) }
+    var welcomed by remember {
+        mutableStateOf(prefs.getBoolean(KEY_WELCOMED, false) || graph.auth.profiles.value.isNotEmpty())
+    }
+    fun finishWelcome() {
+        prefs.edit { putBoolean(KEY_WELCOMED, true) }
+        welcomed = true
+    }
 
     when {
-        profile == null -> LoginScreen(graph)
+        !welcomed -> WelcomeFlow(graph, returning = false, onFinished = ::finishWelcome)
+        profile == null -> WelcomeFlow(graph, returning = true, onFinished = ::finishWelcome)
         // The music on the phone needs no server and no sign-in.
         client == null && !profile.local -> LoginScreen(
             graph,
@@ -192,6 +207,9 @@ fun KultrAppUi(graph: AppGraph, openPlayerRequest: Int, openDownloadsRequest: In
         }
     }
 }
+
+private const val UI_PREFS = "kultr.ui"
+private const val KEY_WELCOMED = "welcomed"
 
 @Composable
 private fun MainUi(
@@ -312,6 +330,7 @@ private fun MainUi(
                     composable(Routes.GENRE) { GenreScreen(it.arguments?.getString("name").orEmpty()) }
                     composable(Routes.SYNC) { SyncScreen() }
                     composable(Routes.STATS) { StatsScreen() }
+                    composable(Routes.UPDATE) { UpdateScreen() }
                     composable(
                         Routes.DOWNLOADS,
                         arguments = listOf(navArgument("page") { type = NavType.StringType; nullable = true; defaultValue = null }),
@@ -354,6 +373,28 @@ private fun MainUi(
                         onBack = { openTab(lastTab) },
                         query = searchQuery,
                         onQueryChange = { searchQuery = it },
+                    )
+                }
+            }
+
+            // A new version: a note at the top until it is opened or dismissed.
+            val update by graph.updates.available.collectAsStateWithLifecycle()
+            val dismissedUpdate by graph.updates.dismissed.collectAsStateWithLifecycle()
+            var bannerRelease by remember { mutableStateOf(update) }
+            LaunchedEffect(update) { update?.let { bannerRelease = it } }
+            AnimatedVisibility(
+                visible = update != null && update?.version != dismissedUpdate &&
+                    backStack?.destination?.route != Routes.UPDATE && !keyboardOpen,
+                modifier = Modifier.align(Alignment.TopCenter),
+                enter = slideInVertically(tween(320)) { -it } + fadeIn(tween(200)),
+                exit = slideOutVertically(tween(240)) { -it } + fadeOut(tween(160)),
+            ) {
+                bannerRelease?.let { release ->
+                    UpdateBanner(
+                        release,
+                        onOpen = { actions.openUpdate() },
+                        onDismiss = { graph.updates.dismiss(release) },
+                        modifier = Modifier.statusBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp),
                     )
                 }
             }

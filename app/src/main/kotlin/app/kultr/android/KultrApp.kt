@@ -4,6 +4,7 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import androidx.media3.cast.Cast
+import app.kultr.android.data.OfflineManager
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -12,7 +13,6 @@ import coil3.disk.directory
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
-import app.kultr.android.data.OfflineManager
 
 class KultrApp : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
@@ -23,6 +23,7 @@ class KultrApp : Application(), SingletonImageLoader.Factory {
         // Cast needs Google Play services; without them the cast button simply never appears.
         runCatching { Cast.getSingletonInstance(this).initialize() }
         graph.sync.onAppStart()
+        graph.updates.onAppStart()
     }
 
     private fun createChannels() {

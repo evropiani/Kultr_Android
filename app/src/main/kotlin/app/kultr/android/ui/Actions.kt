@@ -45,6 +45,7 @@ object Routes {
     const val SYNC = "sync"
     const val STATS = "stats"
     const val DOWNLOADS = "downloads?page={page}"
+    const val UPDATE = "update"
 
     fun library(tab: LibraryTab? = null) = if (tab == null) "library" else "library?tab=${tab.name}"
     fun album(id: String) = "album/${Uri.encode(id)}"
@@ -90,6 +91,7 @@ class AppActions(
     fun openGenre(name: String) = navigate(Routes.genre(name))
     fun openLibrary(tab: LibraryTab) = navigate(Routes.library(tab))
     fun openDownloads(page: DownloadsPage = DownloadsPage.NOW) = navigate(Routes.downloads(page))
+    fun openUpdate() = navigate(Routes.UPDATE)
 
     fun play(songs: List<Song>, startIndex: Int = 0) = player.play(songs, startIndex, shuffle = false)
 
