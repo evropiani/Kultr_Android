@@ -85,6 +85,8 @@ data class Settings(
     // ---- appearance
     /** Follows the phone's own light or dark setting unless one is picked. */
     val theme: ThemeMode = ThemeMode.SYSTEM,
+    /** Night mode: whenever the theme is dark, it is pure black, for OLED screens. */
+    val nightMode: Boolean = false,
     val accentMode: AccentMode = AccentMode.ARTWORK,
     val accent: String = "#7c8cff",
     /** How strongly `accent` is mixed into the colour taken from the artwork, 0–100. */

@@ -121,7 +121,13 @@ fun ArtworkBackdrop(coverId: String?, modifier: Modifier = Modifier) {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer { alpha = if (colors.dark) 0.55f else 0.45f }
+                    .graphicsLayer {
+                        alpha = when {
+                            colors.night -> 0.32f
+                            colors.dark -> 0.55f
+                            else -> 0.45f
+                        }
+                    }
                     .then(if (Build.VERSION.SDK_INT >= 31) Modifier.blur(70.dp) else Modifier),
             )
         }

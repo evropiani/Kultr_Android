@@ -227,7 +227,7 @@ fun AccentWash(modifier: Modifier = Modifier, height: Dp = 320.dp) {
         modifier
             .fillMaxWidth()
             .height(height)
-            .background(Brush.verticalGradient(listOf(colors.accent.copy(alpha = 0.28f), Color.Transparent))),
+            .background(Brush.verticalGradient(listOf(colors.accent.copy(alpha = if (colors.night) 0.18f else 0.28f), Color.Transparent))),
     )
 }
 
@@ -241,7 +241,16 @@ fun ArtworkBackdropPlain(modifier: Modifier = Modifier) {
             .background(colors.background)
             .background(
                 Brush.radialGradient(
-                    listOf(colors.accent.copy(alpha = if (colors.dark) 0.22f else 0.16f), Color.Transparent),
+                    listOf(
+                        colors.accent.copy(
+                            alpha = when {
+                                colors.night -> 0.12f
+                                colors.dark -> 0.22f
+                                else -> 0.16f
+                            },
+                        ),
+                        Color.Transparent,
+                    ),
                     center = androidx.compose.ui.geometry.Offset(0f, 0f),
                     radius = 1400f,
                 ),

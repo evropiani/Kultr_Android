@@ -224,6 +224,15 @@ private fun SettingSlider(
 @Composable
 private fun AppearanceSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) {
     Choice("Theme", listOf(ThemeMode.SYSTEM to "System", ThemeMode.LIGHT to "Light", ThemeMode.DARK to "Dark"), s.theme) { v -> update { it.copy(theme = v) } }
+    Toggle(
+        "Night mode",
+        s.nightMode,
+        hint = "Pure black instead of dark grey, for OLED screens: easier on the eyes in the dark, and lighter on the battery. " +
+            "Used whenever Kultr is dark, so with System it comes on with your phone's dark mode.",
+    ) { v ->
+        // Asking for black while the theme is Light means dark is wanted.
+        update { it.copy(nightMode = v, theme = if (v && it.theme == ThemeMode.LIGHT) ThemeMode.DARK else it.theme) }
+    }
     Toggle("Colour from artwork", s.accentMode == AccentMode.ARTWORK, hint = "The interface takes its colour from whatever is playing.") { v ->
         update { it.copy(accentMode = if (v) AccentMode.ARTWORK else AccentMode.FIXED) }
     }

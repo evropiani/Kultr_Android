@@ -37,6 +37,8 @@ import app.kultr.core.util.ArtworkColor
 @Immutable
 data class KultrColors(
     val dark: Boolean,
+    /** Night mode: dark, with pure black behind everything for OLED screens. */
+    val night: Boolean = false,
     val accent: Color,
     val onAccent: Color,
     val background: Color,
@@ -89,12 +91,15 @@ fun kultrColors(dark: Boolean, accent: Color, settings: Settings): KultrColors {
     val edgeAlpha = (settings.borderOpacity.coerceIn(0, 100) / 100f) * if (dark) 0.8f else 0.6f
     val onAccent = if (accent.luminance() > 0.45f) Color(0xFF0A0A10) else Color.White
     return if (dark) {
+        // Pure black lets an OLED screen switch those pixels off altogether.
+        val night = settings.nightMode
         KultrColors(
             dark = true,
+            night = night,
             accent = accent,
             onAccent = onAccent,
-            background = Color(0xFF08080C),
-            elevated = Color(0xFF101018),
+            background = if (night) Color.Black else Color(0xFF08080C),
+            elevated = if (night) Color(0xFF0C0C10) else Color(0xFF101018),
             ink = Color.White.copy(alpha = 0.96f),
             ink2 = Color.White.copy(alpha = 0.66f),
             ink3 = Color.White.copy(alpha = 0.42f),
@@ -173,9 +178,9 @@ fun KultrTheme(settings: Settings, accent: Color, content: @Composable () -> Uni
             surfaceVariant = colors.glassStrong,
             onSurfaceVariant = colors.ink2,
             surfaceContainer = colors.elevated,
-            surfaceContainerHigh = Color(0xFF16161F),
-            surfaceContainerHighest = Color(0xFF1C1C26),
-            surfaceContainerLow = Color(0xFF0C0C12),
+            surfaceContainerHigh = if (colors.night) Color(0xFF111116) else Color(0xFF16161F),
+            surfaceContainerHighest = if (colors.night) Color(0xFF17171D) else Color(0xFF1C1C26),
+            surfaceContainerLow = if (colors.night) Color(0xFF060608) else Color(0xFF0C0C12),
             surfaceContainerLowest = colors.background,
             outline = colors.edge,
             outlineVariant = colors.line,

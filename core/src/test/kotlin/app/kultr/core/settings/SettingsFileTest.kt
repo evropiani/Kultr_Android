@@ -10,12 +10,13 @@ import kotlin.test.assertTrue
 class SettingsFileTest {
     @Test
     fun exportRoundTrips() {
-        val mine = Settings(theme = ThemeMode.LIGHT, crossfadeSeconds = 9.5, homeTiles = listOf("radios", "recentlyAdded"), eqGains = List(10) { it.toDouble() })
+        val mine = Settings(theme = ThemeMode.DARK, nightMode = true, crossfadeSeconds = 9.5, homeTiles = listOf("radios", "recentlyAdded"), eqGains = List(10) { it.toDouble() })
         val text = SettingsFile.export(mine, "1.0", "2026-01-01T00:00:00Z")
         assertTrue(text.contains("\"kind\": \"kultr.settings\""))
         assertFalse(text.contains("hasSeenWelcome"))
         val result = SettingsFile.import(text, Settings())
         assertEquals(mine.theme, result.settings.theme)
+        assertTrue(result.settings.nightMode)
         assertEquals(9.5, result.settings.crossfadeSeconds)
         assertEquals(mine.homeTiles, result.settings.homeTiles)
         assertEquals(mine.eqGains, result.settings.eqGains)

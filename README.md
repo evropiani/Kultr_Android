@@ -21,7 +21,8 @@ or folders on this phone) and shows around the app.
   you can slide along the bar with your finger, and the round search button
   grows into the search field, riding on the keyboard. Light and dark follow
   the phone's own setting, and a pale colour taken from the artwork is
-  deepened in light mode so it stays readable.
+  deepened in light mode so it stays readable. Night mode turns dark into
+  pure black for OLED screens.
 - **Music on this phone.** Choose the folders your music is in (Music, a
   memory card, anything the system's folder picker offers) and Kultr plays
   your files without a server or an account. It reads their tags and covers
