@@ -192,6 +192,24 @@ class LibraryRepository(private val graph: AppGraph) {
             .sortedWith(compareByDescending<Song> { it.year ?: 0 }.thenBy { it.album }.thenBy { it.discNumber ?: 1 }.thenBy { it.track ?: 0 })
     }
 
+    /** The library's songs by any of these artists, by id or by name. */
+    suspend fun songsByArtists(ids: List<String>, names: List<String>): List<Song> {
+        val db = db() ?: return emptyList()
+        if (ids.isEmpty() && names.isEmpty()) return emptyList()
+        return io { db.library().songsByArtists(ids.take(SQL_CHUNK / 2), names.take(SQL_CHUNK / 2)).map { it.toSong() } }
+    }
+
+    suspend fun mostPlayedSongsNow(limit: Int): List<Song> {
+        val db = db() ?: return emptyList()
+        return io { db.library().mostPlayedSongsNow(limit).map { it.toSong() } }
+    }
+
+    /** Songs played on this phone since [millis]. */
+    suspend fun songIdsPlayedSince(millis: Long): List<String> {
+        val db = db() ?: return emptyList()
+        return io { db.history().songIdsPlayedSince(millis) }
+    }
+
     suspend fun songsOfGenreNow(genre: String): List<Song> {
         val db = db() ?: return emptyList()
         return io { db.library().songsOfGenreNow(genre).map { it.toSong() } }

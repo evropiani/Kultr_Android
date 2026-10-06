@@ -342,6 +342,12 @@ private fun PlaybackSettings(s: Settings, update: ((Settings) -> Settings) -> Un
     Choice("Fade shape", CrossfadeCurve.entries.map { it to it.label }, s.crossfadeCurve) { v -> update { it.copy(crossfadeCurve = v) } }
     Toggle("Also fade when you skip", s.crossfadeOnSkip, hint = "A short fade instead of a hard cut on next and previous.") { v -> update { it.copy(crossfadeOnSkip = v) } }
     Toggle("Gapless playback", s.gapless, hint = "With crossfade off, the next track starts the instant this one ends.") { v -> update { it.copy(gapless = v) } }
+    Toggle(
+        "Karousel",
+        s.karousel,
+        hint = "When the queue runs out, music like what's been playing keeps coming: similar songs, artists like these and your own favourites. " +
+            "Its songs show under their own heading in Up next. Tapping the shuffle button twice turns it on too.",
+    ) { v -> update { it.copy(karousel = v) } }
     Toggle("Resume where you left off", s.resumeOnStart, hint = "Restores the queue and position when Kultr opens.") { v -> update { it.copy(resumeOnStart = v) } }
     Toggle(
         "Send plays to Navidrome",
@@ -372,7 +378,6 @@ private fun InjektSettings(s: Settings, update: ((Settings) -> Settings) -> Unit
     Toggle("Bass swap", s.injektBassSwap, enabled = on, hint = "Roll the outgoing bass off before the incoming bass comes up.") { v -> update { it.copy(injektBassSwap = v) } }
     Toggle("Harmonic mixing", s.injektHarmonic, enabled = on, hint = "When keys clash, filter out of the old track instead of blending.") { v -> update { it.copy(injektHarmonic = v) } }
     Toggle("Skip long intros", s.injektSkipIntro, enabled = on, hint = "Bring the next track in at its first real downbeat.") { v -> update { it.copy(injektSkipIntro = v) } }
-    Toggle("Keep playing similar music", s.injektAutoQueue, hint = "When the queue runs out, continue with tracks chosen by tempo, key and energy.") { v -> update { it.copy(injektAutoQueue = v) } }
     Toggle(
         "Analyse ahead",
         s.injektAnalyseAhead,

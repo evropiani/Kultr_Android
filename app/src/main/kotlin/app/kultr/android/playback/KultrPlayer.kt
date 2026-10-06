@@ -35,7 +35,7 @@ import com.google.common.util.concurrent.ListenableFuture
 class KultrPlayer(
     private val context: Context,
     looper: Looper,
-    private val toMediaItem: (Song) -> MediaItem,
+    private val toMediaItem: (Song, Boolean) -> MediaItem,
     private val onDuck: (Float) -> Unit,
 ) : SimpleBasePlayer(looper) {
     lateinit var engine: PlaybackEngine
@@ -116,9 +116,11 @@ class KultrPlayer(
     }
 
     private fun mediaItemFor(item: QueueItem): MediaItem =
-        mediaItems.getOrPut(item.uid) { toMediaItem(item.song) }
+        mediaItems.getOrPut(item.uid) { toMediaItem(item.song, item.karousel) }
 
-    private fun songsOf(items: List<MediaItem>): List<Song> = items.mapNotNull { MediaItems.songOf(it) }
+    /** Queue items for [items], keeping which ones Karousel added (a restored queue, say). */
+    private fun queueItemsOf(items: List<MediaItem>): List<QueueItem> =
+        items.mapNotNull { item -> MediaItems.songOf(item)?.let { engine.newItem(it, MediaItems.isKarousel(item)) } }
 
     // ----------------------------------------------------------- commands --
 
@@ -175,7 +177,7 @@ class KultrPlayer(
         startIndex: Int,
         startPositionMs: Long,
     ): ListenableFuture<*> {
-        val items = engine.newItems(songsOf(mediaItems))
+        val items = queueItemsOf(mediaItems)
         val index = if (startIndex == C.INDEX_UNSET) 0 else startIndex
         val position = if (startPositionMs == C.TIME_UNSET) 0 else startPositionMs
         engine.setQueue(items, index, position)
@@ -183,7 +185,7 @@ class KultrPlayer(
     }
 
     override fun handleAddMediaItems(index: Int, mediaItems: List<MediaItem>): ListenableFuture<*> {
-        engine.addItems(index, engine.newItems(songsOf(mediaItems)))
+        engine.addItems(index, queueItemsOf(mediaItems))
         return Futures.immediateVoidFuture()
     }
 

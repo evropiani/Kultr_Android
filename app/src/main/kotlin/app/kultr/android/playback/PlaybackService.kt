@@ -23,6 +23,7 @@ import app.kultr.android.R
 import app.kultr.android.widget.NowPlayingWidget
 import app.kultr.android.widget.WidgetActionReceiver
 import app.kultr.core.api.Song
+import app.kultr.core.api.SubsonicClient
 import app.kultr.core.engine.EngineHost
 import app.kultr.core.engine.EngineStatus
 import app.kultr.core.engine.PlaybackEngine
@@ -55,7 +56,14 @@ private data class SavedSession(
     val songs: List<Song>,
     val index: Int,
     val positionMs: Long,
+    /** Which of [songs] Karousel added. */
+    val karousel: List<Int> = emptyList(),
 )
+
+private fun SavedSession.mediaItems(client: SubsonicClient?): List<MediaItem> {
+    val added = karousel.toHashSet()
+    return songs.mapIndexed { i, song -> MediaItems.from(song, client, i in added) }
+}
 
 /** The queue and position, kept across restarts when "Resume where you left off" is on. */
 private class SessionStore(context: Context) {
@@ -139,6 +147,7 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var browser: LibraryBrowser
     private lateinit var sessions: SessionStore
     private lateinit var tracker: ListeningTracker
+    private val karousel by lazy { KarouselMusic(graph) }
     private var session: MediaLibrarySession? = null
 
     /** What the session controls: [player] here, or a Cast receiver while one is connected. */
@@ -170,7 +179,7 @@ class PlaybackService : MediaLibraryService() {
         player = KultrPlayer(
             context = this,
             looper = Looper.getMainLooper(),
-            toMediaItem = { song -> MediaItems.from(song, graph.auth.client.value) },
+            toMediaItem = { song, karousel -> MediaItems.from(song, graph.auth.client.value, karousel) },
             onDuck = { level -> decks.forEach { it.setDuck(level) } },
         )
         engine = PlaybackEngine(decks[0], decks[1], host, scope)
@@ -239,7 +248,7 @@ class PlaybackService : MediaLibraryService() {
     private fun resumeFromSaved(target: Player) {
         val saved = savedForProfile() ?: return
         val client = graph.auth.client.value
-        target.setMediaItems(saved.songs.map { MediaItems.from(it, client) }, saved.index, saved.positionMs)
+        target.setMediaItems(saved.mediaItems(client), saved.index, saved.positionMs)
         target.prepare()
         target.play()
     }
@@ -270,6 +279,7 @@ class PlaybackService : MediaLibraryService() {
                 if (now == previous) return@collect
                 applyEq(now)
                 engine.onSettingsChanged(planSignature(now) != planSignature(previous))
+                if (now.karousel != previous.karousel) engine.onKarouselChanged(now.karousel)
                 previous = now
             }
         }
@@ -302,7 +312,8 @@ class PlaybackService : MediaLibraryService() {
         if (!graph.settings.current.resumeOnStart) return
         val saved = sessions.load() ?: return
         if (saved.profileId != graph.auth.active.value?.id || saved.songs.isEmpty()) return
-        engine.setQueue(engine.newItems(saved.songs), saved.index, saved.positionMs)
+        val added = saved.karousel.toHashSet()
+        engine.setQueue(saved.songs.mapIndexed { i, song -> engine.newItem(song, i in added) }, saved.index, saved.positionMs)
     }
 
     private fun saveSession() {
@@ -314,8 +325,16 @@ class PlaybackService : MediaLibraryService() {
         }
         // Keep the saved queue a sensible size around the current track.
         val from = (engine.index - 100).coerceAtLeast(0)
-        val songs = queue.drop(from).take(500).map { it.song }
-        sessions.save(SavedSession(profile.id, songs, engine.index - from, engine.positionMs))
+        val kept = queue.drop(from).take(500)
+        sessions.save(
+            SavedSession(
+                profile.id,
+                kept.map { it.song },
+                engine.index - from,
+                engine.positionMs,
+                kept.indices.filter { kept[it].karousel },
+            ),
+        )
     }
 
     // ---------------------------------------------------------------- tick --
@@ -367,8 +386,8 @@ class PlaybackService : MediaLibraryService() {
             return planTransition(current, next, fresh, s, a, b)
         }
 
-        override suspend fun extendQueue(seed: Song, recent: List<Song>): List<Song> =
-            withContext(Dispatchers.IO) { AutoQueue(graph).build(seed, recent) }
+        override suspend fun extendQueue(seeds: List<Song>, queued: List<Song>): List<Song> =
+            withContext(Dispatchers.IO) { karousel.next(seeds, queued) }
 
         override fun onStateChanged() {
             player.refresh()
@@ -509,7 +528,7 @@ class PlaybackService : MediaLibraryService() {
             val saved = savedForProfile() ?: throw UnsupportedOperationException("Nothing to resume.")
             val client = graph.auth.client.value
             if (isForPlayback) {
-                MediaSession.MediaItemsWithStartPosition(saved.songs.map { MediaItems.from(it, client) }, saved.index, saved.positionMs)
+                MediaSession.MediaItemsWithStartPosition(saved.mediaItems(client), saved.index, saved.positionMs)
             } else {
                 val song = saved.songs.getOrElse(saved.index) { saved.songs.first() }
                 MediaSession.MediaItemsWithStartPosition(listOf(MediaItems.from(song, client)), 0, saved.positionMs)

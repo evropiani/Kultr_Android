@@ -208,6 +208,12 @@ abstract class LibraryDao {
     @Query("SELECT * FROM songs WHERE artistId = :artistId")
     abstract suspend fun songsOfArtistNow(artistId: String): List<SongEntity>
 
+    @Query("SELECT * FROM songs WHERE artistId IN (:ids) OR artist IN (:names)")
+    abstract suspend fun songsByArtists(ids: List<String>, names: List<String>): List<SongEntity>
+
+    @Query("SELECT * FROM songs WHERE playCount > 0 ORDER BY playCount DESC LIMIT :limit")
+    abstract suspend fun mostPlayedSongsNow(limit: Int): List<SongEntity>
+
     @Query("SELECT * FROM albums WHERE artistId = :artistId ORDER BY COALESCE(year, 0) DESC, sortName")
     abstract fun albumsOfArtist(artistId: String): Flow<List<AlbumEntity>>
 
@@ -345,6 +351,9 @@ interface HistoryDao {
 
     @Query("SELECT * FROM history ORDER BY playedAt DESC LIMIT :limit")
     suspend fun recent(limit: Int): List<HistoryEntity>
+
+    @Query("SELECT DISTINCT songId FROM history WHERE playedAt >= :since")
+    suspend fun songIdsPlayedSince(since: Long): List<String>
 
     @Query("SELECT * FROM history ORDER BY playedAt DESC LIMIT :limit")
     fun recentFlow(limit: Int): Flow<List<HistoryEntity>>

@@ -46,8 +46,12 @@ interface EngineHost {
     /** Plan the hand-over from [current] to [next]. May analyse both tracks. */
     suspend fun plan(current: Song, next: Song, context: PlanContext): TransitionPlan
 
-    /** The queue ran out; return tracks to keep going with (or nothing). */
-    suspend fun extendQueue(seed: Song, recent: List<Song>): List<Song>
+    /**
+     * The queue is running out and Karousel is on: return tracks like [seeds]
+     * (what has been playing, the current track first) to keep going with, or
+     * nothing. [queued] is the whole queue, so none of it comes back.
+     */
+    suspend fun extendQueue(seeds: List<Song>, queued: List<Song>): List<Song>
 
     /** Anything visible changed: queue, index, status, plan. */
     fun onStateChanged()
@@ -208,7 +212,9 @@ class PlaybackEngine(
 
     val isTransitioning: Boolean get() = transition != null
 
-    fun newItems(songs: List<Song>): List<QueueItem> = songs.map { QueueItem(nextUid++, it) }
+    fun newItems(songs: List<Song>, karousel: Boolean = false): List<QueueItem> = songs.map { newItem(it, karousel) }
+
+    fun newItem(song: Song, karousel: Boolean = false): QueueItem = QueueItem(nextUid++, song, karousel)
 
     // ------------------------------------------------------------- transport --
 
@@ -415,6 +421,33 @@ class PlaybackEngine(
         host.onStateChanged()
     }
 
+    // --------------------------------------------------------------- Karousel --
+
+    /**
+     * Karousel was switched. Off: the songs it added that have not played yet
+     * leave the queue. On: if the queue has already run out, it carries on
+     * with music like it; otherwise the next plan tops the queue up.
+     */
+    fun onKarouselChanged(on: Boolean) {
+        if (!on) {
+            extendJob?.cancel()
+            val upcoming = queue.drop(index + 1).filter { it.karousel }.map { it.uid }.toHashSet()
+            if (upcoming.isEmpty()) return
+            queue = queue.filter { it.uid !in upcoming }
+            unshuffled = unshuffled?.filter { it.uid !in upcoming }
+            revalidatePending()
+            host.onStateChanged()
+            return
+        }
+        val current = currentItem ?: return
+        if (ended) {
+            continueAfterEnd(current)
+        } else if (peekNext() == null) {
+            clearPending()
+            host.onStateChanged()
+        }
+    }
+
     // --------------------------------------------------------------- settings --
 
     /** Re-read gains and invalidate plans after a settings change. */
@@ -589,7 +622,7 @@ class PlaybackEngine(
         planJob?.cancel()
         planJob = scope.launch {
             var next = peekNext()
-            if (next == null && host.settings().injektAutoQueue) {
+            if (next == null && host.settings().karousel) {
                 if (extendQueueNow(current)) next = peekNext()
             }
             if (next == null || currentItem?.uid != current.uid) return@launch
@@ -624,16 +657,21 @@ class PlaybackEngine(
     }
 
     private suspend fun extendQueueNow(seed: QueueItem): Boolean {
-        val recent = queue.takeLast(60).map { it.song }
+        val at = queue.indexOfFirst { it.uid == seed.uid }.takeIf { it >= 0 } ?: index
+        // The track playing and the ones before it, and a couple the user chose
+        // themselves, so the music stays close to where it started.
+        val before = queue.take(at).asReversed().take(4)
+        val chosen = queue.filter { !it.karousel && it.uid != seed.uid && it !in before }.shuffled().take(2)
+        val seeds = (listOf(seed) + before + chosen).map { it.song }
         val songs = try {
-            host.extendQueue(seed.song, recent)
+            host.extendQueue(seeds, queue.map { it.song })
         } catch (err: CancellationException) {
             throw err
         } catch (_: Exception) {
             emptyList()
         }
-        if (songs.isEmpty() || queue.isEmpty()) return false
-        val items = newItems(songs)
+        if (songs.isEmpty() || queue.isEmpty() || !host.settings().karousel) return false
+        val items = newItems(songs, karousel = true)
         queue = queue + items
         unshuffled = unshuffled?.plus(items)
         host.onStateChanged()
@@ -818,18 +856,23 @@ class PlaybackEngine(
             return
         }
         val current = currentItem
-        if (current != null && host.settings().injektAutoQueue) {
-            extendJob?.cancel()
-            extendJob = scope.launch {
-                if (extendQueueNow(current) && currentItem?.uid == current.uid) {
-                    nextIndexAfter(index)?.let { skipTo(it, 0, manual = false) }
-                } else {
-                    markEnded()
-                }
-            }
+        if (current != null && host.settings().karousel) {
+            continueAfterEnd(current)
             return
         }
         markEnded()
+    }
+
+    /** The queue ran out with [current]: add music like it and play on, or end there. */
+    private fun continueAfterEnd(current: QueueItem) {
+        extendJob?.cancel()
+        extendJob = scope.launch {
+            if (extendQueueNow(current) && currentItem?.uid == current.uid) {
+                nextIndexAfter(index)?.let { skipTo(it, 0, manual = false) }
+            } else {
+                markEnded()
+            }
+        }
     }
 
     private fun markEnded() {

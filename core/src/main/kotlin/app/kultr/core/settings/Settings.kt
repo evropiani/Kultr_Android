@@ -137,7 +137,11 @@ data class Settings(
     val injektTempoBlend: Double = 50.0,
     val injektBars: Int = 8,
     val injektSkipIntro: Boolean = true,
-    val injektAutoQueue: Boolean = true,
+    /**
+     * Karousel: when the queue runs out, music like it keeps playing. Saved under
+     * the name the other Kultr apps give their "keep playing similar music".
+     */
+    @SerialName("injektAutoQueue") val karousel: Boolean = true,
     val injektAnalyseAhead: Boolean = true,
     /** Only analyse over Wi-Fi, so InjeKt never spends mobile data. */
     val injektAnalyseOnWifiOnly: Boolean = false,

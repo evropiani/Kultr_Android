@@ -10,7 +10,8 @@ import kotlin.math.pow
 import kotlin.math.sin
 
 /** One entry in the play queue. [uid] tells apart two copies of the same song. */
-data class QueueItem(val uid: Long, val song: Song)
+/** [karousel]: added by Karousel to keep the music going, not by the user. */
+data class QueueItem(val uid: Long, val song: Song, val karousel: Boolean = false)
 
 enum class DeckStatus { IDLE, BUFFERING, READY, ENDED, ERROR }
 

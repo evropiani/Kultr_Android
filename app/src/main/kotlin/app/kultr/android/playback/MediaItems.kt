@@ -16,13 +16,18 @@ import kotlinx.serialization.json.Json
  */
 object MediaItems {
     const val EXTRA_SONG = "kultr.song"
+    private const val EXTRA_KAROUSEL = "kultr.karousel"
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
 
     fun artworkUri(song: Song, client: SubsonicClient?, size: Int = 512): Uri? =
         LocalLibrary.artwork(song.artworkId, size, client)?.let(Uri::parse)
 
-    fun from(song: Song, client: SubsonicClient?): MediaItem {
-        val extras = Bundle().apply { putString(EXTRA_SONG, json.encodeToString(Song.serializer(), song)) }
+    /** [karousel]: added by Karousel to keep the music going, not by the user. */
+    fun from(song: Song, client: SubsonicClient?, karousel: Boolean = false): MediaItem {
+        val extras = Bundle().apply {
+            putString(EXTRA_SONG, json.encodeToString(Song.serializer(), song))
+            if (karousel) putBoolean(EXTRA_KAROUSEL, true)
+        }
         val metadata = MediaMetadata.Builder()
             .setTitle(song.title)
             .setArtist(song.artist)
@@ -50,6 +55,9 @@ object MediaItems {
             ?: return null
         return runCatching { json.decodeFromString(Song.serializer(), text) }.getOrNull()
     }
+
+    fun isKarousel(item: MediaItem): Boolean =
+        item.mediaMetadata.extras?.getBoolean(EXTRA_KAROUSEL) == true || item.requestMetadata.extras?.getBoolean(EXTRA_KAROUSEL) == true
 
     fun encode(song: Song): String = json.encodeToString(Song.serializer(), song)
 

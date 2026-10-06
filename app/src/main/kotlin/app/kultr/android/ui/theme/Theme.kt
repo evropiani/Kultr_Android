@@ -72,6 +72,14 @@ val LocalReduceMotion = staticCompositionLocalOf { false }
 
 val DEFAULT_ACCENT = Color(0xFF7C8CFF)
 
+/**
+ * Material's outline: the rim and knob of a switch that is off, the edge of a
+ * text field. It stays visible whatever Border opacity is set to, which is
+ * about the glass panels; at 0% an off switch would otherwise be a blank pill.
+ */
+private val CONTROL_OUTLINE_DARK = Color.White.copy(alpha = 0.55f)
+private val CONTROL_OUTLINE_LIGHT = Color(0xFF0A0A10).copy(alpha = 0.5f)
+
 /** A pale colour from the artwork washes out on the light background; deepen it just enough to read. */
 private fun readableOnLight(color: Color): Color {
     val argb = color.toArgb()
@@ -182,7 +190,7 @@ fun KultrTheme(settings: Settings, accent: Color, content: @Composable () -> Uni
             surfaceContainerHighest = if (colors.night) Color(0xFF17171D) else Color(0xFF1C1C26),
             surfaceContainerLow = if (colors.night) Color(0xFF060608) else Color(0xFF0C0C12),
             surfaceContainerLowest = colors.background,
-            outline = colors.edge,
+            outline = CONTROL_OUTLINE_DARK,
             outlineVariant = colors.line,
             error = colors.danger,
         )
@@ -208,7 +216,7 @@ fun KultrTheme(settings: Settings, accent: Color, content: @Composable () -> Uni
             surfaceContainerHighest = Color.White,
             surfaceContainerLow = colors.elevated,
             surfaceContainerLowest = Color.White,
-            outline = colors.edge,
+            outline = CONTROL_OUTLINE_LIGHT,
             outlineVariant = colors.line,
             error = colors.danger,
         )

@@ -152,6 +152,7 @@ class PlaybackEngineTest {
     private val started = mutableListOf<Pair<String, TrackChangeReason>>()
     private val errors = mutableListOf<String>()
     private var extension: List<Song> = emptyList()
+    private val asked = mutableListOf<Pair<List<String>, List<String>>>()
     private var planOverride: ((Song, Song, PlanContext) -> TransitionPlan)? = null
 
     private val host = object : EngineHost {
@@ -160,7 +161,10 @@ class PlaybackEngineTest {
         override suspend fun plan(current: Song, next: Song, context: PlanContext): TransitionPlan =
             planOverride?.invoke(current, next, context) ?: planTransition(current, next, context, settings, null, null)
 
-        override suspend fun extendQueue(seed: Song, recent: List<Song>): List<Song> = extension.also { extension = emptyList() }
+        override suspend fun extendQueue(seeds: List<Song>, queued: List<Song>): List<Song> {
+            asked += seeds.map { it.id } to queued.map { it.id }
+            return extension.also { extension = emptyList() }
+        }
         override fun onStateChanged() {}
         override fun onTrackStarted(item: QueueItem, reason: TrackChangeReason) {
             started += item.song.id to reason
@@ -344,7 +348,7 @@ class PlaybackEngineTest {
 
     @Test
     fun endOfQueueEnds() {
-        settings = settings.copy(injektAutoQueue = false)
+        settings = settings.copy(karousel = false)
         start("1", seconds = 20)
         advance(21_000)
         assertEquals(EngineStatus.ENDED, engine.status)
@@ -352,15 +356,61 @@ class PlaybackEngineTest {
     }
 
     @Test
-    fun autoQueueKeepsTheMusicGoing() {
-        settings = settings.copy(injektAutoQueue = true)
+    fun karouselKeepsTheMusicGoing() {
+        settings = settings.copy(karousel = true)
         extension = songs("x", "y")
         start("1")
         advance(30_000)
         assertEquals(3, engine.queue.size)
+        assertEquals(listOf(false, true, true), engine.queue.map { it.karousel })
+        // Asked with the track playing first, and told the whole queue.
+        assertEquals(listOf("1") to listOf("1"), asked.single())
         advance(31_000)
         assertEquals(1, engine.index)
         assertEquals("x", engine.currentItem?.song?.id)
+    }
+
+    @Test
+    fun karouselSeedsWithWhatLedHere() {
+        settings = settings.copy(karousel = true)
+        extension = songs("x")
+        engine.setQueue(engine.newItems(songs("1", "2", "3", "4", "5", "6")), 5, 0)
+        engine.setPlayWhenReady(true)
+        advance(30_000)
+        val (seeds, queued) = asked.single()
+        // The track playing, then the ones before it nearest first; a couple more the user chose may follow.
+        assertEquals(listOf("6", "5", "4", "3", "2"), seeds.take(5))
+        assertEquals(listOf("1", "2", "3", "4", "5", "6"), queued)
+    }
+
+    @Test
+    fun switchingKarouselOffTakesItsSongsOut() {
+        settings = settings.copy(karousel = true)
+        extension = songs("x", "y")
+        start("1")
+        advance(30_000)
+        assertEquals(3, engine.queue.size)
+        engine.addItems(engine.queue.size, engine.newItems(songs("mine")))
+        settings = settings.copy(karousel = false)
+        engine.onKarouselChanged(false)
+        // Karousel's songs leave; the user's own stay.
+        assertEquals(listOf("1", "mine"), engine.queue.map { it.song.id })
+        advance(31_000)
+        assertEquals("mine", engine.currentItem?.song?.id)
+    }
+
+    @Test
+    fun switchingKarouselOnAfterTheEndPlaysOn() {
+        settings = settings.copy(karousel = false)
+        start("1", seconds = 20)
+        advance(21_000)
+        assertEquals(EngineStatus.ENDED, engine.status)
+        settings = settings.copy(karousel = true)
+        extension = songs("x")
+        engine.onKarouselChanged(true)
+        advance(100)
+        assertEquals("x", engine.currentItem?.song?.id)
+        assertEquals(EngineStatus.READY, engine.status)
     }
 
     @Test

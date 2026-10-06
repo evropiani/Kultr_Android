@@ -15,7 +15,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-data class QueueEntry(val index: Int, val song: Song, val key: String)
+/** [karousel]: added by Karousel to keep the music going, not by the user. */
+data class QueueEntry(val index: Int, val song: Song, val key: String, val karousel: Boolean = false)
+
+/** The shuffle button's three states: Karousel keeps shuffle as it was. */
+enum class ShuffleMode { OFF, SHUFFLE, KAROUSEL }
 
 data class PlayerUiState(
     val connected: Boolean = false,
@@ -100,7 +104,7 @@ class PlayerConnection(private val graph: AppGraph) {
         for (i in 0 until timeline.windowCount) {
             timeline.getWindow(i, window)
             val song = MediaItems.songOf(window.mediaItem) ?: continue
-            queue += QueueEntry(i, song, "$i:${song.id}")
+            queue += QueueEntry(i, song, "$i:${song.id}", MediaItems.isKarousel(window.mediaItem))
         }
         val index = if (timeline.isEmpty) -1 else player.currentMediaItemIndex
         val current = player.currentMediaItem?.let { MediaItems.songOf(it) }
@@ -204,6 +208,36 @@ class PlayerConnection(private val graph: AppGraph) {
     }
 
     fun setShuffle(enabled: Boolean) = withController { it.shuffleModeEnabled = enabled }
+
+    fun shuffleMode(state: PlayerUiState = this.state.value, karousel: Boolean = graph.settings.current.karousel): ShuffleMode = when {
+        karousel -> ShuffleMode.KAROUSEL
+        state.shuffle -> ShuffleMode.SHUFFLE
+        else -> ShuffleMode.OFF
+    }
+
+    /**
+     * The shuffle button: off → shuffle → Karousel → off. Karousel keeps shuffle
+     * as it was and turns repeat off, since a repeating queue never runs out.
+     */
+    fun cycleShuffle(): ShuffleMode {
+        val next = when (shuffleMode()) {
+            ShuffleMode.OFF -> ShuffleMode.SHUFFLE
+            ShuffleMode.SHUFFLE -> ShuffleMode.KAROUSEL
+            ShuffleMode.KAROUSEL -> ShuffleMode.OFF
+        }
+        when (next) {
+            ShuffleMode.SHUFFLE -> setShuffle(true)
+            ShuffleMode.KAROUSEL -> {
+                withController { if (it.repeatMode != Player.REPEAT_MODE_OFF) it.repeatMode = Player.REPEAT_MODE_OFF }
+                graph.settings.update { it.copy(karousel = true) }
+            }
+            ShuffleMode.OFF -> {
+                graph.settings.update { it.copy(karousel = false) }
+                setShuffle(false)
+            }
+        }
+        return next
+    }
 
     fun cycleRepeat() = withController { c ->
         c.repeatMode = when (c.repeatMode) {

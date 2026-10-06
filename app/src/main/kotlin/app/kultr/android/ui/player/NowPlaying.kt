@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.Album
+import androidx.compose.material.icons.rounded.AllInclusive
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Close
@@ -74,6 +75,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -86,6 +88,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import app.kultr.android.playback.PlayerUiState
+import app.kultr.android.playback.ShuffleMode
 import app.kultr.android.playback.TransitionInfo
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.components.Artwork
@@ -103,8 +106,8 @@ import app.kultr.core.dsp.TrackAnalysis
 import app.kultr.core.util.Format
 import app.kultr.core.util.LyricsDoc
 import coil3.compose.AsyncImage
-import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
+import kotlin.math.roundToInt
 
 private enum class PlayerTab(val label: String) { QUEUE("Up next"), LYRICS("Lyrics"), INJEKT("InjeKt") }
 
@@ -406,8 +409,24 @@ private fun Transport(state: PlayerUiState, song: Song) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = { player.setShuffle(!state.shuffle) }) {
-            Icon(Icons.Rounded.Shuffle, contentDescription = "Shuffle", tint = if (state.shuffle) colors.accent else colors.ink2)
+        val settings by actions.graph.settings.settings.collectAsStateWithLifecycle()
+        val mode = player.shuffleMode(state, settings.karousel)
+        ModeButton(
+            icon = if (mode == ShuffleMode.KAROUSEL) Icons.Rounded.AllInclusive else Icons.Rounded.Shuffle,
+            on = mode != ShuffleMode.OFF,
+            description = when (mode) {
+                ShuffleMode.OFF -> "Shuffle off"
+                ShuffleMode.SHUFFLE -> "Shuffle on"
+                ShuffleMode.KAROUSEL -> "Karousel on"
+            },
+        ) {
+            actions.graph.messages.show(
+                when (player.cycleShuffle()) {
+                    ShuffleMode.SHUFFLE -> "Shuffle on"
+                    ShuffleMode.KAROUSEL -> "Karousel on: when the queue runs out, music like it keeps playing"
+                    ShuffleMode.OFF -> "Shuffle and Karousel off"
+                },
+            )
         }
         IconButton(onClick = { player.previous() }, modifier = Modifier.size(56.dp)) {
             Icon(Icons.Rounded.SkipPrevious, contentDescription = "Previous", tint = colors.ink, modifier = Modifier.size(34.dp))
@@ -434,12 +453,19 @@ private fun Transport(state: PlayerUiState, song: Song) {
         IconButton(onClick = { player.next() }, modifier = Modifier.size(56.dp)) {
             Icon(Icons.Rounded.SkipNext, contentDescription = "Next", tint = colors.ink, modifier = Modifier.size(34.dp))
         }
-        IconButton(onClick = { player.cycleRepeat() }) {
-            Icon(
-                if (state.repeatMode == Player.REPEAT_MODE_ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
-                contentDescription = "Repeat",
-                tint = if (state.repeatMode != Player.REPEAT_MODE_OFF) colors.accent else colors.ink2,
-            )
+        ModeButton(
+            icon = if (state.repeatMode == Player.REPEAT_MODE_ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
+            on = state.repeatMode != Player.REPEAT_MODE_OFF,
+            description = when (state.repeatMode) {
+                Player.REPEAT_MODE_ONE -> "Repeat this track"
+                Player.REPEAT_MODE_ALL -> "Repeat the queue"
+                else -> "Repeat off"
+            },
+        ) {
+            if (state.repeatMode == Player.REPEAT_MODE_OFF && mode == ShuffleMode.KAROUSEL) {
+                actions.graph.messages.show("Repeat on: Karousel waits until repeat is off again")
+            }
+            player.cycleRepeat()
         }
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -455,6 +481,23 @@ private fun Transport(state: PlayerUiState, song: Song) {
         val timer by actions.graph.hub.sleepTimer.collectAsStateWithLifecycle()
         IconButton(onClick = { actions.dialogs.sleepTimer = true }) {
             Icon(Icons.Rounded.Bedtime, contentDescription = "Sleep timer", tint = if (timer != null) colors.accent else colors.ink2)
+        }
+    }
+}
+
+/** Shuffle and repeat: tinted, on a disc, while they're on, so it reads at a glance. */
+@Composable
+private fun ModeButton(icon: ImageVector, on: Boolean, description: String, onClick: () -> Unit) {
+    val colors = Kultr.colors
+    IconButton(onClick = onClick) {
+        Box(
+            Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(if (on) colors.accent.copy(alpha = 0.2f) else Color.Transparent),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = description, tint = if (on) colors.accent else colors.ink2)
         }
     }
 }
@@ -479,8 +522,44 @@ private fun androidx.compose.foundation.lazy.LazyListScope.queueItems(state: Pla
             }
         }
     }
-    itemsIndexed(upNext, key = { _, entry -> entry.key }) { _, entry ->
+    // What Karousel added goes under its own heading.
+    val firstKarousel = upNext.indexOfFirst { it.karousel }.takeIf { it >= 0 } ?: upNext.size
+    itemsIndexed(upNext.take(firstKarousel), key = { _, entry -> entry.key }) { _, entry ->
         QueueRow(entry.index, entry.song, state.queue.size)
+    }
+    if (firstKarousel < upNext.size) {
+        item(key = "karousel-head") { KarouselHeading("Music like what's playing, so it never stops.") }
+        itemsIndexed(upNext.drop(firstKarousel), key = { _, entry -> entry.key }) { _, entry ->
+            QueueRow(entry.index, entry.song, state.queue.size)
+        }
+    } else {
+        item(key = "karousel-head") {
+            val settings by LocalActions.current.graph.settings.settings.collectAsStateWithLifecycle()
+            if (settings.karousel && state.current?.isRadio != true) {
+                KarouselHeading("On: when the queue runs out, music like it keeps playing.")
+            }
+        }
+    }
+}
+
+@Composable
+private fun KarouselHeading(text: String) {
+    val colors = Kultr.colors
+    Row(
+        Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.size(30.dp).clip(CircleShape).background(colors.accent.copy(alpha = 0.24f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Rounded.AllInclusive, contentDescription = null, tint = colors.accent, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text("Karousel", color = colors.ink, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(text, color = colors.ink3, style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
 
