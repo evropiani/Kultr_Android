@@ -32,6 +32,8 @@ import app.kultr.core.engine.TrackChangeReason
 import app.kultr.core.injekt.PlanContext
 import app.kultr.core.injekt.TransitionPlan
 import app.kultr.core.injekt.planTransition
+import app.kultr.core.karousel.calmestFirst
+import app.kultr.core.karousel.calmness
 import app.kultr.core.settings.Settings
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.ListenableFuture
@@ -39,6 +41,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
@@ -148,6 +152,9 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var sessions: SessionStore
     private lateinit var tracker: ListeningTracker
     private val karousel by lazy { KarouselMusic(graph) }
+
+    /** The sleep timer is in its last 15 minutes: Karousel plays its calmest picks first. */
+    @Volatile private var windingDown = false
     private var session: MediaLibrarySession? = null
 
     /** What the session controls: [player] here, or a Cast receiver while one is connected. */
@@ -296,6 +303,19 @@ class PlaybackService : MediaLibraryService() {
                 scheduleTick()
             }
         }
+        // Wind down: in a timed sleep timer's last 15 minutes, Karousel's calmest picks come first.
+        scope.launch {
+            graph.hub.sleepTimer.collectLatest { timer ->
+                windingDown = false
+                val ends = timer?.endsAtMillis ?: return@collectLatest
+                delay(ends - WIND_DOWN_MS - System.currentTimeMillis())
+                if (!graph.settings.current.sleepWindDown) return@collectLatest
+                windingDown = true
+                val known = graph.analysis.cachedMany(engine.queue.filter { it.karousel }.map { it.song.id })
+                engine.reorderKarousel { calmness(known[it.id]) }
+            }
+        }
+        scope.launch { graph.hub.mixRequests.collect { engine.mixNow() } }
     }
 
     private fun planSignature(s: Settings): List<Any> = listOf(
@@ -387,7 +407,12 @@ class PlaybackService : MediaLibraryService() {
         }
 
         override suspend fun extendQueue(seeds: List<Song>, queued: List<Song>): List<Song> =
-            withContext(Dispatchers.IO) { karousel.next(seeds, queued) }
+            withContext(Dispatchers.IO) {
+                val picks = karousel.next(seeds, queued)
+                if (!windingDown || picks.size < 2) return@withContext picks
+                val known = graph.analysis.cachedMany(picks.map { it.id })
+                calmestFirst(picks) { known[it.id] }
+            }
 
         override fun onStateChanged() {
             player.refresh()
@@ -544,6 +569,9 @@ class PlaybackService : MediaLibraryService() {
 
         /** Whether there is a saved queue that play could pick up again. */
         fun canResume(context: Context): Boolean = File(context.filesDir, SESSION_FILE).isFile
+
+        /** How long before a sleep timer ends that Karousel winds down. */
+        private const val WIND_DOWN_MS = 15 * 60 * 1000L
     }
 }
 

@@ -348,6 +348,11 @@ private fun PlaybackSettings(s: Settings, update: ((Settings) -> Settings) -> Un
         hint = "When the queue runs out, music like what's been playing keeps coming: similar songs, artists like these and your own favourites. " +
             "Its songs show under their own heading in Up next. Tapping the shuffle button twice turns it on too.",
     ) { v -> update { it.copy(karousel = v) } }
+    Toggle(
+        "Wind down before the sleep timer",
+        s.sleepWindDown,
+        hint = "In a sleep timer's last 15 minutes, Karousel plays its calmest picks first.",
+    ) { v -> update { it.copy(sleepWindDown = v) } }
     Toggle("Resume where you left off", s.resumeOnStart, hint = "Restores the queue and position when Kultr opens.") { v -> update { it.copy(resumeOnStart = v) } }
     Toggle(
         "Send plays to Navidrome",

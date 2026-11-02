@@ -1,7 +1,9 @@
 package app.kultr.android.playback
 
 import app.kultr.core.injekt.TransitionPlan
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -27,6 +29,15 @@ class PlaybackHub {
 
     private val _sleepTimer = MutableStateFlow<SleepTimer?>(null)
     val sleepTimer: StateFlow<SleepTimer?> = _sleepTimer.asStateFlow()
+
+    private val _mixRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /** "Mix into the next track now", from holding Next. */
+    val mixRequests: SharedFlow<Unit> = _mixRequests
+
+    fun mixNow() {
+        _mixRequests.tryEmit(Unit)
+    }
 
     fun publishTransition(info: TransitionInfo) {
         if (_transition.value != info) _transition.value = info

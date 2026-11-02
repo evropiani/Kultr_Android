@@ -163,6 +163,8 @@ data class Settings(
 
     // ---- misc
     val showLyrics: Boolean = true,
+    /** In a sleep timer's last 15 minutes, Karousel picks calmer music. */
+    val sleepWindDown: Boolean = true,
     /** Which shelves the home page shows, in order. Ids come from [HOME_TILES]. */
     val homeTiles: List<String> = listOf("mostPlayedSongs", "mostPlayedAlbums", "randomSongs", "mostPlayedArtists"),
     /** Radio stations you have hearted. Navidrome has no concept of this. */

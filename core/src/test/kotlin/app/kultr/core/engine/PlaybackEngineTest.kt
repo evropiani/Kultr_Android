@@ -384,6 +384,50 @@ class PlaybackEngineTest {
     }
 
     @Test
+    fun karouselLooksAgainWhileTheLastTrackPlays() {
+        settings = settings.copy(karousel = true)
+        start("1")
+        advance(5_000)
+        // The first search found nothing; the next one, a little later, finds something.
+        assertEquals(1, engine.queue.size)
+        extension = songs("x")
+        advance(PlaybackEngine.KAROUSEL_RETRY_MS + 1_000)
+        assertEquals(listOf("1", "x"), engine.queue.map { it.song.id })
+        assertTrue(engine.queue.last().karousel)
+    }
+
+    @Test
+    fun mixNowCrossfadesOverTheWholeLength() {
+        settings = settings.copy(crossfadeOnSkip = true, crossfadeEnabled = true, crossfadeSeconds = 8.0)
+        start("1", "2")
+        advance(5_000)
+        engine.mixNow()
+        assertEquals("2", engine.currentItem?.song?.id)
+        assertEquals("Mix", engine.activeTransition?.label)
+        // Still mixing well past where a skip's short fade would have ended.
+        advance(5_000)
+        assertNotNull(engine.activeTransition)
+        advance(4_000)
+        assertNull(engine.activeTransition)
+    }
+
+    @Test
+    fun karouselSongsCanBeReorderedButTheNextStays() {
+        settings = settings.copy(karousel = true)
+        extension = songs("c", "a", "b")
+        start("1")
+        advance(1_000)
+        assertEquals(listOf("1", "c", "a", "b"), engine.queue.map { it.song.id })
+        engine.reorderKarousel { it.id[0].code.toDouble() }
+        // "c" is planned next and stays; the rest are put in order.
+        assertEquals(listOf("1", "c", "a", "b"), engine.queue.map { it.song.id })
+        engine.addItems(engine.queue.size, engine.newItems(songs("mine")))
+        extension = emptyList()
+        engine.reorderKarousel { -it.id[0].code.toDouble() }
+        assertEquals(listOf("1", "c", "b", "a", "mine"), engine.queue.map { it.song.id })
+    }
+
+    @Test
     fun switchingKarouselOffTakesItsSongsOut() {
         settings = settings.copy(karousel = true)
         extension = songs("x", "y")

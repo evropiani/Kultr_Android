@@ -7,26 +7,43 @@ import app.kultr.core.injekt.affinity
 import app.kultr.core.karousel.ArtistRef
 import app.kultr.core.karousel.Karousel
 import app.kultr.core.karousel.KarouselSources
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Karousel's music, from the library in use. A server offers its similar songs
  * and similar artists and their best-known songs (when it has Last.fm set up);
  * the library itself carries on from there, and is all there is for the music
- * on the phone. Offline, only downloaded songs are offered, since nothing else
- * would play.
+ * on the phone. When the server can't be reached (the phone is offline, or
+ * the server is at home and you are out), only downloaded songs are offered,
+ * since nothing else would play; a slow server is waited for 20 seconds in
+ * all before the library fills in.
  */
 class KarouselMusic(private val graph: AppGraph) : KarouselSources {
     private val library get() = graph.library
 
-    /** Whether the server can be asked: the library is a server's, and it can be reached. */
-    private val online: Boolean
-        get() = !graph.isLocal && graph.auth.client.value != null && graph.network.isOnline
+    /** Whether the server answered when this search began. */
+    @Volatile private var online = false
+
+    /** When this search stops waiting for the server. */
+    @Volatile private var deadline = 0L
 
     private fun playable(song: Song): Boolean =
         !song.isRadio && (graph.isLocal || online || song.id in graph.offline.downloadedIds.value)
 
+    /** [block]'s answer from the server, or [empty] when it can't be reached or the search has waited long enough. */
+    private suspend fun <T> fromServer(empty: T, block: suspend () -> T): T {
+        val left = deadline - System.currentTimeMillis()
+        if (!online || left <= 0) return empty
+        return withTimeoutOrNull(left) { block() } ?: empty
+    }
+
     /** Songs like [seeds] (the track playing first) to follow [queued], leaving out what played in the last few hours. */
     suspend fun next(seeds: List<Song>, queued: List<Song>, count: Int = 10): List<Song> {
+        // Being online is not enough: the server has to answer.
+        val client = graph.auth.client.value
+        online = !graph.isLocal && client != null && graph.network.isOnline &&
+            withTimeoutOrNull(PING_MS) { runCatching { client.ping() }.isSuccess } == true
+        deadline = System.currentTimeMillis() + SERVER_BUDGET_MS
         val exclude = HashSet<String>()
         val recent = library.songsByIds(library.songIdsPlayedSince(System.currentTimeMillis() - RECENT_MS))
         for (song in queued + recent) {
@@ -36,10 +53,8 @@ class KarouselMusic(private val graph: AppGraph) : KarouselSources {
         return Karousel(this, log = { Log.i(TAG, "Karousel: $it") }).next(Karousel.Input(seeds, exclude, count))
     }
 
-    override suspend fun station(seed: Song): List<Song> {
-        if (!online) return emptyList()
-        return mixingWell(seed, library.similarSongs(seed.id, 50).filter(::playable))
-    }
+    override suspend fun station(seed: Song): List<Song> =
+        mixingWell(seed, fromServer(emptyList()) { library.similarSongs(seed.id, 50) }.filter(::playable))
 
     /**
      * With InjeKt on, the songs that mix best out of [seed] come first, as far
@@ -54,14 +69,11 @@ class KarouselMusic(private val graph: AppGraph) : KarouselSources {
 
     override suspend fun similarArtists(artist: ArtistRef): List<ArtistRef> {
         val id = artist.id ?: return emptyList()
-        if (!online) return emptyList()
-        return library.artistInfo(id)?.similarArtist.orEmpty().map { ArtistRef(it.name, it.id) }
+        return fromServer(emptyList()) { library.artistInfo(id)?.similarArtist.orEmpty().map { ArtistRef(it.name, it.id) } }
     }
 
-    override suspend fun topSongs(artist: ArtistRef, count: Int): List<Song> {
-        if (!online) return emptyList()
-        return library.topSongs(artist.name).filter(::playable).take(count)
-    }
+    override suspend fun topSongs(artist: ArtistRef, count: Int): List<Song> =
+        fromServer(emptyList()) { library.topSongs(artist.name) }.filter(::playable).take(count)
 
     override suspend fun byArtists(artists: List<ArtistRef>): List<Song> =
         library.songsByArtists(artists.mapNotNull { it.id }, artists.map { it.name }).filter(::playable)
@@ -92,5 +104,11 @@ class KarouselMusic(private val graph: AppGraph) : KarouselSources {
 
         /** Where a song not analysed yet sits among analysed ones: in the middle. */
         const val UNKNOWN_AFFINITY = 0.5
+
+        /** How long the server has to answer before a search treats it as out of reach. */
+        const val PING_MS = 5_000L
+
+        /** How long a search waits for the server's similar songs and artists, in all. */
+        const val SERVER_BUDGET_MS = 20_000L
     }
 }

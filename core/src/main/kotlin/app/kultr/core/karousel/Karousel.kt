@@ -1,12 +1,28 @@
 package app.kultr.core.karousel
 
 import app.kultr.core.api.Song
+import app.kultr.core.dsp.TrackAnalysis
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import java.text.Normalizer
+import kotlin.math.min
 import kotlin.random.Random
+
+/**
+ * How calm a track is, from 0 (calmest) to 1: mostly its energy, partly its
+ * tempo. A track not analysed yet sits in the middle.
+ */
+fun calmness(analysis: TrackAnalysis?): Double {
+    if (analysis == null) return 0.5
+    val tempo = if (analysis.bpm > 0) min(1.0, analysis.bpm / 180) else 0.5
+    return analysis.energy.coerceIn(0.0, 1.0) * 0.7 + tempo * 0.3
+}
+
+/** [songs] calmest first; equally calm ones keep their order. */
+fun calmestFirst(songs: List<Song>, analysis: (Song) -> TrackAnalysis?): List<Song> =
+    songs.sortedBy { calmness(analysis(it)) }
 
 /** An artist as the library knows them: the name, and their id where there is one. */
 data class ArtistRef(val name: String, val id: String? = null)

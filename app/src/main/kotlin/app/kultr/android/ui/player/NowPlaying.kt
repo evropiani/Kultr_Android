@@ -6,6 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -95,6 +96,7 @@ import app.kultr.android.ui.components.ArtworkFill
 import app.kultr.android.ui.components.Eyebrow
 import app.kultr.android.ui.components.GlassPanel
 import app.kultr.android.ui.components.Pill
+import app.kultr.android.ui.components.SaveSessionDialog
 import app.kultr.android.ui.components.Segmented
 import app.kultr.android.ui.components.Tag
 import app.kultr.android.ui.components.rememberArtworkUrl
@@ -449,7 +451,21 @@ private fun Transport(state: PlayerUiState, song: Song) {
                 )
             }
         }
-        IconButton(onClick = { player.next() }, modifier = Modifier.size(56.dp)) {
+        // A tap skips; holding mixes into the next track over a whole crossfade.
+        Box(
+            Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .combinedClickable(
+                    onClick = { player.next() },
+                    onLongClick = {
+                        actions.graph.hub.mixNow()
+                        actions.graph.messages.show("Mixing into the next track")
+                    },
+                    onLongClickLabel = "Mix into the next track",
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
             Icon(Icons.Rounded.SkipNext, contentDescription = "Next", tint = colors.ink, modifier = Modifier.size(34.dp))
         }
         ModeButton(
@@ -513,6 +529,19 @@ private fun androidx.compose.foundation.lazy.LazyListScope.queueItems(state: Pla
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f),
             )
+            var saving by remember { mutableStateOf(false) }
+            if (state.queue.any { !it.song.isRadio }) {
+                IconButton(onClick = { saving = true }) {
+                    Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, contentDescription = "Save as a playlist", tint = Kultr.colors.ink2)
+                }
+            }
+            if (saving) {
+                SaveSessionDialog(
+                    played = state.queue.take(state.index + 1).map { it.song },
+                    queue = state.queue.map { it.song },
+                    onDismiss = { saving = false },
+                )
+            }
             if (upNext.isNotEmpty()) {
                 val actions = LocalActions.current
                 IconButton(onClick = { actions.graph.player.clearUpcoming() }) {

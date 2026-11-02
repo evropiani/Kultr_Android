@@ -399,12 +399,23 @@ private fun MainUi(
                 }
             }
 
+            AnimatedVisibility(
+                visible = playerOpen && player.current != null,
+                enter = slideInVertically(tween(320)) { it } + fadeIn(tween(200)),
+                exit = slideOutVertically(tween(260)) { it } + fadeOut(tween(200)),
+            ) {
+                NowPlayingScreen(player, onClose = { playerOpen = false })
+            }
+            BackHandler(enabled = playerOpen && player.current != null) { playerOpen = false }
+
+            // Messages show over everything, the full player too.
             SnackbarHost(
                 snackbar,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .imePadding()
-                    .padding(bottom = if (keyboardOpen) 8.dp else chromeInset),
+                    .then(if (playerOpen) Modifier.navigationBarsPadding() else Modifier)
+                    .padding(bottom = if (keyboardOpen || playerOpen) 8.dp else chromeInset),
             ) { data ->
                 val colors = Kultr.colors
                 val kind = (data.visuals as? Message)?.kind ?: MessageKind.INFO
@@ -419,15 +430,6 @@ private fun MainUi(
                     },
                 ) { Text(data.visuals.message) }
             }
-
-            AnimatedVisibility(
-                visible = playerOpen && player.current != null,
-                enter = slideInVertically(tween(320)) { it } + fadeIn(tween(200)),
-                exit = slideOutVertically(tween(260)) { it } + fadeOut(tween(200)),
-            ) {
-                NowPlayingScreen(player, onClose = { playerOpen = false })
-            }
-            BackHandler(enabled = playerOpen && player.current != null) { playerOpen = false }
 
             DropZoneOverlay(dragDrop)
         }

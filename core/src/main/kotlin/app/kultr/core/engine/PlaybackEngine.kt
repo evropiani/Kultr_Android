@@ -11,7 +11,9 @@ import app.kultr.core.settings.CrossfadeCurve
 import app.kultr.core.settings.Settings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -155,6 +157,13 @@ class PlaybackEngine(
     private var errorStreak = 0
     private var extendJob: Job? = null
 
+    /** Karousel's search for more music, shared by the plan and the end of the queue. */
+    private var extension: Deferred<Boolean>? = null
+    private var extensionSeed: Long? = null
+
+    /** Bumped whenever the queue is replaced, so music found for the old one is dropped. */
+    private var queueGeneration = 0
+
     /** The plan for the track playing now, with the uid of the track it leads out of. */
     var lastPlan: Pair<Long, TransitionPlan>? = null
         private set
@@ -222,6 +231,8 @@ class PlaybackEngine(
     fun setQueue(items: List<QueueItem>, startIndex: Int, startPositionMs: Long) {
         cancelTransition()
         clearPending()
+        queueGeneration++
+        extension?.cancel()
         lastError = null
         errorStreak = 0
         if (items.isEmpty()) {
@@ -431,6 +442,7 @@ class PlaybackEngine(
     fun onKarouselChanged(on: Boolean) {
         if (!on) {
             extendJob?.cancel()
+            extension?.cancel()
             val upcoming = queue.drop(index + 1).filter { it.karousel }.map { it.uid }.toHashSet()
             if (upcoming.isEmpty()) return
             queue = queue.filter { it.uid !in upcoming }
@@ -448,6 +460,35 @@ class PlaybackEngine(
         }
     }
 
+    /**
+     * Put Karousel's upcoming songs in order of [score], lowest first (for the
+     * sleep timer's wind-down, calmest first). The next track is already
+     * planned, so it stays; songs the user queued keep their places.
+     */
+    fun reorderKarousel(score: (Song) -> Double) {
+        val first = index + 2
+        if (index < 0 || first >= queue.size) return
+        val slots = (first until queue.size).filter { queue[it].karousel }
+        if (slots.size < 2) return
+        val ordered = slots.map { queue[it] }.sortedBy { score(it.song) }
+        val list = queue.toMutableList()
+        slots.zip(ordered).forEach { (slot, item) -> list[slot] = item }
+        if (list.map { it.uid } == queue.map { it.uid }) return
+        queue = list
+        revalidatePending()
+        host.onStateChanged()
+    }
+
+    /** Mix into the next track now, over a whole crossfade, instead of skipping to it. */
+    fun mixNow() {
+        val next = when {
+            index + 1 < queue.size -> index + 1
+            repeat == RepeatMode.ALL && queue.isNotEmpty() -> 0
+            else -> return
+        }
+        skipTo(next, 0, manual = true, fadeSeconds = max(2.0, host.settings().crossfadeSeconds))
+    }
+
     // --------------------------------------------------------------- settings --
 
     /** Re-read gains and invalidate plans after a settings change. */
@@ -460,6 +501,7 @@ class PlaybackEngine(
     fun release() {
         planJob?.cancel()
         extendJob?.cancel()
+        extension?.cancel()
         decks.forEach {
             it.setListener(null)
             it.stop()
@@ -622,8 +664,14 @@ class PlaybackEngine(
         planJob?.cancel()
         planJob = scope.launch {
             var next = peekNext()
-            if (next == null && host.settings().karousel) {
-                if (extendQueueNow(current)) next = peekNext()
+            // Nothing found yet: look again every little while the last track plays.
+            while (next == null && host.settings().karousel && currentItem?.uid == current.uid) {
+                if (extensionFor(current).await()) {
+                    next = peekNext()
+                } else {
+                    delay(KAROUSEL_RETRY_MS)
+                    next = peekNext()
+                }
             }
             if (next == null || currentItem?.uid != current.uid) return@launch
             val context = PlanContext(
@@ -656,7 +704,17 @@ class PlaybackEngine(
         }
     }
 
-    private suspend fun extendQueueNow(seed: QueueItem): Boolean {
+    /** The search for music to follow [seed]: the one already running for it, or a new one. */
+    private fun extensionFor(seed: QueueItem): Deferred<Boolean> {
+        extension?.takeIf { it.isActive && extensionSeed == seed.uid }?.let { return it }
+        val generation = queueGeneration
+        return scope.async { extendQueueNow(seed, generation) }.also {
+            extension = it
+            extensionSeed = seed.uid
+        }
+    }
+
+    private suspend fun extendQueueNow(seed: QueueItem, generation: Int): Boolean {
         val at = queue.indexOfFirst { it.uid == seed.uid }.takeIf { it >= 0 } ?: index
         // The track playing and the ones before it, and a couple the user chose
         // themselves, so the music stays close to where it started.
@@ -670,7 +728,7 @@ class PlaybackEngine(
         } catch (_: Exception) {
             emptyList()
         }
-        if (songs.isEmpty() || queue.isEmpty() || !host.settings().karousel) return false
+        if (songs.isEmpty() || queue.isEmpty() || !host.settings().karousel || generation != queueGeneration) return false
         val items = newItems(songs, karousel = true)
         queue = queue + items
         unshuffled = unshuffled?.plus(items)
@@ -768,19 +826,21 @@ class PlaybackEngine(
         host.onStateChanged()
     }
 
-    /** Jump to another item, with a short crossfade if that is switched on. */
-    private fun skipTo(target: Int, positionMs: Long, manual: Boolean) {
+    /**
+     * Jump to another item, with a short crossfade if that is switched on, or a
+     * crossfade of [fadeSeconds] when one is asked for (mixing into the next).
+     */
+    private fun skipTo(target: Int, positionMs: Long, manual: Boolean, fadeSeconds: Double? = null) {
         cancelTransition()
         clearPending()
         lastError = null
         val item = queue[target]
         val s = host.settings()
-        val fadeMs = if (manual && s.crossfadeOnSkip && s.crossfadeEnabled && playWhenReady && !stopped &&
-            active.isPlaying && !item.song.isRadio && active.item?.song?.isRadio != true
-        ) {
-            (min(s.crossfadeSeconds, 2.0) * 1000).roundToLong()
-        } else {
-            0L
+        val canFade = playWhenReady && !stopped && active.isPlaying && !item.song.isRadio && active.item?.song?.isRadio != true
+        val fadeMs = when {
+            fadeSeconds != null && canFade -> (fadeSeconds * 1000).roundToLong()
+            manual && s.crossfadeOnSkip && s.crossfadeEnabled && canFade -> (min(s.crossfadeSeconds, 2.0) * 1000).roundToLong()
+            else -> 0L
         }
         index = target
         ended = false
@@ -793,8 +853,13 @@ class PlaybackEngine(
             to.play()
             activeSlot = slotOf(to)
             transition = Transition(
-                plan = crossfadePlan(fadeMs / 1000.0 / 0.4, fadeMs / 1000.0, CrossfadeCurve.EQUAL_POWER)
-                    .copy(label = "Skip", reason = "A short fade instead of a hard cut."),
+                plan = crossfadePlan(fadeMs / 1000.0 / 0.4, fadeMs / 1000.0, CrossfadeCurve.EQUAL_POWER).let {
+                    if (fadeSeconds != null) {
+                        it.copy(label = "Mix", reason = "A whole crossfade into the next track, asked for.")
+                    } else {
+                        it.copy(label = "Skip", reason = "A short fade instead of a hard cut.")
+                    }
+                },
                 from = from,
                 to = to,
                 requestedAt = clock,
@@ -867,7 +932,8 @@ class PlaybackEngine(
     private fun continueAfterEnd(current: QueueItem) {
         extendJob?.cancel()
         extendJob = scope.launch {
-            if (extendQueueNow(current) && currentItem?.uid == current.uid) {
+            // The search started while this track played is usually done, or nearly.
+            if (extensionFor(current).await() && currentItem?.uid == current.uid) {
                 nextIndexAfter(index)?.let { skipTo(it, 0, manual = false) }
             } else {
                 markEnded()
@@ -1012,6 +1078,8 @@ class PlaybackEngine(
         const val BASS_CUT_DB = -26.0
         const val SWEEP_FROM_HZ = 20.0
         const val SWEEP_TO_HZ = 2400.0
+        /** While the last track plays, how often Karousel looks again when it found nothing. */
+        const val KAROUSEL_RETRY_MS = 15_000L
         private const val MAX_ERROR_STREAK = 4
         private const val ERROR_SKIP_DELAY_MS = 1_500L
     }

@@ -17,10 +17,12 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,6 +41,8 @@ import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.Song
 import app.kultr.core.util.Format
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun AddToPlaylistDialog(songs: List<Song>, onDismiss: () -> Unit) {
@@ -194,6 +198,23 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                         }
                         .padding(vertical = 12.dp),
                 )
+                HorizontalDivider(Modifier.padding(vertical = 8.dp), color = Kultr.colors.line)
+                val settings by actions.graph.settings.settings.collectAsStateWithLifecycle()
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Wind down", style = MaterialTheme.typography.bodyLarge, color = Kultr.colors.ink)
+                        Text(
+                            "In the last 15 minutes, Karousel plays its calmest picks first.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Kultr.colors.ink3,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Switch(
+                        checked = settings.sleepWindDown,
+                        onCheckedChange = { on -> actions.graph.settings.update { it.copy(sleepWindDown = on) } },
+                    )
+                }
             }
         },
         confirmButton = {
@@ -250,6 +271,41 @@ fun TextInputDialog(
                 onConfirm(value)
                 onDismiss()
             }) { Text(confirm) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+/** Keep the session as a playlist: what has played so far, or the whole queue. */
+@Composable
+fun SaveSessionDialog(played: List<Song>, queue: List<Song>, onDismiss: () -> Unit) {
+    val actions = LocalActions.current
+    val graph = actions.graph
+    var name by remember { mutableStateOf("Session, " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("d MMM, HH:mm"))) }
+    var whole by remember { mutableStateOf(played.isEmpty()) }
+    val songs = (if (whole) queue else played).filter { !it.isRadio }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Save as a playlist") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Segmented(listOf(false to "What you've played", true to "The whole queue"), whole, { whole = it })
+                Text(Format.count(songs.size, "track"), style = MaterialTheme.typography.bodySmall, color = Kultr.colors.ink3)
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = name.isNotBlank() && songs.isNotEmpty(),
+                onClick = {
+                    val title = name.trim()
+                    onDismiss()
+                    actions.launch {
+                        val error = graph.library.createPlaylist(title, songs)
+                        if (error != null) graph.messages.error(error) else graph.messages.success("Saved “$title”: ${Format.count(songs.size, "track")}")
+                    }
+                },
+            ) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
