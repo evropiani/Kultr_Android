@@ -1,6 +1,15 @@
 package app.kultr.android.ui
 
 import android.net.Uri
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.Album
+import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.DownloadForOffline
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Radio
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
@@ -8,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.vector.ImageVector
 import app.kultr.android.AppGraph
 import app.kultr.android.data.MessageKind
 import app.kultr.android.ui.components.DragPayload
@@ -20,22 +30,30 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class LibraryTab(val label: String) {
-    ALBUMS("Albums"),
-    ARTISTS("Artists"),
-    SONGS("Songs"),
-    PLAYLISTS("Playlists"),
-    GENRES("Genres"),
-    FAVOURITES("Favourites"),
-    DOWNLOADS("Downloads"),
-    RADIO("Radio"),
+/** The Library's sections, in the order its list shows them. */
+enum class LibraryTab(val label: String, val icon: ImageVector) {
+    PLAYLISTS("Playlists", Icons.AutoMirrored.Rounded.QueueMusic),
+    ARTISTS("Artists", Icons.Rounded.Person),
+    ALBUMS("Albums", Icons.Rounded.Album),
+    SONGS("Songs", Icons.Rounded.MusicNote),
+    GENRES("Genres", Icons.Rounded.Category),
+    FAVOURITES("Favourites", Icons.Rounded.Favorite),
+    DOWNLOADS("Downloads", Icons.Rounded.DownloadForOffline),
+    RADIO("Radio", Icons.Rounded.Radio),
+    ;
+
+    companion object {
+        /** Music on the phone has no internet radio, and nothing to download. */
+        fun shown(local: Boolean): List<LibraryTab> = if (local) entries.filter { it != RADIO && it != DOWNLOADS } else entries
+    }
 }
 
 enum class DownloadsPage(val label: String) { NOW("Downloading"), OFFLINE("On this phone") }
 
 object Routes {
     const val HOME = "home"
-    const val LIBRARY = "library?tab={tab}"
+    const val LIBRARY = "library"
+    const val LIBRARY_SECTION = "library/{tab}"
     const val SEARCH = "search"
     const val SETTINGS = "settings"
     const val ALBUM = "album/{id}"
@@ -46,12 +64,14 @@ object Routes {
     const val STATS = "stats"
     const val DOWNLOADS = "downloads?page={page}"
     const val UPDATE = "update"
+    const val SHELF = "shelf/{id}"
 
-    fun library(tab: LibraryTab? = null) = if (tab == null) "library" else "library?tab=${tab.name}"
+    fun library(tab: LibraryTab? = null) = if (tab == null) LIBRARY else "library/${tab.name}"
     fun album(id: String) = "album/${Uri.encode(id)}"
     fun artist(id: String) = "artist/${Uri.encode(id)}"
     fun playlist(id: String) = "playlist/${Uri.encode(id)}"
     fun genre(name: String) = "genre/${Uri.encode(name)}"
+    fun shelf(id: String) = "shelf/${Uri.encode(id)}"
     fun downloads(page: DownloadsPage? = null) = if (page == null) "downloads" else "downloads?page=${page.name}"
 }
 

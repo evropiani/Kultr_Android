@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -93,20 +94,55 @@ fun Pill(
     }
 }
 
-/** A small chip used for years, genres, formats. */
+/** A wide button: sand with an accent label, like Apple Music's Play and Shuffle; filled with the accent when it leads. */
 @Composable
-fun Tag(text: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+fun WideButton(text: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier, accent: Boolean = false, enabled: Boolean = true) {
     val colors = Kultr.colors
-    val shape = RoundedCornerShape(50)
-    Box(
+    val content = if (accent) colors.onAccent else colors.accent
+    Row(
         modifier
-            .clip(shape)
-            .background(colors.glass)
-            .border(BorderStroke(1.dp, colors.edge), shape)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 10.dp, vertical = 3.dp),
+            .height(46.dp)
+            .clip(RoundedCornerShape(Kultr.radii.md))
+            .background(if (accent) colors.accent else colors.sand)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 14.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text, color = colors.ink2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Icon(icon, contentDescription = null, tint = content.copy(alpha = if (enabled) 1f else 0.5f), modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(text, color = content.copy(alpha = if (enabled) 1f else 0.5f), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+    }
+}
+
+/**
+ * Year, genre, format and the like as one quiet line ("2019 · Electronic ·
+ * FLAC"), not a row of chips. Parts with a click (a genre, a rating) are
+ * a shade brighter and can be tapped.
+ */
+@Composable
+fun InfoLine(parts: List<Pair<String, (() -> Unit)?>>, modifier: Modifier = Modifier, center: Boolean = false) {
+    if (parts.isEmpty()) return
+    val colors = Kultr.colors
+    val style = MaterialTheme.typography.labelLarge
+    Row(
+        modifier,
+        horizontalArrangement = if (center) Arrangement.Center else Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        parts.forEachIndexed { index, (text, onClick) ->
+            if (index > 0) Text("  ·  ", color = colors.ink4, style = style)
+            Text(
+                text,
+                color = if (onClick != null) colors.ink2 else colors.ink3,
+                style = style,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false).then(
+                    if (onClick != null) Modifier.clip(RoundedCornerShape(4.dp)).clickable(onClick = onClick) else Modifier,
+                ),
+            )
+        }
     }
 }
 

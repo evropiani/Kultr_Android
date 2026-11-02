@@ -94,10 +94,10 @@ import app.kultr.android.ui.components.Artwork
 import app.kultr.android.ui.components.ArtworkFill
 import app.kultr.android.ui.components.Eyebrow
 import app.kultr.android.ui.components.GlassPanel
+import app.kultr.android.ui.components.InfoLine
 import app.kultr.android.ui.components.Pill
 import app.kultr.android.ui.components.SaveSessionDialog
 import app.kultr.android.ui.components.Segmented
-import app.kultr.android.ui.components.Tag
 import app.kultr.android.ui.components.rememberArtworkUrl
 import app.kultr.android.ui.starredShown
 import app.kultr.android.ui.theme.Kultr
@@ -243,13 +243,17 @@ fun NowPlayingScreen(state: PlayerUiState, onClose: () -> Unit) {
                         }
                     }
                     Spacer(Modifier.height(10.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
-                        current.year?.let { Tag("$it") }
-                        current.genre?.let { Tag(it) { onClose(); actions.openGenre(it) } }
-                        current.suffix?.let { Tag(it.uppercase()) }
-                        current.bitRate?.let { Tag("$it kbps") }
-                        if ((current.userRating ?: 0) > 0) Tag("${current.userRating} ★") { actions.rate(current) }
-                    }
+                    InfoLine(
+                        listOfNotNull(
+                            current.year?.let { "$it" to null },
+                            current.genre?.let { genre -> genre to { onClose(); actions.openGenre(genre) } },
+                            current.suffix?.let { it.uppercase() to null },
+                            current.bitRate?.let { "$it kbps" to null },
+                            current.userRating?.takeIf { it > 0 }?.let { "$it ★" to { actions.rate(current) } },
+                        ),
+                        Modifier.fillMaxWidth(),
+                        center = true,
+                    )
                     Spacer(Modifier.height(16.dp))
                     Scrubber(
                         positionMs = position,

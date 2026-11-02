@@ -57,7 +57,7 @@ import app.kultr.android.ui.components.ArtistCard
 import app.kultr.android.ui.components.ArtworkFill
 import app.kultr.android.ui.components.ConfirmDialog
 import app.kultr.android.ui.components.EmptyState
-import app.kultr.android.ui.components.Eyebrow
+import app.kultr.android.ui.components.InfoLine
 import app.kultr.android.ui.components.Loading
 import app.kultr.android.ui.components.MenuAction
 import app.kultr.android.ui.components.Pill
@@ -65,8 +65,8 @@ import app.kultr.android.ui.components.SectionHeader
 import app.kultr.android.ui.components.SelectionBar
 import app.kultr.android.ui.components.Shelf
 import app.kultr.android.ui.components.SongSelection
-import app.kultr.android.ui.components.Tag
 import app.kultr.android.ui.components.TextInputDialog
+import app.kultr.android.ui.components.WideButton
 import app.kultr.android.ui.components.rememberSelection
 import app.kultr.android.ui.components.songItems
 import app.kultr.android.ui.starredShown
@@ -87,10 +87,9 @@ fun BackBar(title: String? = null) {
     }
 }
 
-/** Artwork, eyebrow, title, subtitle and actions — the top of every detail page. */
+/** Artwork, title, subtitle, Play and Shuffle, and more actions — the top of every detail page. */
 @Composable
 fun DetailHeader(
-    eyebrow: String,
     title: String,
     coverId: String?,
     modifier: Modifier = Modifier,
@@ -98,6 +97,8 @@ fun DetailHeader(
     imageUrl: String? = null,
     subtitle: @Composable () -> Unit = {},
     tags: List<Pair<String, (() -> Unit)?>> = emptyList(),
+    onPlay: (() -> Unit)? = null,
+    onShuffle: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {},
 ) {
     Column(modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
@@ -110,15 +111,21 @@ fun DetailHeader(
             imageUrl = imageUrl,
         )
         Spacer(Modifier.height(18.dp))
-        Eyebrow(eyebrow)
         Text(title, style = MaterialTheme.typography.headlineMedium, color = Kultr.colors.ink, maxLines = 3, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.height(4.dp))
         subtitle()
         if (tags.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { tags.forEach { (text, click) -> Tag(text, onClick = click) } }
+            InfoLine(tags)
         }
         Spacer(Modifier.height(14.dp))
+        if (onPlay != null || onShuffle != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                onPlay?.let { WideButton("Play", Icons.Rounded.PlayArrow, onClick = it, modifier = Modifier.weight(1f)) }
+                onShuffle?.let { WideButton("Shuffle", Icons.Rounded.Shuffle, onClick = it, modifier = Modifier.weight(1f)) }
+            }
+            Spacer(Modifier.height(10.dp))
+        }
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { actions() }
         Spacer(Modifier.height(8.dp))
     }
@@ -176,7 +183,6 @@ fun AlbumScreen(id: String) {
     DetailScaffold(selection, songs) {
         item(key = "header") {
             DetailHeader(
-                eyebrow = if (shown.isCompilation == true) "Compilation" else "Album",
                 title = shown.name,
                 coverId = shown.coverArt ?: shown.id,
                 subtitle = {
@@ -199,9 +205,9 @@ fun AlbumScreen(id: String) {
                     }
                 },
                 tags = listOfNotNull(shown.genre?.let { g -> g to { actions.openGenre(g) } }),
+                onPlay = { actions.play(songs) },
+                onShuffle = { actions.shuffle(songs) },
                 actions = {
-                    Pill("Play", icon = Icons.Rounded.PlayArrow, accent = true, onClick = { actions.play(songs) })
-                    Pill("Shuffle", icon = Icons.Rounded.Shuffle, onClick = { actions.shuffle(songs) })
                     val favourite = starredShown(shown)
                     Pill(
                         "Favourite",
@@ -278,7 +284,6 @@ fun ArtistScreen(id: String) {
     DetailScaffold(selection, popular) {
         item(key = "header") {
             DetailHeader(
-                eyebrow = "Artist",
                 title = shown.name,
                 coverId = shown.coverArt,
                 artworkShape = CircleShape,
@@ -292,13 +297,9 @@ fun ArtistScreen(id: String) {
                         color = Kultr.colors.ink2,
                     )
                 },
+                onPlay = { actions.launch { actions.play(graph.library.songsOfArtistNow(id)) } },
+                onShuffle = { actions.launch { actions.shuffle(graph.library.songsOfArtistNow(id)) } },
                 actions = {
-                    Pill("Play", icon = Icons.Rounded.PlayArrow, accent = true, onClick = {
-                        actions.launch { actions.play(graph.library.songsOfArtistNow(id)) }
-                    })
-                    Pill("Shuffle", icon = Icons.Rounded.Shuffle, onClick = {
-                        actions.launch { actions.shuffle(graph.library.songsOfArtistNow(id)) }
-                    })
                     val favourite = starredShown(shown)
                     Pill(
                         "Favourite",
@@ -390,7 +391,6 @@ fun PlaylistScreen(id: String) {
     DetailScaffold(selection, songs) {
         item(key = "header") {
             DetailHeader(
-                eyebrow = if (d.playlist.isPublic == true) "Public playlist" else "Playlist",
                 title = d.playlist.name,
                 coverId = d.playlist.coverArt,
                 subtitle = {
@@ -406,9 +406,9 @@ fun PlaylistScreen(id: String) {
                         Text(it, color = Kultr.colors.ink3, style = MaterialTheme.typography.bodySmall)
                     }
                 },
+                onPlay = { actions.play(songs) },
+                onShuffle = { actions.shuffle(songs) },
                 actions = {
-                    Pill("Play", icon = Icons.Rounded.PlayArrow, accent = true, onClick = { actions.play(songs) })
-                    Pill("Shuffle", icon = Icons.Rounded.Shuffle, onClick = { actions.shuffle(songs) })
                     Pill("Queue", icon = Icons.AutoMirrored.Rounded.QueueMusic, onClick = { actions.enqueue(songs) })
                     DownloadPill(songs, d.playlist.name)
                     if (editable) {
@@ -477,14 +477,14 @@ fun GenreScreen(name: String) {
     DetailScaffold(selection, songs) {
         item(key = "header") {
             DetailHeader(
-                eyebrow = "Genre",
                 title = name,
                 coverId = null,
                 subtitle = {
                     Text("${Format.count(albums.size, "album")} · ${Format.count(songs.size, "track")}", color = Kultr.colors.ink2)
                 },
+                onPlay = { actions.play(songs) },
+                onShuffle = { actions.shuffle(songs) },
                 actions = {
-                    Pill("Shuffle", icon = Icons.Rounded.Shuffle, accent = true, onClick = { actions.shuffle(songs) })
                     Pill("InjeKt set", icon = Icons.Rounded.AutoAwesome, onClick = { songs.randomOrNull()?.let { actions.startInjektSet(it) } })
                     DownloadPill(songs, name)
                 },

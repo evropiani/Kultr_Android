@@ -82,10 +82,12 @@ import app.kultr.android.ui.screens.DownloadsScreen
 import app.kultr.android.ui.screens.GenreScreen
 import app.kultr.android.ui.screens.HomeScreen
 import app.kultr.android.ui.screens.LibraryScreen
+import app.kultr.android.ui.screens.LibrarySectionScreen
 import app.kultr.android.ui.screens.LoginScreen
 import app.kultr.android.ui.screens.PlaylistScreen
 import app.kultr.android.ui.screens.SearchScreen
 import app.kultr.android.ui.screens.SettingsScreen
+import app.kultr.android.ui.screens.ShelfScreen
 import app.kultr.android.ui.screens.StatsScreen
 import app.kultr.android.ui.screens.SyncScreen
 import app.kultr.android.ui.screens.UpdateBanner
@@ -313,14 +315,12 @@ private fun MainUi(
                     popExitTransition = { fadeOut(tween(140)) + slideOutVertically(tween(200)) { it / 24 } },
                 ) {
                     composable(Routes.HOME) { HomeScreen() }
-                    composable(
-                        Routes.LIBRARY,
-                        arguments = listOf(navArgument("tab") { type = NavType.StringType; nullable = true; defaultValue = null }),
-                    ) { entry ->
+                    composable(Routes.LIBRARY) { LibraryScreen() }
+                    composable(Routes.LIBRARY_SECTION) { entry ->
                         val tab = entry.arguments?.getString("tab")
                             ?.let { name -> LibraryTab.entries.firstOrNull { it.name == name } }
                             ?: LibraryTab.ALBUMS
-                        LibraryScreen(tab)
+                        LibrarySectionScreen(tab)
                     }
                     composable(Routes.SEARCH) { SearchScreen(searchQuery) }
                     composable(Routes.SETTINGS) { SettingsScreen(onAddServer = onAddServer, onSignIn = onSignIn) }
@@ -331,6 +331,7 @@ private fun MainUi(
                     composable(Routes.SYNC) { SyncScreen() }
                     composable(Routes.STATS) { StatsScreen() }
                     composable(Routes.UPDATE) { UpdateScreen() }
+                    composable(Routes.SHELF) { ShelfScreen(it.arguments?.getString("id").orEmpty()) }
                     composable(
                         Routes.DOWNLOADS,
                         arguments = listOf(navArgument("page") { type = NavType.StringType; nullable = true; defaultValue = null }),

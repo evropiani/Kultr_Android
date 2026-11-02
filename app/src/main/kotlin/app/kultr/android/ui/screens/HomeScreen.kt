@@ -14,8 +14,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -41,7 +46,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.data.db.Counts
-import app.kultr.android.ui.LibraryTab
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.Routes
@@ -55,9 +59,13 @@ import app.kultr.android.ui.components.PlaylistCard
 import app.kultr.android.ui.components.SectionHeader
 import app.kultr.android.ui.components.Shelf
 import app.kultr.android.ui.components.SongRow
+import app.kultr.android.ui.components.minCell
 import app.kultr.android.ui.player.CastButton
 import app.kultr.android.ui.rememberFolderPicker
 import app.kultr.android.ui.theme.Kultr
+import app.kultr.core.api.Album
+import app.kultr.core.api.Artist
+import app.kultr.core.api.Playlist
 import app.kultr.core.api.RadioStation
 import app.kultr.core.api.Song
 import app.kultr.core.api.asSong
@@ -151,7 +159,7 @@ fun HomeScreen() {
             }
         } else {
             tiles.forEach { tile ->
-                item(key = "tile:${tile.id}") { HomeShelf(tile, counts, syncState.lastCheck) }
+                item(key = "tile:${tile.id}") { HomeShelf(tile) }
             }
             if (tiles.isEmpty()) {
                 item(key = "none") {
@@ -166,116 +174,178 @@ fun HomeScreen() {
     }
 }
 
+/** What a home shelf holds: one kind of thing each. */
+private sealed interface ShelfItems {
+    val isEmpty: Boolean
+
+    data class Songs(val songs: List<Song>) : ShelfItems {
+        override val isEmpty get() = songs.isEmpty()
+    }
+
+    data class Albums(val albums: List<Album>) : ShelfItems {
+        override val isEmpty get() = albums.isEmpty()
+    }
+
+    data class Artists(val artists: List<Artist>) : ShelfItems {
+        override val isEmpty get() = artists.isEmpty()
+    }
+
+    data class Playlists(val playlists: List<Playlist>) : ShelfItems {
+        override val isEmpty get() = playlists.isEmpty()
+    }
+
+    data class Radios(val stations: List<RadioStation>) : ShelfItems {
+        override val isEmpty get() = stations.isEmpty()
+    }
+}
+
+/** Up to [limit] of what [tile] shows, kept up to date: on Home a handful, on its own page all of it. */
 @Composable
-private fun HomeShelf(tile: HomeTile, counts: Counts, lastCheck: Long?) {
-    val actions = LocalActions.current
-    val graph = actions.graph
+private fun rememberShelf(tile: HomeTile, limit: Int): ShelfItems {
+    val graph = LocalActions.current.graph
     val library = graph.library
     val settings by graph.settings.settings.collectAsStateWithLifecycle()
     val playing by graph.player.state.collectAsStateWithLifecycle()
-    val downloaded by graph.offline.downloadedIds.collectAsStateWithLifecycle()
+    val counts by library.counts.collectAsStateWithLifecycle(Counts(0, 0, 0, 0, 0))
+    val lastCheck = library.syncState.collectAsStateWithLifecycle(SyncState()).value.lastCheck
     // Bumped when plays went up to the server or came down from other devices.
     val listening by graph.sync.listeningVersion.collectAsStateWithLifecycle()
-    val seeAllTab = when (tile.id) {
-        "mostPlayedAlbums", "recentlyAdded", "randomAlbums" -> LibraryTab.ALBUMS
-        "mostPlayedArtists", "randomArtists" -> LibraryTab.ARTISTS
-        "favouriteSongs", "favouriteAlbums", "favouriteArtists" -> LibraryTab.FAVOURITES
-        "mostPlayedPlaylists", "favouritePlaylists" -> LibraryTab.PLAYLISTS
-        "radios", "favouriteRadios" -> LibraryTab.RADIO
-        "mostPlayedSongs" -> LibraryTab.SONGS
-        else -> null
-    }
-    val seeAll: (() -> Unit)? = seeAllTab?.let { tab -> { actions.openLibrary(tab) } }
-
-    when (tile.kind) {
+    return when (tile.kind) {
         TileKind.SONGS -> {
             val songs by when (tile.id) {
-                "mostPlayedSongs" -> remember { library.mostPlayedSongs(10) }.collectAsStateWithLifecycle(emptyList<Song>())
+                "mostPlayedSongs" -> remember(limit) { library.mostPlayedSongs(limit) }.collectAsStateWithLifecycle(emptyList<Song>())
                 "favouriteSongs" -> remember { library.starredSongs() }.collectAsStateWithLifecycle(emptyList())
-                "recentlyPlayed" -> produceState(emptyList<Song>(), playing.current?.id, lastCheck, listening) { value = library.recentlyPlayed(10) }
-                else -> produceState(emptyList<Song>(), counts.songs, lastCheck) { value = library.randomSongs(10) }
+                "recentlyPlayed" -> produceState(emptyList<Song>(), playing.current?.id, lastCheck, listening) { value = library.recentlyPlayed(limit) }
+                else -> produceState(emptyList<Song>(), counts.songs, lastCheck) { value = library.randomSongs(limit) }
             }
-            val shown = songs.take(10)
-            if (shown.isEmpty()) return
-            ShelfHeader(tile, seeAll)
-            Column {
-                shown.forEachIndexed { index, song ->
-                    SongRow(
-                        song = song,
-                        onClick = { actions.play(shown, index) },
-                        isCurrent = song.id == playing.current?.id,
-                        downloaded = song.id in downloaded,
-                        compact = settings.compactRows,
-                    )
-                }
-            }
+            ShelfItems.Songs(songs.take(limit))
         }
         TileKind.ALBUMS -> {
             val albums by when (tile.id) {
-                "mostPlayedAlbums" -> remember { library.mostPlayedAlbums(16) }.collectAsStateWithLifecycle(emptyList())
-                "recentlyAdded" -> remember { library.recentlyAdded(16) }.collectAsStateWithLifecycle(emptyList())
+                "mostPlayedAlbums" -> remember(limit) { library.mostPlayedAlbums(limit) }.collectAsStateWithLifecycle(emptyList())
+                "recentlyAdded" -> remember(limit) { library.recentlyAdded(limit) }.collectAsStateWithLifecycle(emptyList())
                 "favouriteAlbums" -> remember { library.starredAlbums() }.collectAsStateWithLifecycle(emptyList())
-                else -> produceState(emptyList<app.kultr.core.api.Album>(), counts.albums, lastCheck) { value = library.randomAlbums(16) }
+                else -> produceState(emptyList<Album>(), counts.albums, lastCheck) { value = library.randomAlbums(limit) }
             }
-            if (albums.isEmpty()) return
-            ShelfHeader(tile, seeAll)
-            Shelf(albums.take(16), key = { it.id }) { album, modifier ->
-                AlbumCard(album, onClick = { actions.openAlbum(album.id) }, modifier = modifier)
-            }
+            ShelfItems.Albums(albums.take(limit))
         }
         TileKind.ARTISTS -> {
             val artists by when (tile.id) {
-                "mostPlayedArtists" -> remember { library.mostPlayedArtists(16) }.collectAsStateWithLifecycle(emptyList())
+                "mostPlayedArtists" -> remember(limit) { library.mostPlayedArtists(limit) }.collectAsStateWithLifecycle(emptyList())
                 "favouriteArtists" -> remember { library.starredArtists() }.collectAsStateWithLifecycle(emptyList())
-                else -> produceState(emptyList<app.kultr.core.api.Artist>(), counts.artists, lastCheck) { value = library.randomArtists(16) }
+                else -> produceState(emptyList<Artist>(), counts.artists, lastCheck) { value = library.randomArtists(limit) }
             }
-            if (artists.isEmpty()) return
-            ShelfHeader(tile, seeAll)
-            Shelf(artists.take(16), key = { it.id }, cardWidth = 130.dp) { artist, modifier ->
-                ArtistCard(artist, onClick = { actions.openArtist(artist.id) }, modifier = modifier)
-            }
+            ShelfItems.Artists(artists.take(limit))
         }
         TileKind.PLAYLISTS -> {
-            val active by graph.auth.active.collectAsStateWithLifecycle()
-            val username = active?.username
+            val username = graph.auth.active.collectAsStateWithLifecycle().value?.username
             val playlists by when (tile.id) {
                 "mostPlayedPlaylists" -> remember { library.playlistsByPlays() }.collectAsStateWithLifecycle(emptyList())
                 else -> remember { library.playlists() }.collectAsStateWithLifecycle(emptyList())
             }
-            val shown = if (tile.id == "favouritePlaylists") {
+            val mine = if (tile.id == "favouritePlaylists") {
                 playlists.filter { it.owner == null || it.owner == username }.sortedByDescending { it.changed ?: it.created }
             } else {
                 playlists
             }
-            if (shown.isEmpty()) return
-            ShelfHeader(tile, seeAll)
-            Shelf(shown.take(16), key = { it.id }) { playlist, modifier ->
-                PlaylistCard(playlist, onClick = { actions.openPlaylist(playlist.id) }, modifier = modifier)
-            }
+            ShelfItems.Playlists(mine.take(limit))
         }
         TileKind.RADIOS -> {
             val stations by produceState(emptyList<RadioStation>(), lastCheck) {
                 value = runCatching { library.radioStations() }.getOrDefault(emptyList())
             }
-            val shown = if (tile.id == "favouriteRadios") stations.filter { it.id in settings.favouriteRadios } else stations
-            if (shown.isEmpty()) return
-            ShelfHeader(tile, seeAll)
-            Shelf(shown, key = { it.id }, cardWidth = 130.dp) { station, modifier ->
-                StationCard(station, modifier) { actions.play(listOf(station.asSong())) }
-            }
+            ShelfItems.Radios((if (tile.id == "favouriteRadios") stations.filter { it.id in settings.favouriteRadios } else stations).take(limit))
         }
     }
 }
 
 @Composable
-private fun ShelfHeader(tile: HomeTile, seeAll: (() -> Unit)?) {
+private fun HomeShelf(tile: HomeTile) {
+    val actions = LocalActions.current
+    val items = rememberShelf(tile, SHELF_SIZE)
+    if (items.isEmpty) return
+    ShelfHeader(tile) { actions.navigate(Routes.shelf(tile.id)) }
+    when (items) {
+        is ShelfItems.Songs -> SongList(items.songs.take(10))
+        is ShelfItems.Albums -> Shelf(items.albums, key = { it.id }) { album, modifier ->
+            AlbumCard(album, onClick = { actions.openAlbum(album.id) }, modifier = modifier)
+        }
+        is ShelfItems.Artists -> Shelf(items.artists, key = { it.id }, cardWidth = 130.dp) { artist, modifier ->
+            ArtistCard(artist, onClick = { actions.openArtist(artist.id) }, modifier = modifier)
+        }
+        is ShelfItems.Playlists -> Shelf(items.playlists, key = { it.id }) { playlist, modifier ->
+            PlaylistCard(playlist, onClick = { actions.openPlaylist(playlist.id) }, modifier = modifier)
+        }
+        is ShelfItems.Radios -> Shelf(items.stations, key = { it.id }, cardWidth = 130.dp) { station, modifier ->
+            StationCard(station, modifier) { actions.play(listOf(station.asSong())) }
+        }
+    }
+}
+
+/** A shelf's title, which opens all of it: "Played the most ›". */
+@Composable
+private fun ShelfHeader(tile: HomeTile, onOpen: () -> Unit) {
     SectionHeader(
         tile.title,
         icon = tileIcon(tile.id),
-        modifier = Modifier.padding(top = 12.dp),
-        action = seeAll?.let { open -> { Pill("See all", onClick = open) } },
+        modifier = Modifier.padding(top = 12.dp).clickable(onClick = onOpen),
+        action = { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "See all", tint = Kultr.colors.ink3) },
     )
 }
+
+/** Songs, each playing the list from itself. */
+@Composable
+private fun SongList(songs: List<Song>) {
+    val actions = LocalActions.current
+    val graph = actions.graph
+    val settings by graph.settings.settings.collectAsStateWithLifecycle()
+    val playing by graph.player.state.collectAsStateWithLifecycle()
+    val downloaded by graph.offline.downloadedIds.collectAsStateWithLifecycle()
+    Column {
+        songs.forEachIndexed { index, song ->
+            SongRow(
+                song = song,
+                onClick = { actions.play(songs, index) },
+                isCurrent = song.id == playing.current?.id,
+                downloaded = song.id in downloaded,
+                compact = settings.compactRows,
+            )
+        }
+    }
+}
+
+/** A home shelf on a page of its own, all of it. */
+@Composable
+fun ShelfScreen(id: String) {
+    val actions = LocalActions.current
+    val settings by actions.graph.settings.settings.collectAsStateWithLifecycle()
+    val tile = resolveHomeTiles(listOf(id)).firstOrNull() ?: return
+    val items = rememberShelf(tile, SHELF_PAGE_SIZE)
+    Column(Modifier.fillMaxSize()) {
+        BackBar()
+        Text(tile.title, style = MaterialTheme.typography.headlineMedium, color = Kultr.colors.ink, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
+        if (items is ShelfItems.Songs) {
+            Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = chromePadding())) { SongList(items.songs) }
+            return@Column
+        }
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(settings.gridSize.minCell()),
+            contentPadding = PaddingValues(start = 10.dp, end = 10.dp, bottom = chromePadding(10.dp)),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            when (items) {
+                is ShelfItems.Albums -> items(items.albums, key = { it.id }) { AlbumCard(it, onClick = { actions.openAlbum(it.id) }) }
+                is ShelfItems.Artists -> items(items.artists, key = { it.id }) { ArtistCard(it, onClick = { actions.openArtist(it.id) }) }
+                is ShelfItems.Playlists -> items(items.playlists, key = { it.id }) { PlaylistCard(it, onClick = { actions.openPlaylist(it.id) }) }
+                is ShelfItems.Radios -> items(items.stations, key = { it.id }) { StationCard(it) { actions.play(listOf(it.asSong())) } }
+                is ShelfItems.Songs -> Unit
+            }
+        }
+    }
+}
+
+private const val SHELF_SIZE = 16
+private const val SHELF_PAGE_SIZE = 300
 
 @Composable
 fun StationCard(station: RadioStation, modifier: Modifier = Modifier, onClick: () -> Unit) {

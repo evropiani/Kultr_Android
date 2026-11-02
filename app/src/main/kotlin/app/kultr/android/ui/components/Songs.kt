@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -191,7 +192,7 @@ fun SongMenuButton(song: Song, downloaded: Boolean, extraActions: List<MenuActio
     var open by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }) {
-            Icon(Icons.Rounded.MoreVert, contentDescription = "More for ${song.title}", tint = Kultr.colors.ink3)
+            Icon(Icons.Rounded.MoreHoriz, contentDescription = "More for ${song.title}", tint = Kultr.colors.accent)
         }
         SongMenu(song, downloaded, open, onDismiss = { open = false }, extraActions = extraActions)
     }
