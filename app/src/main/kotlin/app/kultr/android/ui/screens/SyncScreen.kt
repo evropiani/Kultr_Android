@@ -33,7 +33,6 @@ import app.kultr.android.data.db.DownloadUsage
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.chromePadding
-import app.kultr.android.ui.components.AccentWash
 import app.kultr.android.ui.components.Eyebrow
 import app.kultr.android.ui.components.GlassPanel
 import app.kultr.android.ui.components.Pill
@@ -66,7 +65,6 @@ fun SyncScreen() {
     val folders by graph.local.folders.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize()) {
-        AccentWash()
         Column(Modifier.fillMaxSize()) {
             BackBar("Sync")
             Column(

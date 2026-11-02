@@ -41,7 +41,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.data.db.HistoryEntity
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.chromePadding
-import app.kultr.android.ui.components.AccentWash
 import app.kultr.android.ui.components.ConfirmDialog
 import app.kultr.android.ui.components.EmptyState
 import app.kultr.android.ui.components.GlassPanel
@@ -82,7 +81,6 @@ fun StatsScreen() {
     var confirm by remember { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize()) {
-        AccentWash()
         Column(Modifier.fillMaxSize()) {
             BackBar("Listening")
             if (total == 0L && history.isEmpty() && recent.isEmpty()) {

@@ -87,11 +87,11 @@ data class Settings(
     val theme: ThemeMode = ThemeMode.SYSTEM,
     /** Night mode: whenever the theme is dark, it is pure black, for OLED screens. */
     val nightMode: Boolean = false,
-    val accentMode: AccentMode = AccentMode.ARTWORK,
-    val accent: String = "#7c8cff",
+    val accentMode: AccentMode = AccentMode.FIXED,
+    val accent: String = "#ff7a3d",
     /** How strongly `accent` is mixed into the colour taken from the artwork, 0–100. */
     val accentBlend: Int = 0,
-    val surfaceBorder: SurfaceBorder = SurfaceBorder.ACCENT,
+    val surfaceBorder: SurfaceBorder = SurfaceBorder.NEUTRAL,
     val borderOpacity: Int = 45,
     val surfaceOpacity: Int = 100,
     val corners: CornerStyle = CornerStyle.SOFT,
@@ -99,7 +99,7 @@ data class Settings(
     /** Whether the player's left-hand time counts up or down. */
     val timeRemaining: Boolean = false,
     val reduceMotion: Boolean = false,
-    val backdropArtwork: Boolean = true,
+    val backdropArtwork: Boolean = false,
     val gridSize: GridSize = GridSize.MEDIUM,
     val compactRows: Boolean = false,
 

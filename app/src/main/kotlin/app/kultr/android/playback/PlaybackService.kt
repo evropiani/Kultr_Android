@@ -18,7 +18,7 @@ import androidx.media3.session.MediaLibraryService.LibraryParams
 import androidx.media3.session.MediaSession
 import app.kultr.android.AppGraph
 import app.kultr.android.KultrApp
-import app.kultr.android.MainActivity
+import app.kultr.android.KultrActivity
 import app.kultr.android.R
 import app.kultr.android.widget.NowPlayingWidget
 import app.kultr.android.widget.WidgetActionReceiver
@@ -202,9 +202,9 @@ class PlaybackService : MediaLibraryService() {
                 PendingIntent.getActivity(
                     this,
                     0,
-                    Intent(this, MainActivity::class.java)
+                    Intent(this, KultrActivity::class.java)
                         .setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                        .putExtra(MainActivity.EXTRA_OPEN_PLAYER, true),
+                        .putExtra(KultrActivity.EXTRA_OPEN_PLAYER, true),
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
                 ),
             )

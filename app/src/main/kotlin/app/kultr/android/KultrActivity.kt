@@ -27,7 +27,7 @@ import app.kultr.android.ui.theme.KultrTheme
 import app.kultr.android.ui.theme.isDark
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+class KultrActivity : ComponentActivity() {
     /** Bumped whenever something (the media notification) asks for the full player. */
     private var openPlayerRequest by mutableIntStateOf(0)
 

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,14 +26,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.kultr.android.ui.theme.EyebrowStyle
@@ -59,7 +55,7 @@ fun GlassPanel(
     ) { content() }
 }
 
-/** Rounded pill button, optionally filled with the accent. */
+/** A capsule button: the accent for the one action that leads, sand with an accent label otherwise. */
 @Composable
 fun Pill(
     text: String,
@@ -72,16 +68,12 @@ fun Pill(
 ) {
     val colors = Kultr.colors
     val shape = RoundedCornerShape(50)
-    val background = when {
-        accent -> colors.accent
-        else -> colors.glass
-    }
-    val content = if (accent) colors.onAccent else colors.ink
+    val background = if (accent) colors.accent else colors.sand
+    val content = if (accent) colors.onAccent else colors.accent
     Row(
         modifier
             .clip(shape)
             .background(background.copy(alpha = if (enabled) background.alpha else background.alpha * 0.5f))
-            .border(BorderStroke(1.dp, if (accent) Color.Transparent else colors.edge), shape)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -212,41 +204,8 @@ fun SettingRow(
     }
 }
 
-/** A soft wash of the accent behind a header, fading into the background. */
-@Composable
-fun AccentWash(modifier: Modifier = Modifier, height: Dp = 320.dp) {
-    val colors = Kultr.colors
-    Box(
-        modifier
-            .fillMaxWidth()
-            .height(height)
-            .background(Brush.verticalGradient(listOf(colors.accent.copy(alpha = if (colors.night) 0.18f else 0.28f), Color.Transparent))),
-    )
-}
-
-/** The drifting colour field behind screens that have no artwork of their own. */
+/** The page colour, behind screens that have no artwork of their own. */
 @Composable
 fun ArtworkBackdropPlain(modifier: Modifier = Modifier) {
-    val colors = Kultr.colors
-    Box(
-        modifier
-            .fillMaxSize()
-            .background(colors.background)
-            .background(
-                Brush.radialGradient(
-                    listOf(
-                        colors.accent.copy(
-                            alpha = when {
-                                colors.night -> 0.12f
-                                colors.dark -> 0.22f
-                                else -> 0.16f
-                            },
-                        ),
-                        Color.Transparent,
-                    ),
-                    center = androidx.compose.ui.geometry.Offset(0f, 0f),
-                    radius = 1400f,
-                ),
-            ),
-    )
+    Box(modifier.fillMaxSize().background(Kultr.colors.background))
 }

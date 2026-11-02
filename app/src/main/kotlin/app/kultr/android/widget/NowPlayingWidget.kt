@@ -25,7 +25,7 @@ import androidx.core.graphics.createBitmap
 import androidx.core.os.BundleCompat
 import androidx.media3.common.Player
 import app.kultr.android.KultrApp
-import app.kultr.android.MainActivity
+import app.kultr.android.KultrActivity
 import app.kultr.android.R
 import app.kultr.android.playback.MediaItems
 import coil3.SingletonImageLoader
@@ -306,9 +306,9 @@ class NowPlayingWidget : AppWidgetProvider() {
         private fun openApp(context: Context): PendingIntent = PendingIntent.getActivity(
             context,
             0,
-            Intent(context, MainActivity::class.java)
+            Intent(context, KultrActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                .putExtra(MainActivity.EXTRA_OPEN_PLAYER, true),
+                .putExtra(KultrActivity.EXTRA_OPEN_PLAYER, true),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 

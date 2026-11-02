@@ -18,7 +18,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import app.kultr.android.AppGraph
 import app.kultr.android.KultrApp
-import app.kultr.android.MainActivity
+import app.kultr.android.KultrActivity
 import app.kultr.android.R
 import app.kultr.android.data.db.DownloadEntity
 import app.kultr.android.data.db.DownloadState
@@ -471,7 +471,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
         val open = PendingIntent.getActivity(
             applicationContext,
             1,
-            Intent(applicationContext, MainActivity::class.java)
+            Intent(applicationContext, KultrActivity::class.java)
                 .setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 .putExtra(OfflineManager.EXTRA_OPEN_DOWNLOADS, true),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,

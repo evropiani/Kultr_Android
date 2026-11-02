@@ -69,7 +69,7 @@
                     android:shadowDy="1"
                     android:shadowRadius="3"
                     android:text="@string/widget_idle_title"
-                    android:textColor="#FFFFFFFF"
+                    android:textColor="@color/widget_ink"
                     android:textSize="15sp"
                     android:width="190dp" />
 
@@ -84,7 +84,7 @@
                     android:shadowDy="1"
                     android:shadowRadius="3"
                     android:text="@string/widget_idle_subtitle"
-                    android:textColor="#99FFFFFF"
+                    android:textColor="@color/widget_ink2"
                     android:textSize="13sp"
                     android:width="190dp" />
             </LinearLayout>

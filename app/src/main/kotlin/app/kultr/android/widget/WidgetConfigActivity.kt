@@ -44,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -209,7 +210,7 @@ private fun WidgetPreview(state: WidgetState, size: SizeF, showArt: Boolean, per
             Modifier
                 .size(width.dp, height.dp)
                 .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFF101018).copy(alpha = percent / 100f))
+                .background(colorResource(R.color.widget_surface).copy(alpha = percent / 100f))
                 .padding(horizontal = spec.paddingH.dp, vertical = spec.paddingV.dp),
             contentAlignment = Alignment.Center,
         ) {
@@ -225,12 +226,12 @@ private fun WidgetPreview(state: WidgetState, size: SizeF, showArt: Boolean, per
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val hasTrack = state.title != null
-                    PreviewLine(state.title ?: stringResource(R.string.widget_idle_title), spec.titleSize, spec.textWidth, Color.White, FontWeight.Medium)
+                    PreviewLine(state.title ?: stringResource(R.string.widget_idle_title), spec.titleSize, spec.textWidth, colorResource(R.color.widget_ink), FontWeight.Medium)
                     PreviewLine(
                         if (hasTrack) state.artist.orEmpty() else stringResource(R.string.widget_idle_subtitle),
                         spec.artistSize,
                         spec.textWidth,
-                        Color.White.copy(alpha = 0.6f),
+                        colorResource(R.color.widget_ink2),
                         FontWeight.Normal,
                     )
                     Row(Modifier.padding(top = spec.controlsGap.dp), verticalAlignment = Alignment.CenterVertically) {

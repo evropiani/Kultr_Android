@@ -54,7 +54,6 @@ import app.kultr.android.data.UpdateCheck
 import app.kultr.android.data.UpdateDownload
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.chromePadding
-import app.kultr.android.ui.components.AccentWash
 import app.kultr.android.ui.components.EmptyState
 import app.kultr.android.ui.components.Eyebrow
 import app.kultr.android.ui.components.GlassPanel
@@ -80,7 +79,6 @@ fun UpdateScreen() {
     val download by graph.updates.download.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize()) {
-        AccentWash()
         Column(Modifier.fillMaxSize()) {
             BackBar("Update")
             val r = release

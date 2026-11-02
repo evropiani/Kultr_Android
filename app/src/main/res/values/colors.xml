@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FF252525</color>
-    <color name="kultr_background">#08080C</color>
+    <!-- The app icons: Cream, and the three others to choose from in Settings → Appearance. -->
+    <color name="ic_launcher_background">#FFF6F0E5</color>
+    <color name="ic_launcher_background_ember">#FFE8590C</color>
+    <color name="ic_launcher_background_night">#FF141414</color>
+    <color name="ic_launcher_background_classic">#FF252525</color>
+    <color name="kultr_background">#F6F0E5</color>
+    <!-- The home screen widget: cream in light mode, warm charcoal in dark. -->
+    <color name="widget_surface">#FFF6F0E5</color>
+    <color name="widget_tile">#FFEADFCC</color>
+    <color name="widget_ink">#FF1F1A14</color>
+    <color name="widget_ink2">#FF6E6255</color>
+    <color name="widget_accent">#FFE8590C</color>
 </resources>

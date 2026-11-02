@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.view.KeyEvent
 import androidx.core.content.ContextCompat
-import app.kultr.android.MainActivity
+import app.kultr.android.KultrActivity
 import app.kultr.android.playback.PlaybackService
 
 /**
@@ -42,7 +42,7 @@ class WidgetActionReceiver : BroadcastReceiver() {
     private fun openApp(context: Context) {
         runCatching {
             context.startActivity(
-                Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                Intent(context, KultrActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
             )
         }
     }

@@ -56,6 +56,9 @@ data class KultrColors(
     val success: Color = Color(0xFF45D67A),
 ) {
     val accentSoft: Color get() = accent.copy(alpha = 0.18f)
+
+    /** The fill of a button inside a page: sand, with an accent label. */
+    val sand: Color get() = if (dark) ink.copy(alpha = 0.1f) else Color(0xFFEADFCC)
 }
 
 @Immutable
@@ -69,15 +72,15 @@ val LocalRadii = staticCompositionLocalOf { radiiFor(CornerStyle.SOFT) }
 /** The Reduce motion setting: sliding highlights and reordering snap instead of moving. */
 val LocalReduceMotion = staticCompositionLocalOf { false }
 
-val DEFAULT_ACCENT = Color(0xFF7C8CFF)
+val DEFAULT_ACCENT = Color(0xFFFF7A3D)
 
 /**
  * Material's outline: the rim and knob of a switch that is off, the edge of a
  * text field. It stays visible whatever Border opacity is set to, which is
  * about the glass panels; at 0% an off switch would otherwise be a blank pill.
  */
-private val CONTROL_OUTLINE_DARK = Color.White.copy(alpha = 0.55f)
-private val CONTROL_OUTLINE_LIGHT = Color(0xFF0A0A10).copy(alpha = 0.5f)
+private val CONTROL_OUTLINE_DARK = Color(0xFFF3EDE2).copy(alpha = 0.55f)
+private val CONTROL_OUTLINE_LIGHT = Color(0xFF1F1A14).copy(alpha = 0.5f)
 
 /** A pale colour from the artwork washes out on the light background; deepen it just enough to read. */
 private fun readableOnLight(color: Color): Color {
@@ -92,11 +95,19 @@ fun radiiFor(style: CornerStyle): KultrRadii = when (style) {
     CornerStyle.ROUND -> KultrRadii(12.dp, 18.dp, 26.dp, 34.dp, 44.dp)
 }
 
+/**
+ * Kultr's palette: cream pages and warm black text in light mode, warm
+ * charcoal in dark, and one orange for whatever you can tap. Colour is flat
+ * everywhere; the album cover is the only colourful thing on screen. With
+ * "Colour from artwork" on, the accent comes from what is playing instead.
+ */
 fun kultrColors(dark: Boolean, accent: Color, settings: Settings): KultrColors {
     val scale = settings.surfaceOpacity.coerceIn(0, 200) / 100f
-    val edgeBase = if (settings.surfaceBorder == SurfaceBorder.ACCENT) accent else if (dark) Color.White else Color(0xFF0A0A10)
-    val edgeAlpha = (settings.borderOpacity.coerceIn(0, 100) / 100f) * if (dark) 0.8f else 0.6f
-    val onAccent = if (accent.luminance() > 0.45f) Color(0xFF0A0A10) else Color.White
+    val ink = if (dark) Color(0xFFF3EDE2) else Color(0xFF1F1A14)
+    val edgeBase = if (settings.surfaceBorder == SurfaceBorder.ACCENT) accent else ink
+    val edgeAlpha = (settings.borderOpacity.coerceIn(0, 100) / 100f) * if (dark) 0.5f else 0.35f
+    // Whichever of white and ink reads better on the accent.
+    val onAccent = if (accent.luminance() > 0.2f) Color(0xFF1F1A14) else Color.White
     return if (dark) {
         // Pure black lets an OLED screen switch those pixels off altogether.
         val night = settings.nightMode
@@ -105,32 +116,33 @@ fun kultrColors(dark: Boolean, accent: Color, settings: Settings): KultrColors {
             night = night,
             accent = accent,
             onAccent = onAccent,
-            background = if (night) Color.Black else Color(0xFF08080C),
-            elevated = if (night) Color(0xFF0C0C10) else Color(0xFF101018),
-            ink = Color.White.copy(alpha = 0.96f),
-            ink2 = Color.White.copy(alpha = 0.66f),
-            ink3 = Color.White.copy(alpha = 0.42f),
-            ink4 = Color.White.copy(alpha = 0.22f),
-            glass = Color.White.copy(alpha = (0.07f * scale).coerceAtMost(1f)),
-            glassStrong = Color.White.copy(alpha = (0.12f * scale).coerceAtMost(1f)),
+            background = if (night) Color.Black else Color(0xFF1C1A17),
+            elevated = if (night) Color(0xFF0E0D0B) else Color(0xFF26231F),
+            ink = ink,
+            ink2 = ink.copy(alpha = 0.7f),
+            ink3 = ink.copy(alpha = 0.5f),
+            ink4 = ink.copy(alpha = 0.26f),
+            glass = ink.copy(alpha = (0.07f * scale).coerceAtMost(1f)),
+            glassStrong = ink.copy(alpha = (0.12f * scale).coerceAtMost(1f)),
             edge = edgeBase.copy(alpha = edgeAlpha),
-            line = Color.White.copy(alpha = 0.09f),
+            line = ink.copy(alpha = 0.1f),
         )
     } else {
+        val paper = Color(0xFFFFFCF6)
         KultrColors(
             dark = false,
             accent = accent,
             onAccent = onAccent,
-            background = Color(0xFFECEEF4),
-            elevated = Color(0xFFF7F8FC),
-            ink = Color(0xFF0A0A10).copy(alpha = 0.94f),
-            ink2 = Color(0xFF0A0A10).copy(alpha = 0.62f),
-            ink3 = Color(0xFF0A0A10).copy(alpha = 0.42f),
-            ink4 = Color(0xFF0A0A10).copy(alpha = 0.2f),
-            glass = Color.White.copy(alpha = (0.55f * scale).coerceAtMost(1f)),
-            glassStrong = Color.White.copy(alpha = (0.72f * scale).coerceAtMost(1f)),
+            background = Color(0xFFF6F0E5),
+            elevated = paper,
+            ink = ink,
+            ink2 = Color(0xFF5A5046),
+            ink3 = Color(0xFF6E6255),
+            ink4 = Color(0xFFA89C8D),
+            glass = paper.copy(alpha = (0.8f * scale).coerceAtMost(1f)),
+            glassStrong = paper,
             edge = edgeBase.copy(alpha = edgeAlpha),
-            line = Color(0xFF0A0A10).copy(alpha = 0.08f),
+            line = ink.copy(alpha = 0.12f),
         )
     }
 }
@@ -185,9 +197,9 @@ fun KultrTheme(settings: Settings, accent: Color, content: @Composable () -> Uni
             surfaceVariant = colors.glassStrong,
             onSurfaceVariant = colors.ink2,
             surfaceContainer = colors.elevated,
-            surfaceContainerHigh = if (colors.night) Color(0xFF111116) else Color(0xFF16161F),
-            surfaceContainerHighest = if (colors.night) Color(0xFF17171D) else Color(0xFF1C1C26),
-            surfaceContainerLow = if (colors.night) Color(0xFF060608) else Color(0xFF0C0C12),
+            surfaceContainerHigh = if (colors.night) Color(0xFF15130F) else Color(0xFF2E2A25),
+            surfaceContainerHighest = if (colors.night) Color(0xFF1C1A16) else Color(0xFF35302A),
+            surfaceContainerLow = if (colors.night) Color(0xFF070605) else Color(0xFF201E1A),
             surfaceContainerLowest = colors.background,
             outline = CONTROL_OUTLINE_DARK,
             outlineVariant = colors.line,
@@ -208,13 +220,13 @@ fun KultrTheme(settings: Settings, accent: Color, content: @Composable () -> Uni
             onBackground = colors.ink,
             surface = colors.background,
             onSurface = colors.ink,
-            surfaceVariant = Color.White,
+            surfaceVariant = colors.elevated,
             onSurfaceVariant = colors.ink2,
             surfaceContainer = colors.elevated,
-            surfaceContainerHigh = Color.White,
-            surfaceContainerHighest = Color.White,
+            surfaceContainerHigh = colors.elevated,
+            surfaceContainerHighest = colors.elevated,
             surfaceContainerLow = colors.elevated,
-            surfaceContainerLowest = Color.White,
+            surfaceContainerLowest = colors.elevated,
             outline = CONTROL_OUTLINE_LIGHT,
             outlineVariant = colors.line,
             error = colors.danger,

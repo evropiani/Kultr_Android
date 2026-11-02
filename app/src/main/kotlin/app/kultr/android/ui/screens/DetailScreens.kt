@@ -52,7 +52,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.chromePadding
-import app.kultr.android.ui.components.AccentWash
 import app.kultr.android.ui.components.AlbumCard
 import app.kultr.android.ui.components.ArtistCard
 import app.kultr.android.ui.components.ArtworkFill
@@ -141,7 +140,6 @@ private fun DownloadPill(songs: List<Song>, label: String) {
 @Composable
 private fun DetailScaffold(selection: SongSelection, songs: List<Song>, content: LazyListScope.() -> Unit) {
     Box(Modifier.fillMaxSize()) {
-        AccentWash()
         Column(Modifier.fillMaxSize()) {
             BackBar()
             SelectionBar(selection, songs)

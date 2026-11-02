@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,12 +20,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Add
@@ -72,9 +75,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -83,6 +88,7 @@ import app.kultr.android.BuildConfig
 import app.kultr.android.data.MessageKind
 import app.kultr.android.data.ServerProfile
 import app.kultr.android.data.UpdateCheck
+import app.kultr.android.ui.AppIcon
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.MusicFolders
 import app.kultr.android.ui.chromePadding
@@ -114,7 +120,7 @@ import app.kultr.core.util.ArtworkColor
 import java.time.Instant
 import kotlin.math.roundToInt
 
-private val ACCENTS = listOf("#7c8cff", "#ff6b9a", "#ff9f43", "#ffd166", "#45d67a", "#2ec4b6", "#4cc9f0", "#b388ff", "#f5f5f7")
+private val ACCENTS = listOf("#ff7a3d", "#7c8cff", "#ff6b9a", "#ffd166", "#45d67a", "#2ec4b6", "#4cc9f0", "#b388ff", "#8a7e70")
 
 private val BITRATES = listOf(0 to "Original", 320 to "320 kbps", 256 to "256 kbps", 192 to "192 kbps", 128 to "128 kbps", 96 to "96 kbps")
 
@@ -233,6 +239,7 @@ private fun AppearanceSettings(s: Settings, update: ((Settings) -> Settings) -> 
         // Asking for black while the theme is Light means dark is wanted.
         update { it.copy(nightMode = v, theme = if (v && it.theme == ThemeMode.LIGHT) ThemeMode.DARK else it.theme) }
     }
+    AppIconChoice()
     Toggle("Colour from artwork", s.accentMode == AccentMode.ARTWORK, hint = "The interface takes its colour from whatever is playing.") { v ->
         update { it.copy(accentMode = if (v) AccentMode.ARTWORK else AccentMode.FIXED) }
     }
@@ -278,6 +285,52 @@ private fun AppearanceSettings(s: Settings, update: ((Settings) -> Settings) -> 
     }
     Toggle("Show the lyrics tab", s.showLyrics) { v -> update { it.copy(showLyrics = v) } }
     Toggle("Reduce motion", s.reduceMotion, hint = "Stops animated colour changes and playhead effects.") { v -> update { it.copy(reduceMotion = v) } }
+}
+
+/** The icon on the home screen: Cream, or one of three others. */
+@Composable
+private fun AppIconChoice() {
+    val context = LocalContext.current
+    val messages = LocalActions.current.graph.messages
+    val colors = Kultr.colors
+    var chosen by remember { mutableStateOf(AppIcon.current(context)) }
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Text("App icon", style = MaterialTheme.typography.bodyLarge, color = colors.ink)
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            AppIcon.entries.forEach { icon ->
+                val selected = icon == chosen
+                val shape = RoundedCornerShape(14.dp)
+                Column(
+                    Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            if (icon != chosen) {
+                                AppIcon.use(context, icon)
+                                chosen = icon
+                                messages.show("App icon: ${icon.label}. The home screen shows it in a moment.")
+                            }
+                        }
+                        .padding(4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box(
+                        Modifier
+                            .size(56.dp)
+                            .clip(shape)
+                            .background(Color(icon.background))
+                            .border(if (selected) 3.dp else 1.dp, if (selected) colors.accent else colors.line, shape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        // The launcher shows the middle two thirds of the icon's layer.
+                        Image(painterResource(icon.foreground), contentDescription = null, modifier = Modifier.requiredSize(84.dp))
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(icon.label, style = MaterialTheme.typography.labelMedium, color = if (selected) colors.accent else colors.ink2)
+                }
+            }
+        }
+    }
 }
 
 // ------------------------------------------------------------ home page --

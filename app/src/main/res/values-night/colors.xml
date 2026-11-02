@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="kultr_background">#1C1A17</color>
+    <color name="widget_surface">#FF1C1A17</color>
+    <color name="widget_tile">#FF2E2A25</color>
+    <color name="widget_ink">#FFF3EDE2</color>
+    <color name="widget_ink2">#B3F3EDE2</color>
+    <color name="widget_accent">#FFFF7A3D</color>
+</resources>

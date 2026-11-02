@@ -65,7 +65,6 @@ import app.kultr.android.ui.DownloadsPage
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.Routes
 import app.kultr.android.ui.chromePadding
-import app.kultr.android.ui.components.AccentWash
 import app.kultr.android.ui.components.AlbumCard
 import app.kultr.android.ui.components.Artwork
 import app.kultr.android.ui.components.ConfirmDialog
@@ -93,7 +92,6 @@ fun DownloadsScreen(initialPage: DownloadsPage) {
     val usage by graph.offline.usage.collectAsStateWithLifecycle(DownloadUsage(0, 0))
 
     Box(Modifier.fillMaxSize()) {
-        AccentWash()
         Column(Modifier.fillMaxSize()) {
             BackBar("Downloads")
             Row(

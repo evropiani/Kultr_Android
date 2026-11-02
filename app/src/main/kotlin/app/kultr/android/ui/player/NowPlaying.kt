@@ -72,7 +72,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -135,17 +134,8 @@ fun ArtworkBackdrop(coverId: String?, modifier: Modifier = Modifier) {
                     .then(if (Build.VERSION.SDK_INT >= 31) Modifier.blur(70.dp) else Modifier),
             )
         }
-        Box(
-            Modifier.fillMaxSize().background(
-                Brush.verticalGradient(
-                    listOf(
-                        colors.background.copy(alpha = 0.35f),
-                        colors.accent.copy(alpha = 0.12f),
-                        colors.background.copy(alpha = 0.92f),
-                    ),
-                ),
-            ),
-        )
+        // A flat scrim, so text stays readable over the cover.
+        Box(Modifier.fillMaxSize().background(colors.background.copy(alpha = 0.55f)))
     }
 }
 
@@ -188,7 +178,7 @@ fun NowPlayingScreen(state: PlayerUiState, onClose: () -> Unit) {
             }
             .nestedScroll(pull.connection),
     ) {
-        ArtworkBackdrop(song?.artworkId)
+        if (settings.backdropArtwork) ArtworkBackdrop(song?.artworkId) else Box(Modifier.fillMaxSize().background(colors.background))
         if (song == null) {
             Column(Modifier.fillMaxSize().statusBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
                 IconButton(onClick = onClose, modifier = Modifier.align(Alignment.Start)) {

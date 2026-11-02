@@ -27,6 +27,31 @@ class SettingsRepository(context: Context) {
 
     val current: Settings get() = state.value
 
+    init {
+        moveToCream()
+    }
+
+    /**
+     * 2.0's look, once: the old defaults (periwinkle taken from the artwork,
+     * blurred covers behind every page, accent-coloured borders) become the
+     * new ones. A colour someone picked themselves is kept, and all of it can
+     * be switched back in Settings → Appearance.
+     */
+    private fun moveToCream() {
+        if (prefs.getBoolean(KEY_CREAM, false)) return
+        prefs.edit { putBoolean(KEY_CREAM, true) }
+        if (!prefs.contains(KEY)) return
+        val fresh = Settings()
+        update {
+            it.copy(
+                accent = if (it.accent.equals("#7c8cff", ignoreCase = true)) fresh.accent else it.accent,
+                accentMode = fresh.accentMode,
+                backdropArtwork = fresh.backdropArtwork,
+                surfaceBorder = fresh.surfaceBorder,
+            )
+        }
+    }
+
     private fun load(): Settings {
         val text = prefs.getString(KEY, null) ?: return Settings()
         return runCatching { json.decodeFromString(Settings.serializer(), text) }.getOrDefault(Settings())
@@ -46,5 +71,6 @@ class SettingsRepository(context: Context) {
 
     private companion object {
         const val KEY = "settings.json"
+        const val KEY_CREAM = "look.cream"
     }
 }
