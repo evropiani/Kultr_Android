@@ -212,8 +212,6 @@ val HOME_TILES: List<HomeTile> = listOf(
 
 private val TILES_BY_ID = HOME_TILES.associateBy { it.id }
 
-fun homeTile(id: String): HomeTile? = TILES_BY_ID[id]
-
 /** The enabled tiles, in order, ignoring any id that no longer exists. */
 fun resolveHomeTiles(ids: List<String>): List<HomeTile> {
     val seen = HashSet<String>()

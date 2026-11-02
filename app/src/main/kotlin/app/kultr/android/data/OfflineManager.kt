@@ -1,6 +1,5 @@
 package app.kultr.android.data
 
-import app.kultr.android.AppGraph
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
@@ -17,6 +16,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import app.kultr.android.AppGraph
 import app.kultr.android.KultrApp
 import app.kultr.android.MainActivity
 import app.kultr.android.R

@@ -187,9 +187,6 @@ data class PlanContext(
     val currentTime: Double,
 )
 
-/** Whether planning needs analysis at all, so callers can skip fetching it. */
-fun needsAnalysis(settings: Settings): Boolean = settings.injektEnabled
-
 private fun fmt(value: Double, digits: Int = 0): String =
     String.format(java.util.Locale.ROOT, "%.${digits}f", value)
 

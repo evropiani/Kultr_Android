@@ -26,7 +26,6 @@ import app.kultr.core.engine.Deck
 import app.kultr.core.engine.DeckListener
 import app.kultr.core.engine.DeckStatus
 import app.kultr.core.engine.QueueItem
-import java.io.File
 import kotlin.math.abs
 
 /**
@@ -73,9 +72,6 @@ class DeckSources(context: Context, private val graph: AppGraph) {
         val cacheKey = "song:${graph.auth.active.value?.id}:${song.id}:$bitrate:${format.orEmpty()}"
         return cached.createMediaSource(builder.setUri(url).setCustomCacheKey(cacheKey).build())
     }
-
-    fun hasLocalCopy(item: QueueItem): Boolean =
-        LocalLibrary.isLocal(item.song) || graph.offline.fileFor(item.song.id)?.let(File::isFile) == true
 }
 
 /** One of the engine's two players: an ExoPlayer with [DeckProcessor] in its audio sink. */

@@ -21,7 +21,6 @@ import app.kultr.core.sync.ListeningSync
 import app.kultr.core.sync.SyncMode
 import app.kultr.core.sync.SyncProgress
 import app.kultr.core.sync.SyncSummary
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -30,6 +29,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 
 /** Runs library syncs and remembers how the last one went, for the Sync page. */
 class SyncManager(private val graph: AppGraph) {

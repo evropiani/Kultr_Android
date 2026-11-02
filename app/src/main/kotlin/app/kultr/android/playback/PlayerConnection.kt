@@ -34,7 +34,6 @@ data class PlayerUiState(
     val repeatMode: Int = Player.REPEAT_MODE_OFF,
     val durationMs: Long = 0,
 ) {
-    val hasMedia: Boolean get() = current != null
     val upNext: List<QueueEntry> get() = if (index < 0) queue else queue.drop(index + 1)
 }
 

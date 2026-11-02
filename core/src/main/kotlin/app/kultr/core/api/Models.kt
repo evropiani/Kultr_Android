@@ -34,8 +34,6 @@ data class Song(
     val size: Long? = null,
     val contentType: String? = null,
     val suffix: String? = null,
-    val transcodedContentType: String? = null,
-    val transcodedSuffix: String? = null,
     /** Seconds. */
     val duration: Int? = null,
     val bitRate: Int? = null,
@@ -47,11 +45,9 @@ data class Song(
     val created: String? = null,
     val starred: String? = null,
     val userRating: Int? = null,
-    val averageRating: Double? = null,
     val bpm: Int? = null,
     val comment: String? = null,
     val musicBrainzId: String? = null,
-    val isVideo: Boolean? = null,
     val type: String? = null,
     val replayGain: ReplayGain? = null,
     /**
@@ -120,8 +116,6 @@ data class ArtistInfo(
     val biography: String? = null,
     val musicBrainzId: String? = null,
     val lastFmUrl: String? = null,
-    val smallImageUrl: String? = null,
-    val mediumImageUrl: String? = null,
     val largeImageUrl: String? = null,
     val similarArtist: List<Artist>? = null,
 )
@@ -158,20 +152,6 @@ data class Genre(
 data class ScanStatus(
     val scanning: Boolean = false,
     val count: Long? = null,
-    val folderCount: Long? = null,
-    val lastScan: String? = null,
-)
-
-@Serializable
-data class SubsonicUser(
-    val username: String = "",
-    val email: String? = null,
-    val scrobblingEnabled: Boolean? = null,
-    val adminRole: Boolean? = null,
-    val streamRole: Boolean? = null,
-    val downloadRole: Boolean? = null,
-    val playlistRole: Boolean? = null,
-    val shareRole: Boolean? = null,
 )
 
 @Serializable
@@ -198,10 +178,7 @@ data class StructuredLyricLine(
 
 @Serializable
 data class StructuredLyrics(
-    val lang: String? = null,
     val synced: Boolean = false,
-    val displayArtist: String? = null,
-    val displayTitle: String? = null,
     /** Milliseconds to add to every line's start. */
     val offset: Long? = null,
     val line: List<StructuredLyricLine>? = null,

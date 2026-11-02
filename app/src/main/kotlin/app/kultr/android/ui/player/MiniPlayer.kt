@@ -47,8 +47,8 @@ import app.kultr.android.ui.components.Artwork
 import app.kultr.android.ui.components.glass
 import app.kultr.android.ui.starredShown
 import app.kultr.android.ui.theme.Kultr
-import kotlin.math.abs
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /**
  * The glass capsule above the tab bar: what is playing, previous,

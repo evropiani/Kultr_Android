@@ -83,9 +83,9 @@ import androidx.compose.ui.unit.sp
 import app.kultr.android.ui.components.glass
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.android.ui.theme.LocalReduceMotion
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import kotlinx.coroutines.launch
 
 /** Height of the floating tab bar and of the round button beside it. */
 val GlassBarHeight = 64.dp

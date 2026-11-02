@@ -1,6 +1,5 @@
 package app.kultr.android.data
 
-import app.kultr.android.AppGraph
 import android.content.Context
 import android.media.AudioFormat
 import android.media.MediaCodec
@@ -13,6 +12,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import app.kultr.android.AppGraph
 import app.kultr.android.KultrApp
 import app.kultr.android.data.db.toAnalysis
 import app.kultr.android.data.db.toEntity

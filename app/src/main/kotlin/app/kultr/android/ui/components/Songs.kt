@@ -123,7 +123,7 @@ fun SongRow(
             // With dragging on, the drag source owns the long press and passes
             // it on when the finger did not move.
             .combinedClickable(onClick = onClick, onLongClick = if (draggable) null else onLongClick)
-            .then(if (draggable) Modifier.dragSource(dragPayload!!, onLongPress = onLongClick) else Modifier)
+            .then(if (draggable) Modifier.dragSource(dragPayload, onLongPress = onLongClick) else Modifier)
             .padding(start = 16.dp, end = 4.dp, top = if (compact) 4.dp else 8.dp, bottom = if (compact) 4.dp else 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

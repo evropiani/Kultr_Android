@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -213,12 +212,6 @@ fun SettingRow(
     }
 }
 
-/** A thin horizontal rule in the theme's line colour. */
-@Composable
-fun Rule(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(1.dp).background(Kultr.colors.line))
-}
-
 /** A soft wash of the accent behind a header, fading into the background. */
 @Composable
 fun AccentWash(modifier: Modifier = Modifier, height: Dp = 320.dp) {
@@ -256,14 +249,4 @@ fun ArtworkBackdropPlain(modifier: Modifier = Modifier) {
                 ),
             ),
     )
-}
-
-@Composable
-fun FullScreenCenter(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
-}
-
-@Composable
-fun AccentSurface(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Surface(modifier, color = Kultr.colors.accentSoft, shape = RoundedCornerShape(Kultr.radii.md), content = content)
 }

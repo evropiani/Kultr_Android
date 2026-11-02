@@ -1,6 +1,7 @@
 package app.kultr.android.data
 
 import android.content.Context
+import androidx.core.content.edit
 import app.kultr.core.api.AuthMode
 import app.kultr.core.api.Credentials
 import app.kultr.core.api.ServerInfo
@@ -100,11 +101,11 @@ class AuthRepository(
 
     private fun saveProfiles(list: List<ServerProfile>) {
         _profiles.value = list
-        prefs.edit().putString(KEY_PROFILES, json.encodeToString(listSerializer, list)).apply()
+        prefs.edit { putString(KEY_PROFILES, json.encodeToString(listSerializer, list)) }
     }
 
     private fun saveActive(id: String?) {
-        prefs.edit().putString(KEY_ACTIVE, id).apply()
+        prefs.edit { putString(KEY_ACTIVE, id) }
     }
 
     private fun buildClient(profile: ServerProfile): SubsonicClient? {

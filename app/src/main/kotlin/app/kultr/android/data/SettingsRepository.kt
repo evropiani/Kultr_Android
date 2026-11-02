@@ -1,6 +1,7 @@
 package app.kultr.android.data
 
 import android.content.Context
+import androidx.core.content.edit
 import app.kultr.core.settings.Settings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,7 +35,7 @@ class SettingsRepository(context: Context) {
     fun update(transform: (Settings) -> Settings) {
         state.update { old ->
             val next = transform(old)
-            if (next != old) prefs.edit().putString(KEY, json.encodeToString(Settings.serializer(), next)).apply()
+            if (next != old) prefs.edit { putString(KEY, json.encodeToString(Settings.serializer(), next)) }
             next
         }
     }

@@ -105,7 +105,7 @@ fun Modifier.glass(shape: Shape, tint: Color? = null, blur: Dp = 18.dp): Modifie
         .drawBehind {
             val outline = shape.createOutline(size, layoutDirection, this)
             val path = Path().apply { addOutline(outline) }
-            if (layer != null && source != null && backdrop != null) {
+            if (layer != null && source != null) {
                 val offset = backdrop.origin - position
                 layer.clip = true
                 layer.renderEffect = effects.effectFor(size, cornerRadius(outline, size))

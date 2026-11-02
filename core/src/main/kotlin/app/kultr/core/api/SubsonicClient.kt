@@ -258,14 +258,8 @@ class SubsonicClient(
         return json.decodeFromJsonElement<ServerInfo>(body)
     }
 
-    suspend fun getUser(username: String = credentials.username): SubsonicUser? =
-        request("getUser", listOf("username" to username)).decode("user")
-
     suspend fun getScanStatus(): ScanStatus =
         request("getScanStatus").decode("scanStatus") ?: ScanStatus()
-
-    suspend fun startScan(fullScan: Boolean = false): ScanStatus =
-        request("startScan", listOf("fullScan" to fullScan)).decode("scanStatus") ?: ScanStatus(scanning = true)
 
     // ---------------------------------------------------------- browsing --
 

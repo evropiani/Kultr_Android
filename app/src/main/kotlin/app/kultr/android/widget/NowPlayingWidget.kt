@@ -21,6 +21,7 @@ import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.content.edit
+import androidx.core.graphics.createBitmap
 import androidx.core.os.BundleCompat
 import androidx.media3.common.Player
 import app.kultr.android.KultrApp
@@ -325,7 +326,7 @@ class NowPlayingWidget : AppWidgetProvider() {
 
         /** Remote views cannot clip, so the corners are rounded into the bitmap itself. */
         private fun rounded(source: Bitmap, size: Int): Bitmap {
-            val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val output = createBitmap(size, size)
             val scale = maxOf(size.toFloat() / source.width, size.toFloat() / source.height)
             val shader = BitmapShader(source, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).apply {
                 val matrix = android.graphics.Matrix()

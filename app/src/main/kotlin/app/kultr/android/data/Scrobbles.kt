@@ -6,14 +6,14 @@ import app.kultr.android.data.db.KultrDatabase
 import app.kultr.core.api.Song
 import app.kultr.core.api.SubsonicClient
 import app.kultr.core.api.SubsonicException
-import java.time.Instant
-import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Listening history, and sending plays to the server.

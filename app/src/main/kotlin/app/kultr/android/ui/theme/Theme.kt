@@ -56,7 +56,6 @@ data class KultrColors(
     val success: Color = Color(0xFF45D67A),
 ) {
     val accentSoft: Color get() = accent.copy(alpha = 0.18f)
-    val accentGlow: Color get() = accent.copy(alpha = 0.35f)
 }
 
 @Immutable

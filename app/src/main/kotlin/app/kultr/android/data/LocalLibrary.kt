@@ -10,6 +10,8 @@ import android.os.Build
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document
 import androidx.core.content.edit
+import androidx.core.graphics.scale
+import androidx.core.net.toUri
 import app.kultr.android.AppGraph
 import app.kultr.android.data.db.AlbumEntity
 import app.kultr.android.data.db.KultrDatabase
@@ -28,10 +30,6 @@ import app.kultr.core.sync.SyncMode
 import app.kultr.core.sync.SyncPhase
 import app.kultr.core.sync.SyncProgress
 import app.kultr.core.sync.SyncSummary
-import java.io.File
-import java.time.Instant
-import java.util.concurrent.atomic.AtomicInteger
-import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
@@ -44,6 +42,10 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import java.io.File
+import java.time.Instant
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.max
 
 /** A folder of music on the phone, chosen in the system's folder picker. */
 @Serializable
@@ -90,7 +92,7 @@ class LocalLibrary(private val graph: AppGraph) {
 
     fun removeFolder(folder: LocalFolder) {
         runCatching {
-            context.contentResolver.releasePersistableUriPermission(Uri.parse(folder.uri), Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            context.contentResolver.releasePersistableUriPermission(folder.uri.toUri(), Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         save(_folders.value.filter { it.uri != folder.uri })
     }
@@ -139,7 +141,7 @@ class LocalLibrary(private val graph: AppGraph) {
             var unreadable = 0
             for (folder in _folders.value) {
                 currentCoroutineContext().ensureActive()
-                val tree = Uri.parse(folder.uri)
+                val tree = folder.uri.toUri()
                 val ok = runCatching { walk(tree, DocumentsContract.getTreeDocumentId(tree), folder.name, files) }.isSuccess
                 if (!ok) {
                     unreadable++
@@ -158,7 +160,7 @@ class LocalLibrary(private val graph: AppGraph) {
                 val known = before[found.track.uri]
                 val unchanged = mode != SyncMode.FULL && known != null &&
                     known.size == found.track.size && known.created == Instant.ofEpochMilli(found.track.modified).toString()
-                if (unchanged && known != null) {
+                if (unchanged) {
                     tracks[index] = found.track.copy(
                         title = known.title,
                         artist = known.artist,
@@ -217,7 +219,7 @@ class LocalLibrary(private val graph: AppGraph) {
                 if (album.coverArt != null) continue
                 currentCoroutineContext().ensureActive()
                 val first = catalog.songs.firstOrNull { it.albumId == album.id }?.path ?: continue
-                embeddedCover(album.id, Uri.parse(first))?.let { embedded[album.id] = it }
+                embeddedCover(album.id, first.toUri())?.let { embedded[album.id] = it }
             }
             fun cover(albumId: String?, own: String?) = own ?: albumId?.let(embedded::get)
 
@@ -348,7 +350,7 @@ class LocalLibrary(private val graph: AppGraph) {
         private fun readTags(file: LocalTrack): LocalTrack {
             val retriever = MediaMetadataRetriever()
             return try {
-                retriever.setDataSource(context, Uri.parse(file.uri))
+                retriever.setDataSource(context, file.uri.toUri())
                 fun tag(key: Int): String? = retriever.extractMetadata(key)?.trim()?.takeIf { it.isNotEmpty() }
                 file.copy(
                     title = tag(MediaMetadataRetriever.METADATA_KEY_TITLE),
@@ -403,7 +405,7 @@ class LocalLibrary(private val graph: AppGraph) {
                 val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
                     ?: return@runCatching null
                 val scale = COVER_PIXELS.toFloat() / max(bitmap.width, bitmap.height)
-                val sized = if (scale < 1f) Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true) else bitmap
+                val sized = if (scale < 1f) bitmap.scale((bitmap.width * scale).toInt(), (bitmap.height * scale).toInt()) else bitmap
                 file.outputStream().use { sized.compress(Bitmap.CompressFormat.JPEG, 88, it) }
                 none.delete()
                 Uri.fromFile(file).toString()

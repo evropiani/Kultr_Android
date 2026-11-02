@@ -184,9 +184,6 @@ abstract class LibraryDao {
     @Query("SELECT * FROM albums WHERE id = :id")
     abstract fun album(id: String): Flow<AlbumEntity?>
 
-    @Query("SELECT * FROM albums WHERE id = :id")
-    abstract suspend fun albumNow(id: String): AlbumEntity?
-
     @Query("SELECT * FROM artists WHERE id = :id")
     abstract fun artist(id: String): Flow<ArtistEntity?>
 

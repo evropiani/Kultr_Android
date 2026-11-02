@@ -3,10 +3,10 @@ package app.kultr.android.data
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -178,7 +178,7 @@ class Updates(private val graph: AppGraph) {
         }
         if (!context.packageManager.canRequestPackageInstalls()) {
             graph.messages.show("Allow Kultr to install updates, then tap Update again.", long = true)
-            val settings = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
+            val settings = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:${context.packageName}".toUri())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             runCatching { context.startActivity(settings) }.onFailure { openPage(release) }
             return
@@ -207,7 +207,7 @@ class Updates(private val graph: AppGraph) {
 
     fun openPage(release: AppRelease) {
         runCatching {
-            graph.app.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(release.pageUrl)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            graph.app.startActivity(Intent(Intent.ACTION_VIEW, release.pageUrl.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
     }
 

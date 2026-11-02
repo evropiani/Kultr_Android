@@ -28,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Clear
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
@@ -38,12 +37,10 @@ import androidx.compose.material.icons.rounded.Radio
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryScrollableTabRow
@@ -66,7 +63,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.kultr.android.data.db.DownloadUsage
 import app.kultr.android.ui.LibraryTab
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.LocalMusicMode
@@ -92,8 +88,8 @@ import app.kultr.core.api.Song
 import app.kultr.core.api.asSong
 import app.kultr.core.api.describeError
 import app.kultr.core.util.Format
-import kotlin.math.abs
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 private enum class AlbumSort(val label: String) { NAME("Name"), ARTIST("Artist"), YEAR("Year"), ADDED("Recently added"), PLAYS("Most played") }
 private enum class SongSort(val label: String) { TITLE("Title"), ARTIST("Artist"), ALBUM("Album"), ADDED("Recently added"), PLAYS("Most played"), RATING("Rating") }
