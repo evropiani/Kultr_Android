@@ -73,6 +73,7 @@ object Routes {
     const val STATIONS = "stations"
     const val RECAP = "recap"
     const val STUDIO = "studio"
+    const val UPDATE_LOG = "updates"
     const val PLANNER = "planner?minutes={minutes}"
     const val CRATE = "crate/{id}"
     const val TAG = "tag/{name}"

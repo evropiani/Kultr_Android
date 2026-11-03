@@ -5,6 +5,34 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+/**
+ * The release notes in .github/release-notes, copied into the app's assets,
+ * so What's new and the update log read the same notes as the release page.
+ */
+abstract class BundleReleaseNotes : DefaultTask() {
+    @get:InputDirectory
+    abstract val notes: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val output: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val target = output.get().asFile.resolve("release-notes")
+        target.deleteRecursively()
+        target.mkdirs()
+        notes.get().asFile.listFiles { file -> file.name.endsWith(".md") }?.forEach { it.copyTo(target.resolve(it.name)) }
+    }
+}
+
+val bundleReleaseNotes = tasks.register<BundleReleaseNotes>("bundleReleaseNotes") {
+    notes.set(rootProject.layout.projectDirectory.dir(".github/release-notes"))
+}
+
+androidComponents {
+    onVariants { variant -> variant.sources.assets?.addGeneratedSourceDirectory(bundleReleaseNotes, BundleReleaseNotes::output) }
+}
+
 // Release signing comes from the environment, so no key or password lives in
 // the build: the release workflow unlocks signing/kultr-release.p12.enc and
 // points KULTR_KEYSTORE_FILE at it. Without it, release builds stay unsigned.

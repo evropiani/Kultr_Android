@@ -785,6 +785,9 @@ private fun AboutSection() {
             })
         }
     }
+    SettingRow("Update log", hint = "What changed in every version, from 1.0.0 to now.", onClick = { actions.navigate(Routes.UPDATE_LOG) }) {
+        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = Kultr.colors.ink3)
+    }
     SettingRow("Source", hint = "github.com/evropiani/Kultr_Android — issues and pull requests welcome.", onClick = {
         open("https://github.com/evropiani/Kultr_Android")
     })

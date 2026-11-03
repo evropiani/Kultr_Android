@@ -90,6 +90,8 @@ import app.kultr.android.ui.screens.PlannerScreen
 import app.kultr.android.ui.screens.PlaylistScreen
 import app.kultr.android.ui.screens.RecapScreen
 import app.kultr.android.ui.screens.StudioScreen
+import app.kultr.android.ui.screens.UpdateLogScreen
+import app.kultr.android.ui.screens.WhatsNewDialog
 import app.kultr.android.ui.screens.StylePreviewDialog
 import app.kultr.android.ui.screens.SearchScreen
 import app.kultr.android.ui.screens.SettingsScreen
@@ -349,6 +351,7 @@ private fun MainUi(
                     composable(Routes.STATIONS) { StationsScreen() }
                     composable(Routes.RECAP) { RecapScreen() }
                     composable(Routes.STUDIO) { StudioScreen() }
+                    composable(Routes.UPDATE_LOG) { UpdateLogScreen() }
                     composable(
                         Routes.PLANNER,
                         arguments = listOf(navArgument("minutes") { type = NavType.StringType; nullable = true; defaultValue = null }),
@@ -461,6 +464,12 @@ private fun MainUi(
 
         dialogs.addToPlaylist?.let { songs -> AddToPlaylistDialog(songs, onDismiss = { dialogs.addToPlaylist = null }) }
         dialogs.addToCrate?.let { item -> AddToCrateDialog(item, onDismiss = { dialogs.addToCrate = null }) }
+        // What's new: every version since the one last opened, once.
+        val unseen = rememberSaveable { graph.updateLog.unseen(upgraded = graph.settings.current.hasSeenWelcome).map { it.version } }
+        var whatsNewDone by rememberSaveable { mutableStateOf(false) }
+        if (!whatsNewDone && unseen.isNotEmpty()) {
+            WhatsNewDialog(graph.updateLog.all.filter { it.version in unseen }, onDone = { whatsNewDone = true })
+        }
         val incomingStyle by graph.incomingStyle.collectAsStateWithLifecycle()
         incomingStyle?.let { style -> StylePreviewDialog(style, onDone = { graph.incomingStyle.value = null }) }
         dialogs.rate?.let { song -> RatingDialog(song, onDismiss = { dialogs.rate = null }) }

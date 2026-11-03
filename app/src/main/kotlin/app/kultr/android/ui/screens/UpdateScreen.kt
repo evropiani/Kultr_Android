@@ -214,7 +214,7 @@ fun UpdateBanner(release: AppRelease, onOpen: () -> Unit, onDismiss: () -> Unit,
 
 /** The release notes, laid out from their Markdown. */
 @Composable
-private fun Notes(markdown: String) {
+fun Notes(markdown: String) {
     val colors = Kultr.colors
     val blocks = remember(markdown) { ReleaseNotes.parse(markdown) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
