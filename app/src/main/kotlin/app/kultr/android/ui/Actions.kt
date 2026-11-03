@@ -72,6 +72,7 @@ object Routes {
     const val SHELF = "shelf/{id}"
     const val STATIONS = "stations"
     const val RECAP = "recap"
+    const val PLANNER = "planner?minutes={minutes}"
     const val CRATE = "crate/{id}"
     const val TAG = "tag/{name}"
 
@@ -82,6 +83,7 @@ object Routes {
     fun genre(name: String) = "genre/${Uri.encode(name)}"
     fun shelf(id: String) = "shelf/${Uri.encode(id)}"
     fun crate(id: String) = "crate/${Uri.encode(id)}"
+    fun planner(minutes: Int? = null) = if (minutes == null) "planner" else "planner?minutes=$minutes"
     fun tag(name: String) = "tag/${Uri.encode(name)}"
     fun downloads(page: DownloadsPage? = null) = if (page == null) "downloads" else "downloads?page=${page.name}"
 }

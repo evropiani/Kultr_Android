@@ -90,6 +90,7 @@ import app.kultr.android.ui.screens.SettingsScreen
 import app.kultr.android.ui.screens.ShelfScreen
 import app.kultr.android.ui.screens.StationsScreen
 import app.kultr.android.ui.screens.RecapScreen
+import app.kultr.android.ui.screens.PlannerScreen
 import app.kultr.android.ui.screens.AddToCrateDialog
 import app.kultr.android.ui.screens.CrateScreen
 import app.kultr.android.ui.screens.TagScreen
@@ -339,6 +340,10 @@ private fun MainUi(
                     composable(Routes.SHELF) { ShelfScreen(it.arguments?.getString("id").orEmpty()) }
                     composable(Routes.STATIONS) { StationsScreen() }
                     composable(Routes.RECAP) { RecapScreen() }
+                    composable(
+                        Routes.PLANNER,
+                        arguments = listOf(navArgument("minutes") { type = NavType.StringType; nullable = true; defaultValue = null }),
+                    ) { PlannerScreen(it.arguments?.getString("minutes")?.toIntOrNull()) }
                     composable(Routes.CRATE) { CrateScreen(it.arguments?.getString("id").orEmpty()) }
                     composable(Routes.TAG) { TagScreen(it.arguments?.getString("name").orEmpty()) }
                     composable(

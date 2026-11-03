@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Radio
 import androidx.compose.material.icons.rounded.Restore
+import androidx.compose.material.icons.rounded.ShowChart
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Tune
@@ -136,6 +137,7 @@ fun HomeScreen() {
                             actions.launch { actions.shuffle(graph.library.randomSongs(200)) }
                         })
                         Pill("Start an InjeKt set", icon = Icons.Rounded.AutoAwesome, accent = true, onClick = { actions.startInjektSet() })
+                        Pill("Plan a set", icon = Icons.Rounded.ShowChart, onClick = { actions.navigate(Routes.planner()) })
                     }
                 }
                 Spacer(Modifier.height(8.dp))

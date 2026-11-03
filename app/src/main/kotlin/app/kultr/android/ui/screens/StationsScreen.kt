@@ -67,6 +67,7 @@ import androidx.compose.material.icons.rounded.Radio
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.Sell
+import androidx.compose.material.icons.rounded.ShowChart
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Umbrella
@@ -114,6 +115,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.playback.StationRequest
 import app.kultr.android.ui.LocalActions
+import app.kultr.android.ui.Routes
 import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.ConfirmDialog
 import app.kultr.android.ui.components.Pill
@@ -224,6 +226,14 @@ fun StationsScreen() {
                 Box {
                     IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreHoriz, contentDescription = "More", tint = colors.accent) }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Energy planner") },
+                            leadingIcon = { Icon(Icons.Rounded.ShowChart, contentDescription = null) },
+                            onClick = {
+                                menu = false
+                                actions.navigate(Routes.planner())
+                            },
+                        )
                         DropdownMenuItem(
                             text = { Text("Back to the starting stations") },
                             leadingIcon = { Icon(Icons.Rounded.Restore, contentDescription = null) },

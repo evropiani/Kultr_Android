@@ -136,3 +136,31 @@ class InjektTest {
         assertEquals(1, ranked.size)
     }
 }
+
+class EnergyPlanTest {
+    private fun analysis(id: String, energy: Double, bpm: Double = 120.0) = TrackAnalysis(
+        songId = id, analysedAt = 0, bpmSource = BpmSource.DSP, duration = 300.0, bpm = bpm,
+        bpmConfidence = 0.8, beatOffset = 0.0, downbeatOffset = 0.0, outroDownbeat = 0.0, key = 9,
+        keyName = "Am", mode = KeyMode.MINOR, keyConfidence = 0.5, camelot = "8A", energy = energy,
+        brightness = 0.3, peak = 0.9, introEnd = 0.0, outroStart = 250.0,
+    )
+
+    @Test
+    fun aSetFollowsTheLine() {
+        val pool = (0..10).map { Song(id = "s$it", title = "S$it", artistId = "a$it") to analysis("s$it", it / 10.0) }
+        val plan = planSet(EnergyCurve.BUILD, minutes = 20, candidates = pool, random = kotlin.random.Random(3))
+        assertTrue(plan.size >= 4)
+        // Rising energy: the first track is calmer than the last.
+        assertTrue(plan.first().energy < plan.last().energy)
+        assertEquals(plan.size, plan.map { it.song.id }.toSet().size)
+        assertEquals(0.0, plan.first().startsAt)
+    }
+
+    @Test
+    fun curvesResampleAndClamp() {
+        val curve = EnergyCurve(listOf(-1.0, 2.0))
+        assertEquals(listOf(0.0, 1.0), curve.points)
+        assertEquals(0.5, curve.valueAt(0.5), 1e-9)
+        assertEquals(5, EnergyCurve.STEADY.resampled(5).points.size)
+    }
+}
