@@ -1,7 +1,6 @@
 package app.kultr.android.ui.screens
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -117,6 +116,7 @@ fun StatsScreen() {
                         }
                     }
                 }
+                item(key = "recap") { RecapLink(history) }
                 if (recent.isNotEmpty()) {
                     item(key = "recent-head") { SectionHeader("Played recently", icon = Icons.Rounded.History) }
                     items(recent, key = { "recent-${it.id}" }) { song ->
@@ -137,27 +137,7 @@ fun StatsScreen() {
                 if (artists.isNotEmpty()) {
                     item(key = "artists") {
                         SectionHeader("Top artists")
-                        Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            val max = artists.first().plays.coerceAtLeast(1)
-                            val accent = colors.accent
-                            artists.forEach { artist ->
-                                Column(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .then(
-                                            artist.artistId?.let { id -> Modifier.clickable { actions.openArtist(id) } } ?: Modifier,
-                                        ),
-                                ) {
-                                    Row {
-                                        Text(artist.name ?: "Unknown artist", color = colors.ink, modifier = Modifier.weight(1f), maxLines = 1)
-                                        Text(Format.count(artist.plays.toInt(), "play"), color = colors.ink3)
-                                    }
-                                    Canvas(Modifier.fillMaxWidth(artist.plays.toFloat() / max).height(4.dp)) {
-                                        drawRect(Brush.horizontalGradient(listOf(accent, accent.copy(alpha = 0.3f))))
-                                    }
-                                }
-                            }
-                        }
+                        PlayBars(artists)
                     }
                 }
                 item(key = "chart") {

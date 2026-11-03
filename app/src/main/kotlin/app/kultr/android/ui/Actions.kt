@@ -71,6 +71,7 @@ object Routes {
     const val UPDATE = "update"
     const val SHELF = "shelf/{id}"
     const val STATIONS = "stations"
+    const val RECAP = "recap"
     const val CRATE = "crate/{id}"
     const val TAG = "tag/{name}"
 

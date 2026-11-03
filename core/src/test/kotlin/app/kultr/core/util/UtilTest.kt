@@ -119,3 +119,34 @@ class UtilTest {
         assertEquals("1.4.0", Versions.fromTag("v1.4.0"))
     }
 }
+
+class RecapTest {
+    private val zone = java.time.ZoneOffset.UTC
+    private fun at(day: String) = java.time.LocalDateTime.parse(day + "T12:00").toInstant(zone).toEpochMilli()
+
+    @org.junit.Test
+    fun aMonthOfListening() {
+        val a = app.kultr.core.api.Song(id = "a", title = "A", artist = "X", artistId = "x", album = "Ax", albumId = "ax")
+        val b = app.kultr.core.api.Song(id = "b", title = "B", artist = "Y", artistId = "y", album = "By", albumId = "by")
+        val history = listOf(
+            Play("a", at("2026-02-20"), 100),
+            Play("a", at("2026-03-02"), 200),
+            Play("a", at("2026-03-02"), 200),
+            Play("b", at("2026-03-05"), 300),
+            Play("gone", at("2026-03-06"), 50),
+        )
+        val songs = mapOf("a" to a, "b" to b)
+        assertEquals(listOf(java.time.YearMonth.of(2026, 3), java.time.YearMonth.of(2026, 2)), recapMonths(history, zone))
+        val recap = monthRecap(history, songs, java.time.YearMonth.of(2026, 3), zone)
+        assertEquals(750, recap.seconds)
+        assertEquals(4, recap.plays)
+        assertEquals(3, recap.tracks)
+        assertEquals(2, recap.artists)
+        assertEquals(listOf("a", "b"), recap.topSongs.map { it.item.id })
+        assertEquals("X", recap.topArtists.first().item.name)
+        assertEquals(java.time.LocalDate.of(2026, 3, 2) to 400L, recap.busiestDay)
+        // "a" was heard in February already.
+        assertEquals(2, recap.firstListens)
+        assertEquals(100, recap.previousSeconds)
+    }
+}
