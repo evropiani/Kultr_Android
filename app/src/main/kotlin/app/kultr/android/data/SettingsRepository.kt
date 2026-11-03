@@ -29,6 +29,20 @@ class SettingsRepository(context: Context) {
 
     init {
         moveToCream()
+        addShelf("rediscover", after = "mostPlayedAlbums")
+        addShelf("stations", after = null)
+    }
+
+    /** A new home shelf, once, so it shows up without a trip to Settings; after [after], or first. Removing it afterwards sticks. */
+    private fun addShelf(id: String, after: String?) {
+        val key = "home.added.$id"
+        if (prefs.getBoolean(key, false)) return
+        prefs.edit { putBoolean(key, true) }
+        update { s ->
+            if (id in s.homeTiles) return@update s
+            val at = if (after == null) 0 else s.homeTiles.indexOf(after).let { if (it < 0) s.homeTiles.size else it + 1 }
+            s.copy(homeTiles = s.homeTiles.toMutableList().apply { add(at, id) })
+        }
     }
 
     /**

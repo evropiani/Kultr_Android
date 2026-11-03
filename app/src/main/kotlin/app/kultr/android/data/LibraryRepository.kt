@@ -256,8 +256,7 @@ class LibraryRepository(private val graph: AppGraph) {
         val ids = io {
             val latest = HashMap<String, Long>()
             for (song in db.library().recentlyPlayedSongs(limit * 2)) {
-                val at = song.played?.let { runCatching { OffsetDateTime.parse(it).toInstant().toEpochMilli() }.getOrNull() }
-                if (at != null) latest[song.id] = at
+                isoMillis(song.played)?.let { latest[song.id] = it }
             }
             for (entry in db.history().recent(limit * 4)) {
                 if ((latest[entry.songId] ?: 0L) < entry.playedAt) latest[entry.songId] = entry.playedAt
@@ -266,6 +265,26 @@ class LibraryRepository(private val graph: AppGraph) {
         }
         return songsByIds(ids)
     }
+
+    /**
+     * Rediscover: albums you love that nobody has played for a year, on the
+     * server or on this phone. One the server never saw played counts from
+     * when you hearted it.
+     */
+    suspend fun forgottenAlbums(limit: Int): List<Album> {
+        val db = db() ?: return emptyList()
+        val yearAgo = System.currentTimeMillis() - 365L * 86_400_000
+        return io {
+            val recent = db.library().albumIdsPlayedSince(yearAgo).toHashSet()
+            db.library().lovedAlbums().asSequence()
+                .map { it.toAlbum() }
+                .filter { album -> album.id !in recent && (isoMillis(album.played) ?: isoMillis(album.starred) ?: Long.MAX_VALUE) < yearAgo }
+                .take(limit)
+                .toList()
+        }
+    }
+
+    private fun isoMillis(text: String?): Long? = text?.let { runCatching { OffsetDateTime.parse(it).toInstant().toEpochMilli() }.getOrNull() }
 
     suspend fun search(query: String, limit: Int = 60): SearchResults {
         val db = db() ?: return SearchResults()

@@ -65,6 +65,7 @@ object Routes {
     const val DOWNLOADS = "downloads?page={page}"
     const val UPDATE = "update"
     const val SHELF = "shelf/{id}"
+    const val STATIONS = "stations"
 
     fun library(tab: LibraryTab? = null) = if (tab == null) LIBRARY else "library/${tab.name}"
     fun album(id: String) = "album/${Uri.encode(id)}"

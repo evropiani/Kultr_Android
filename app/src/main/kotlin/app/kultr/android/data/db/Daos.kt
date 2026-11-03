@@ -259,6 +259,14 @@ abstract class LibraryDao {
     @Query("SELECT * FROM albums WHERE playCount > 0 ORDER BY playCount DESC LIMIT :limit")
     abstract fun mostPlayedAlbums(limit: Int): Flow<List<AlbumEntity>>
 
+    /** Albums you hearted, or played at least three times. */
+    @Query("SELECT * FROM albums WHERE (starred IS NOT NULL AND starred != '') OR playCount >= 3 ORDER BY playCount DESC")
+    abstract suspend fun lovedAlbums(): List<AlbumEntity>
+
+    /** Albums with a track played on this phone since [since]. */
+    @Query("SELECT DISTINCT songs.albumId FROM history JOIN songs ON songs.id = history.songId WHERE history.playedAt >= :since AND songs.albumId IS NOT NULL")
+    abstract suspend fun albumIdsPlayedSince(since: Long): List<String>
+
     @Query(
         "SELECT artists.* FROM artists JOIN (SELECT artistId, SUM(COALESCE(playCount, 0)) AS plays FROM songs " +
             "GROUP BY artistId) p ON p.artistId = artists.id WHERE p.plays > 0 ORDER BY p.plays DESC LIMIT :limit",
@@ -317,6 +325,9 @@ interface AnalysisDao {
 
     @Query("SELECT * FROM analysis WHERE songId IN (:ids)")
     suspend fun getMany(ids: List<String>): List<AnalysisEntity>
+
+    @Query("SELECT * FROM analysis WHERE version = :version")
+    suspend fun all(version: Int): List<AnalysisEntity>
 
     @Upsert
     suspend fun put(entity: AnalysisEntity)

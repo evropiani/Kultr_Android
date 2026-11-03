@@ -37,6 +37,8 @@ class KultrPlayer(
     looper: Looper,
     private val toMediaItem: (Song, Boolean) -> MediaItem,
     private val onDuck: (Float) -> Unit,
+    /** Other music replaced the queue: whatever station was playing ends. */
+    private val onQueueReplaced: () -> Unit,
 ) : SimpleBasePlayer(looper) {
     lateinit var engine: PlaybackEngine
 
@@ -180,6 +182,7 @@ class KultrPlayer(
         val items = queueItemsOf(mediaItems)
         val index = if (startIndex == C.INDEX_UNSET) 0 else startIndex
         val position = if (startPositionMs == C.TIME_UNSET) 0 else startPositionMs
+        onQueueReplaced()
         engine.setQueue(items, index, position)
         return Futures.immediateVoidFuture()
     }

@@ -147,6 +147,7 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var graph: AppGraph
     private lateinit var player: KultrPlayer
     private lateinit var engine: PlaybackEngine
+    private lateinit var stations: StationPlayer
     private lateinit var decks: List<ExoDeck>
     private lateinit var browser: LibraryBrowser
     private lateinit var sessions: SessionStore
@@ -188,9 +189,11 @@ class PlaybackService : MediaLibraryService() {
             looper = Looper.getMainLooper(),
             toMediaItem = { song, karousel -> MediaItems.from(song, graph.auth.client.value, karousel) },
             onDuck = { level -> decks.forEach { it.setDuck(level) } },
+            onQueueReplaced = { graph.hub.setStation(null) },
         )
         engine = PlaybackEngine(decks[0], decks[1], host, scope)
         player.engine = engine
+        stations = StationPlayer(graph, engine) { player.play() }
         applyEq(graph.settings.current)
 
         setMediaNotificationProvider(
@@ -286,13 +289,18 @@ class PlaybackService : MediaLibraryService() {
                 if (now == previous) return@collect
                 applyEq(now)
                 engine.onSettingsChanged(planSignature(now) != planSignature(previous))
-                if (now.karousel != previous.karousel) engine.onKarouselChanged(now.karousel)
+                if (now.karousel != previous.karousel) {
+                    // Switching Karousel off ends a station too.
+                    if (!now.karousel) graph.hub.setStation(null)
+                    engine.onKarouselChanged(now.karousel)
+                }
                 previous = now
             }
         }
         // A different server has a different library; its queue makes no sense here.
         scope.launch {
             graph.auth.active.map { it?.id }.distinctUntilChanged().drop(1).collect {
+                graph.hub.setStation(null)
                 engine.setQueue(emptyList(), 0, 0)
                 sessions.clear()
             }
@@ -316,6 +324,7 @@ class PlaybackService : MediaLibraryService() {
             }
         }
         scope.launch { graph.hub.mixRequests.collect { engine.mixNow() } }
+        scope.launch { graph.hub.stationRequests.collect { stations.handle(it) } }
     }
 
     private fun planSignature(s: Settings): List<Any> = listOf(
@@ -394,7 +403,11 @@ class PlaybackService : MediaLibraryService() {
     private val host = object : EngineHost {
         override fun now(): Long = SystemClock.elapsedRealtime()
 
-        override fun settings(): Settings = graph.settings.current
+        override fun settings(): Settings {
+            val s = graph.settings.current
+            // A station is an endless mix, whatever Karousel is set to.
+            return if (!s.karousel && stations.station != null) s.copy(karousel = true) else s
+        }
 
         override suspend fun plan(current: Song, next: Song, context: PlanContext): TransitionPlan {
             val s = graph.settings.current
@@ -408,7 +421,11 @@ class PlaybackService : MediaLibraryService() {
 
         override suspend fun extendQueue(seeds: List<Song>, queued: List<Song>): List<Song> =
             withContext(Dispatchers.IO) {
-                val picks = karousel.next(seeds, queued)
+                val picks = if (stations.station != null) {
+                    stations.next(seeds.firstOrNull(), queued.mapTo(HashSet()) { it.id }, 8)
+                } else {
+                    karousel.next(seeds, queued)
+                }
                 if (!windingDown || picks.size < 2) return@withContext picks
                 val known = graph.analysis.cachedMany(picks.map { it.id })
                 calmestFirst(picks) { known[it.id] }

@@ -96,6 +96,12 @@ class AnalysisManager(private val graph: AppGraph) {
         }
     }
 
+    /** Every current analysis, by song id. */
+    suspend fun cachedAll(): Map<String, TrackAnalysis> {
+        val db = graph.database.value ?: return emptyMap()
+        return withContext(Dispatchers.IO) { db.analysis().all(ANALYSIS_VERSION).associate { it.songId to it.toAnalysis() } }
+    }
+
     /** Cached analysis, or analyse now. Concurrent requests for one track share the work. */
     suspend fun getOrAnalyse(song: Song, force: Boolean = false): TrackAnalysis? {
         if (song.isRadio) return null

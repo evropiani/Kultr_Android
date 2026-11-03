@@ -29,8 +29,10 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Radio
+import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +71,7 @@ import app.kultr.core.api.Playlist
 import app.kultr.core.api.RadioStation
 import app.kultr.core.api.Song
 import app.kultr.core.api.asSong
+import app.kultr.core.karousel.Station
 import app.kultr.core.settings.HomeTile
 import app.kultr.core.settings.TileKind
 import app.kultr.core.settings.resolveHomeTiles
@@ -79,6 +82,8 @@ import java.util.Calendar
 
 private fun tileIcon(id: String): ImageVector = when {
     id == "recentlyPlayed" -> Icons.Rounded.History
+    id == "stations" -> Icons.Rounded.Tune
+    id == "rediscover" -> Icons.Rounded.Restore
     id.startsWith("mostPlayed") -> Icons.Rounded.PlayArrow
     id.startsWith("random") -> Icons.Rounded.Shuffle
     id == "recentlyAdded" -> Icons.Rounded.Album
@@ -197,6 +202,10 @@ private sealed interface ShelfItems {
     data class Radios(val stations: List<RadioStation>) : ShelfItems {
         override val isEmpty get() = stations.isEmpty()
     }
+
+    data class Stations(val stations: List<Station>, val counts: Map<String, Int>?) : ShelfItems {
+        override val isEmpty get() = stations.isEmpty()
+    }
 }
 
 /** Up to [limit] of what [tile] shows, kept up to date: on Home a handful, on its own page all of it. */
@@ -223,6 +232,7 @@ private fun rememberShelf(tile: HomeTile, limit: Int): ShelfItems {
         TileKind.ALBUMS -> {
             val albums by when (tile.id) {
                 "mostPlayedAlbums" -> remember(limit) { library.mostPlayedAlbums(limit) }.collectAsStateWithLifecycle(emptyList())
+                "rediscover" -> produceState(emptyList<Album>(), counts.albums, lastCheck, listening) { value = library.forgottenAlbums(limit) }
                 "recentlyAdded" -> remember(limit) { library.recentlyAdded(limit) }.collectAsStateWithLifecycle(emptyList())
                 "favouriteAlbums" -> remember { library.starredAlbums() }.collectAsStateWithLifecycle(emptyList())
                 else -> produceState(emptyList<Album>(), counts.albums, lastCheck) { value = library.randomAlbums(limit) }
@@ -256,6 +266,13 @@ private fun rememberShelf(tile: HomeTile, limit: Int): ShelfItems {
             }
             ShelfItems.Radios((if (tile.id == "favouriteRadios") stations.filter { it.id in settings.favouriteRadios } else stations).take(limit))
         }
+        TileKind.STATIONS -> {
+            val tally by graph.stations.tally.collectAsStateWithLifecycle()
+            val counts = tally?.counts
+            // Stations with music first; one with nothing to play yet goes to the end.
+            val all = (settings.stations + tally?.decades.orEmpty()).sortedBy { (counts?.get(it.id) ?: 1) == 0 }
+            ShelfItems.Stations(all.take(limit), counts)
+        }
     }
 }
 
@@ -264,7 +281,7 @@ private fun HomeShelf(tile: HomeTile) {
     val actions = LocalActions.current
     val items = rememberShelf(tile, SHELF_SIZE)
     if (items.isEmpty) return
-    ShelfHeader(tile) { actions.navigate(Routes.shelf(tile.id)) }
+    ShelfHeader(tile) { actions.navigate(if (tile.kind == TileKind.STATIONS) Routes.STATIONS else Routes.shelf(tile.id)) }
     when (items) {
         is ShelfItems.Songs -> SongList(items.songs.take(10))
         is ShelfItems.Albums -> Shelf(items.albums, key = { it.id }) { album, modifier ->
@@ -278,6 +295,9 @@ private fun HomeShelf(tile: HomeTile) {
         }
         is ShelfItems.Radios -> Shelf(items.stations, key = { it.id }, cardWidth = 130.dp) { station, modifier ->
             StationCard(station, modifier) { actions.play(listOf(station.asSong())) }
+        }
+        is ShelfItems.Stations -> Shelf(items.stations, key = { it.id }) { station, modifier ->
+            MixStationCard(station, items.counts?.get(station.id), modifier)
         }
     }
 }
@@ -338,7 +358,7 @@ fun ShelfScreen(id: String) {
                 is ShelfItems.Artists -> items(items.artists, key = { it.id }) { ArtistCard(it, onClick = { actions.openArtist(it.id) }) }
                 is ShelfItems.Playlists -> items(items.playlists, key = { it.id }) { PlaylistCard(it, onClick = { actions.openPlaylist(it.id) }) }
                 is ShelfItems.Radios -> items(items.stations, key = { it.id }) { StationCard(it) { actions.play(listOf(it.asSong())) } }
-                is ShelfItems.Songs -> Unit
+                is ShelfItems.Stations, is ShelfItems.Songs -> Unit
             }
         }
     }

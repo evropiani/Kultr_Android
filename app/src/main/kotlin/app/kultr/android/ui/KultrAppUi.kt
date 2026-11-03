@@ -88,6 +88,7 @@ import app.kultr.android.ui.screens.PlaylistScreen
 import app.kultr.android.ui.screens.SearchScreen
 import app.kultr.android.ui.screens.SettingsScreen
 import app.kultr.android.ui.screens.ShelfScreen
+import app.kultr.android.ui.screens.StationsScreen
 import app.kultr.android.ui.screens.StatsScreen
 import app.kultr.android.ui.screens.SyncScreen
 import app.kultr.android.ui.screens.UpdateBanner
@@ -332,6 +333,7 @@ private fun MainUi(
                     composable(Routes.STATS) { StatsScreen() }
                     composable(Routes.UPDATE) { UpdateScreen() }
                     composable(Routes.SHELF) { ShelfScreen(it.arguments?.getString("id").orEmpty()) }
+                    composable(Routes.STATIONS) { StationsScreen() }
                     composable(
                         Routes.DOWNLOADS,
                         arguments = listOf(navArgument("page") { type = NavType.StringType; nullable = true; defaultValue = null }),

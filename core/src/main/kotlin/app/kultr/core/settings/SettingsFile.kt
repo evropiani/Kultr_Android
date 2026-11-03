@@ -171,9 +171,9 @@ object SettingsFile {
             if (!number.isFinite()) return false
         }
         if (expected is JsonArray && value is JsonArray) {
-            // An empty default says nothing about its element type, so those are
-            // taken to be lists of ids — which is what all of them currently are.
-            val elementKind = expected.firstOrNull()?.let(::kindOf) ?: "string"
+            // An empty default (crates, say) says nothing about its element
+            // type; decoding the result checks those instead.
+            val elementKind = expected.firstOrNull()?.let(::kindOf) ?: return true
             return value.all { kindOf(it) == elementKind }
         }
         return true

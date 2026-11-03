@@ -12,6 +12,7 @@ import app.kultr.android.data.NetworkMonitor
 import app.kultr.android.data.OfflineManager
 import app.kultr.android.data.Scrobbles
 import app.kultr.android.data.SettingsRepository
+import app.kultr.android.data.StationLibrary
 import app.kultr.android.data.SyncManager
 import app.kultr.android.data.UiMessages
 import app.kultr.android.data.Updates
@@ -72,6 +73,7 @@ class AppGraph(val app: Application) {
     val sync = SyncManager(this)
     val offline = OfflineManager(this)
     val analysis = AnalysisManager(this)
+    val stations = StationLibrary(this)
     val updates = Updates(this)
     val hub = PlaybackHub()
     val player = PlayerConnection(this)

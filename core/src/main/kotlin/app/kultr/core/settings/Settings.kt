@@ -1,5 +1,7 @@
 package app.kultr.core.settings
 
+import app.kultr.core.karousel.STATION_PRESETS
+import app.kultr.core.karousel.Station
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -166,10 +168,18 @@ data class Settings(
     /** In a sleep timer's last 15 minutes, Karousel picks calmer music. */
     val sleepWindDown: Boolean = true,
     /** Which shelves the home page shows, in order. Ids come from [HOME_TILES]. */
-    val homeTiles: List<String> = listOf("mostPlayedSongs", "mostPlayedAlbums", "randomSongs", "mostPlayedArtists"),
+    val homeTiles: List<String> = listOf("stations", "mostPlayedSongs", "mostPlayedAlbums", "rediscover", "randomSongs", "mostPlayedArtists"),
     /** Radio stations you have hearted. Navidrome has no concept of this. */
     val favouriteRadios: List<String> = emptyList(),
     val hasSeenWelcome: Boolean = false,
+
+    // ---- your collection
+    /** Your stations, in the order the dial shows them. Decades are added from the library. */
+    val stations: List<Station> = STATION_PRESETS,
+    /** Your notes and tags, by [NoteAndTags.albumKey] or [NoteAndTags.artistKey]. */
+    val annotations: Map<String, NoteAndTags> = emptyMap(),
+    /** Your crates, in the order Library shows them. */
+    val crates: List<Crate> = emptyList(),
 ) {
     /** EQ gains, always exactly one per band. */
     val eqBandGains: List<Double>
@@ -182,7 +192,7 @@ data class Settings(
         if (metered && preferredBitrateMobile >= 0) preferredBitrateMobile else preferredBitrate
 }
 
-enum class TileKind { SONGS, ALBUMS, ARTISTS, PLAYLISTS, RADIOS }
+enum class TileKind { SONGS, ALBUMS, ARTISTS, PLAYLISTS, RADIOS, STATIONS }
 
 /** A shelf the home page can show. */
 data class HomeTile(
@@ -195,9 +205,11 @@ data class HomeTile(
 )
 
 val HOME_TILES: List<HomeTile> = listOf(
+    HomeTile("stations", "Stations", "Endless mixes from your own library, by tempo, energy, genre or decade.", TileKind.STATIONS),
     HomeTile("recentlyPlayed", "Jump back in", "Tracks you played most recently.", TileKind.SONGS),
     HomeTile("mostPlayedSongs", "Played the most", "Your most-played tracks, by the play count on the server.", TileKind.SONGS),
     HomeTile("mostPlayedAlbums", "Albums you keep coming back to", "Albums with the highest play counts.", TileKind.ALBUMS),
+    HomeTile("rediscover", "Rediscover", "Albums you hearted or played a lot, and haven’t played for a year.", TileKind.ALBUMS),
     HomeTile("mostPlayedArtists", "Artists you play most", "Worked out by adding up the play counts of each artist’s tracks.", TileKind.ARTISTS),
     HomeTile("mostPlayedPlaylists", "Playlists on repeat", "Ranked by the play counts of the tracks inside them.", TileKind.PLAYLISTS),
     HomeTile("randomSongs", "Something else", "A different handful of tracks every time you open the page.", TileKind.SONGS),

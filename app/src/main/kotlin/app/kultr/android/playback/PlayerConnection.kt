@@ -143,6 +143,9 @@ class PlayerConnection(private val graph: AppGraph) {
         }
     }
 
+    /** Start, switch to or end a station, once the playback service is up. */
+    fun station(request: StationRequest) = withController { graph.hub.request(request) }
+
     fun playNext(songs: List<Song>) {
         if (songs.isEmpty()) return
         withController { c ->
