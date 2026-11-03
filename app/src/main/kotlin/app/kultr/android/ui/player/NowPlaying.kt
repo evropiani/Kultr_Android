@@ -196,6 +196,7 @@ fun NowPlayingScreen(state: PlayerUiState, onClose: () -> Unit) {
         val current = live ?: song
         val position by rememberPosition()
         val plan = transition.upcoming?.takeIf { transition.fromSongId == song.id }
+        val analysis by remember(song.id) { graph.analysis.observe(song.id) }.collectAsStateWithLifecycle(null)
 
         LazyColumn(
             state = listState,
@@ -232,6 +233,7 @@ fun NowPlayingScreen(state: PlayerUiState, onClose: () -> Unit) {
                                     countDown = settings.timeRemaining,
                                     onToggleCountDown = { graph.settings.update { it.copy(timeRemaining = !it.timeRemaining) } },
                                     reduceMotion = settings.reduceMotion,
+                                    analysis = analysis,
                                 )
                             }
                             PlayerBlock.TRANSPORT -> Transport(state, current)
