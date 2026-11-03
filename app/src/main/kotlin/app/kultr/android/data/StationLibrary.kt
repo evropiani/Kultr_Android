@@ -86,9 +86,6 @@ class StationLibrary(private val graph: AppGraph) {
 
     fun resetToPresets() = graph.settings.update { it.copy(stations = STATION_PRESETS) }
 
-    /** Whether [station] is one of yours (editable) rather than a decade. */
-    fun isMine(station: Station): Boolean = graph.settings.current.stations.any { it.id == station.id }
-
     companion object {
         fun emptyMessage(station: Station): String =
             if (station.needsAnalysis) {

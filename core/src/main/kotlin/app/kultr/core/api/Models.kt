@@ -203,7 +203,6 @@ data class ServerInfo(
     val version: String? = null,
     val type: String? = null,
     val serverVersion: String? = null,
-    val openSubsonic: Boolean? = null,
 ) {
     /** "Navidrome 0.53.3", or whatever best describes the server. */
     val description: String
