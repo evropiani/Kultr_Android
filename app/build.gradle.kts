@@ -46,8 +46,8 @@ android {
         applicationId = "app.kultr.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.6.0"
+        versionCode = 13
+        versionName = "2.0.0"
     }
 
     signingConfigs {

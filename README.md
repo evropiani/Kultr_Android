@@ -15,14 +15,31 @@ or folders on this phone) and shows around the app.
 
 ## Features
 
-- **Liquid glass.** The tab bar, mini player and download progress float over
-  the page, which scrolls behind them blurred (Android 12 and later; on
-  Android 13 the edges bend the light like a lens). The selected tab is a lens
-  you can slide along the bar with your finger, and the round search button
-  grows into the search field, riding on the keyboard. Light and dark follow
-  the phone's own setting, and a pale colour taken from the artwork is
-  deepened in light mode so it stays readable. Night mode turns dark into
-  pure black for OLED screens.
+- **Cream, with glass where things float.** Cream pages, warm black text and
+  one orange for whatever you can tap; warm charcoal in dark mode, and Night
+  mode turns it pure black for OLED screens. The tab bar, mini player and
+  download progress are liquid glass floating over the page (Android 12 and
+  later; on Android 13 the edges bend the light like a lens): the selected tab
+  is a lens you can slide along the bar, and the search button grows into the
+  search field. Four app icons to choose from.
+- **Stations.** Endless mixes from your own library: Warm Up, Night Drive,
+  Peak Hour, Deep Focus, Wind Down, Unplayed gems, Favourites and one per
+  decade, or your own rules (tempo, energy, key, genres, years, your tags,
+  rating, plays, when it was added). Turn the dial to choose; while one plays,
+  turning it mixes into the next.
+- **Energy planner.** Draw how the next hour should feel, calm to peak, and
+  Kultr builds a set that follows the line, with tempos and keys that mix.
+- **Search does things.** "play Night Drive", "shuffle" and an artist, "sleep
+  in 30 minutes", "next", "mix now", "plan an hour", "open settings".
+- **Crates, notes and tags.** Folders of albums, artists and tracks, filled by
+  hand or by rules and kept as a playlist if you like; your own tags and a
+  note on every album and artist.
+- **Kultr Studio.** Five ready-made styles, the player's parts in the order
+  you want, an info line you write yourself, and your look shared as a link
+  or a file (the same links as Kultr for iOS).
+- **Home** has widgets (now playing, this week's listening, the next mix, a
+  station, a crate, a shortcut) above shelves you choose and reorder, among
+  them Stations and Rediscover (loved albums you haven't played for a year).
 - **Music on this phone.** Choose the folders your music is in (Music, a
   memory card, anything the system's folder picker offers) and Kultr plays
   your files without a server or an account. It reads their tags and covers
@@ -34,8 +51,8 @@ or folders on this phone) and shows around the app.
 - **Library mirror.** A server's whole library is synced into a local
   database, so browsing and search are instant and work offline. Later syncs
   fetch only what changed; they can run at start-up and periodically in the
-  background. Swipe between the Library's tabs: albums, artists, songs,
-  playlists, genres, favourites, downloads and radio.
+  background. The Library is a list: playlists, crates, artists, albums,
+  songs, genres, tags, favourites, downloads and radio, each on its own page.
 - **Two-deck playback.** Every track plays on one of two players, so Kultr can
   crossfade (with a choice of curves), play gapless albums seamlessly, or cut.
 - **InjeKt transitions.** Tracks are analysed on the phone (tempo, beat grid,
@@ -57,7 +74,8 @@ or folders on this phone) and shows around the app.
 - **Listening on your server.** Every play is sent to Navidrome with the time
   it happened (offline plays go later, exactly once), and plays from your
   other devices come back, so "Jump back in", "Played the most" and the
-  Listening page are the same everywhere.
+  Listening page are the same everywhere. A monthly recap shows how long you
+  listened, your top tracks, albums and artists, and your longest day.
 - **Cast** to a Chromecast or speaker group from the player.
 - **Home screen widget.** Centred artwork, title and controls that scale as you
   resize it, with the artwork optional and the background opacity you choose.
@@ -68,20 +86,20 @@ or folders on this phone) and shows around the app.
   and switch between them and the music on the phone; change a server's
   password from its menu. Each has its own library, downloads and history.
   Passwords are sealed with a key held in the Android Keystore.
-- **Home shelves** you choose and reorder: jump back in, recently added, most
-  played, albums at random, favourites, playlists on repeat, internet radio
-  and more.
 - **Audio:** ten-band equaliser with presets, ReplayGain (track or album),
   per-network streaming bitrate, sleep timer (after minutes or at the end of
-  the track).
+  the track, winding down with calmer music in its last 15 minutes). Hold
+  Next to mix into the next track instead of skipping.
 - **Updates in the app.** Kultr checks for new releases (at most twice a day,
   or from Settings → About → Version → Check for updates) and shows a banner
   you can dismiss. The update page has the release notes and an Update button
   that downloads the new APK, checks its SHA-256, and hands it to Android's
-  installer.
+  installer. After an update, What's new shows every change since the version
+  you last opened, and Settings → About → Update log has them all.
 - **Also:** synced and plain lyrics, ratings and favourites, playlist editing,
-  internet radio, listening stats, a now-playing screen tinted by the artwork
-  (pull it down to close), and settings backup and restore.
+  internet radio, saving the session as a playlist, a glass lens with the
+  beats when you drag the progress bar, a player you pull down to close, and
+  settings backup and restore (stations, crates, notes and widgets included).
 
 ## Getting it
 
@@ -128,7 +146,7 @@ safe: without it, no update can be signed to install over existing copies.
 
 | Module | What it holds |
 | --- | --- |
-| `core` | Plain Kotlin, no Android: the Subsonic API client, the audio analysis (FFT, tempo, key, structure), the InjeKt transition planner, the two-deck playback engine, the library and listening sync, the catalogue that groups local files into albums and artists, version comparison and release notes, and the settings model with its import/export. Unit-tested on the JVM. |
+| `core` | Plain Kotlin, no Android: the Subsonic API client, the audio analysis (FFT, tempo, key, structure), the InjeKt transition planner and energy planner, the two-deck playback engine, Karousel and station rules, the library and listening sync, the catalogue that groups local files into albums and artists, the command bar's words, the monthly recap, version comparison and release notes, and the settings model (Studio styles, crates, notes, widgets) with its import/export. Unit-tested on the JVM. |
 | `app` | The Android app: a Room database per library (each server, and the music on the phone), the folder scanner, WorkManager jobs for sync, downloads and analysis, the update checker, a Media3 `MediaLibraryService` whose player drives two ExoPlayer decks through the core engine (with a custom audio processor for fades, EQ and filters), the home screen widget, and the Jetpack Compose interface with its liquid glass. |
 
 Libraries: Jetpack Compose with Material 3, Media3 (ExoPlayer, session and Cast),
