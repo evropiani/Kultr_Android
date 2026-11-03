@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.RemoveCircleOutline
 import androidx.compose.material.icons.rounded.Shuffle
@@ -49,6 +50,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.kultr.android.data.CrateItem
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.chromePadding
@@ -75,6 +77,7 @@ import app.kultr.core.api.Album
 import app.kultr.core.api.Artist
 import app.kultr.core.api.ArtistInfo
 import app.kultr.core.api.Song
+import app.kultr.core.settings.NoteAndTags
 import app.kultr.core.util.Format
 
 /** A back arrow that floats over the header. */
@@ -216,6 +219,7 @@ fun AlbumScreen(id: String) {
                     )
                     Pill("Queue", icon = Icons.AutoMirrored.Rounded.QueueMusic, onClick = { actions.enqueue(songs) })
                     Pill("Add to playlist", icon = Icons.AutoMirrored.Rounded.PlaylistAdd, onClick = { actions.addToPlaylist(songs) })
+                    Pill("Crate", icon = Icons.Rounded.Inventory2, onClick = { actions.addToCrate(CrateItem.Album(shown.id, shown.name)) })
                     DownloadPill(songs, shown.name)
                 },
             )
@@ -237,6 +241,7 @@ fun AlbumScreen(id: String) {
                 keyPrefix = "disc$disc",
             )
         }
+        item(key = "yours") { NotesSection(NoteAndTags.albumKey(shown.id), shown.name) }
         notes?.let { text ->
             item(key = "notes") {
                 SectionHeader("About this album")
@@ -309,6 +314,7 @@ fun ArtistScreen(id: String) {
                     Pill("InjeKt radio", icon = Icons.Rounded.AutoAwesome, onClick = {
                         actions.launch { songs.randomOrNull()?.let { actions.startInjektSet(it) } }
                     })
+                    Pill("Crate", icon = Icons.Rounded.Inventory2, onClick = { actions.addToCrate(CrateItem.Artist(shown.id, shown.name)) })
                     DownloadPill(songs, shown.name)
                 },
             )
@@ -330,6 +336,7 @@ fun ArtistScreen(id: String) {
                 Shelf(allAlbums, key = { it.id }) { album, modifier -> AlbumCard(album, { actions.openAlbum(album.id) }, modifier) }
             }
         }
+        item(key = "yours") { NotesSection(NoteAndTags.artistKey(shown.id), shown.name) }
         val similar = info?.similarArtist.orEmpty()
         if (similar.isNotEmpty()) {
             item(key = "similar") {

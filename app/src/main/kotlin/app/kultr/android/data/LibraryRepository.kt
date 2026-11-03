@@ -180,6 +180,19 @@ class LibraryRepository(private val graph: AppGraph) {
         return io { songsInOrder(db, ids) }
     }
 
+    /** Albums and artists by id, in the order of [ids]; ones the library no longer has are left out. */
+    suspend fun albumsByIds(ids: List<String>): List<Album> {
+        val db = db() ?: return emptyList()
+        val found = io { ids.chunked(SQL_CHUNK).flatMap { db.library().albumsById(it) } }.associateBy { it.id }
+        return ids.mapNotNull { found[it]?.toAlbum() }
+    }
+
+    suspend fun artistsByIds(ids: List<String>): List<Artist> {
+        val db = db() ?: return emptyList()
+        val found = io { ids.chunked(SQL_CHUNK).flatMap { db.library().artistsById(it) } }.associateBy { it.id }
+        return ids.mapNotNull { found[it]?.toArtist() }
+    }
+
     suspend fun songsOfAlbumNow(albumId: String): List<Song> {
         val local = db()?.let { db -> io { db.library().songsOfAlbumNow(albumId).map { it.toSong() } } }.orEmpty()
         if (local.isNotEmpty()) return local
@@ -411,6 +424,42 @@ class LibraryRepository(private val graph: AppGraph) {
         }
         client().createPlaylist(name.trim(), songs.map { it.id })
         refreshPlaylistsNow()
+    }
+
+    /**
+     * Make playlist [id] hold exactly [songs], creating it (as [name]) when
+     * there is none yet. Gives back the playlist's id and an error, if any.
+     */
+    suspend fun fillPlaylist(id: String?, name: String, songs: List<Song>): Pair<String?, String?> {
+        val ids = songs.filter { !it.isRadio }.map { it.id }.take(5000)
+        var playlistId = id
+        val error = guard {
+            if (local) {
+                val db = db() ?: return@guard
+                if (id != null && db.library().playlistNow(id) != null) {
+                    editLocalPlaylist(id) { ids }
+                } else {
+                    createPlaylist(name, emptyList())
+                    val made = db.library().allPlaylists().maxByOrNull { it.position } ?: return@guard
+                    saveLocalPlaylist(db, made, ids)
+                    playlistId = made.id
+                }
+                return@guard
+            }
+            val c = client()
+            val chunks = ids.chunked(200)
+            val exists = id != null && runCatching { c.getPlaylist(id) }.getOrNull() != null
+            if (id != null && exists) {
+                c.replacePlaylist(id, chunks.firstOrNull().orEmpty())
+                if (db()?.library()?.playlistNow(id)?.name != name) c.updatePlaylist(id, name = name)
+            } else {
+                playlistId = c.createPlaylist(name, chunks.firstOrNull().orEmpty())?.id
+            }
+            val target = playlistId ?: return@guard
+            chunks.drop(1).forEach { c.updatePlaylist(target, songIdToAdd = it) }
+            refreshPlaylistsNow()
+        }
+        return playlistId to error
     }
 
     suspend fun addToPlaylist(playlistId: String, songs: List<Song>): String? = guard {

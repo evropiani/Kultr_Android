@@ -382,6 +382,11 @@ class SubsonicClient(
         )
     }
 
+    /** Make [playlistId] hold exactly [songIds] (createPlaylist with an id replaces its tracks). */
+    suspend fun replacePlaylist(playlistId: String, songIds: List<String>) {
+        request("createPlaylist", listOf("playlistId" to playlistId, "songId" to songIds))
+    }
+
     suspend fun deletePlaylist(id: String) {
         request("deletePlaylist", listOf("id" to id))
     }

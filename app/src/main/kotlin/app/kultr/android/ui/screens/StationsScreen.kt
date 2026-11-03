@@ -66,6 +66,7 @@ import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Radio
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Restore
+import androidx.compose.material.icons.rounded.Sell
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Umbrella
@@ -165,6 +166,7 @@ val STATION_ICONS: Map<String, ImageVector> = linkedMapOf(
 fun stationIcon(name: String): ImageVector = when (name) {
     "calendar" -> Icons.Rounded.CalendarMonth
     "shippingbox.fill" -> Icons.Rounded.Inventory2
+    "tag.fill" -> Icons.Rounded.Sell
     else -> STATION_ICONS[name] ?: Icons.Rounded.Radio
 }
 

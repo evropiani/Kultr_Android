@@ -6,6 +6,7 @@ import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import app.kultr.android.data.AnalysisManager
 import app.kultr.android.data.AuthRepository
+import app.kultr.android.data.CrateLibrary
 import app.kultr.android.data.LibraryRepository
 import app.kultr.android.data.LocalLibrary
 import app.kultr.android.data.NetworkMonitor
@@ -74,6 +75,7 @@ class AppGraph(val app: Application) {
     val offline = OfflineManager(this)
     val analysis = AnalysisManager(this)
     val stations = StationLibrary(this)
+    val crates = CrateLibrary(this)
     val updates = Updates(this)
     val hub = PlaybackHub()
     val player = PlayerConnection(this)

@@ -89,7 +89,9 @@ private enum class AlbumSort(val label: String) { NAME("Name"), ARTIST("Artist")
 private enum class SongSort(val label: String) { TITLE("Title"), ARTIST("Artist"), ALBUM("Album"), ADDED("Recently added"), PLAYS("Most played"), RATING("Rating") }
 
 /** Tabs whose lists can be filtered by typing. */
-private val FILTERABLE = setOf(LibraryTab.ALBUMS, LibraryTab.ARTISTS, LibraryTab.SONGS, LibraryTab.PLAYLISTS, LibraryTab.GENRES, LibraryTab.RADIO)
+private val FILTERABLE = setOf(
+    LibraryTab.ALBUMS, LibraryTab.ARTISTS, LibraryTab.SONGS, LibraryTab.PLAYLISTS, LibraryTab.CRATES, LibraryTab.GENRES, LibraryTab.TAGS, LibraryTab.RADIO,
+)
 
 /** The Library, as in Apple Music: its sections as a list, then the albums added most recently. */
 @Composable
@@ -169,6 +171,8 @@ fun LibrarySectionScreen(tab: LibraryTab) {
                 LibraryTab.FAVOURITES -> FavouritesTab()
                 LibraryTab.DOWNLOADS -> DownloadsTab()
                 LibraryTab.RADIO -> RadioTab(query)
+                LibraryTab.CRATES -> CratesTab(query)
+                LibraryTab.TAGS -> TagsTab(query)
             }
         }
     }

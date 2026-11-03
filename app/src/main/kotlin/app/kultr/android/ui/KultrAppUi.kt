@@ -89,6 +89,9 @@ import app.kultr.android.ui.screens.SearchScreen
 import app.kultr.android.ui.screens.SettingsScreen
 import app.kultr.android.ui.screens.ShelfScreen
 import app.kultr.android.ui.screens.StationsScreen
+import app.kultr.android.ui.screens.AddToCrateDialog
+import app.kultr.android.ui.screens.CrateScreen
+import app.kultr.android.ui.screens.TagScreen
 import app.kultr.android.ui.screens.StatsScreen
 import app.kultr.android.ui.screens.SyncScreen
 import app.kultr.android.ui.screens.UpdateBanner
@@ -334,6 +337,8 @@ private fun MainUi(
                     composable(Routes.UPDATE) { UpdateScreen() }
                     composable(Routes.SHELF) { ShelfScreen(it.arguments?.getString("id").orEmpty()) }
                     composable(Routes.STATIONS) { StationsScreen() }
+                    composable(Routes.CRATE) { CrateScreen(it.arguments?.getString("id").orEmpty()) }
+                    composable(Routes.TAG) { TagScreen(it.arguments?.getString("name").orEmpty()) }
                     composable(
                         Routes.DOWNLOADS,
                         arguments = listOf(navArgument("page") { type = NavType.StringType; nullable = true; defaultValue = null }),
@@ -438,6 +443,7 @@ private fun MainUi(
         }
 
         dialogs.addToPlaylist?.let { songs -> AddToPlaylistDialog(songs, onDismiss = { dialogs.addToPlaylist = null }) }
+        dialogs.addToCrate?.let { item -> AddToCrateDialog(item, onDismiss = { dialogs.addToCrate = null }) }
         dialogs.rate?.let { song -> RatingDialog(song, onDismiss = { dialogs.rate = null }) }
         if (dialogs.sleepTimer) SleepTimerDialog(onDismiss = { dialogs.sleepTimer = false })
     }

@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Person
@@ -62,6 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.kultr.android.data.CrateItem
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.starredShown
@@ -213,6 +215,7 @@ fun SongMenu(
         MenuItem("Add to queue", Icons.AutoMirrored.Rounded.QueueMusic, onDismiss) { actions.enqueue(listOf(song)) }
         if (!song.isRadio) {
             MenuItem("Add to playlist…", Icons.AutoMirrored.Rounded.PlaylistAdd, onDismiss) { actions.addToPlaylist(listOf(song)) }
+            MenuItem("Add to crate…", Icons.Rounded.Inventory2, onDismiss) { actions.addToCrate(CrateItem.Songs(listOf(song))) }
             if (starredShown(song)) {
                 MenuItem("Remove from favourites", Icons.Rounded.FavoriteBorder, onDismiss) { actions.setFavourite(song, false) }
             } else {
@@ -330,6 +333,11 @@ private fun SelectionBarContent(selection: SongSelection, songs: List<Song>, mod
                         text = { Text("Add to playlist…") },
                         leadingIcon = { Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null) },
                         onClick = { more = false; actions.addToPlaylist(picked); selection.clear() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Add to crate…") },
+                        leadingIcon = { Icon(Icons.Rounded.Inventory2, null) },
+                        onClick = { more = false; actions.addToCrate(CrateItem.Songs(picked)); selection.clear() },
                     )
                     DropdownMenuItem(
                         text = { Text("Add to favourites") },

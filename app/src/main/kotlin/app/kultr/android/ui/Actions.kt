@@ -7,9 +7,11 @@ import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.DownloadForOffline
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Radio
+import androidx.compose.material.icons.rounded.Sell
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
@@ -19,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.vector.ImageVector
 import app.kultr.android.AppGraph
+import app.kultr.android.data.CrateItem
 import app.kultr.android.data.MessageKind
 import app.kultr.android.ui.components.DragPayload
 import app.kultr.android.ui.components.DropAction
@@ -33,10 +36,12 @@ import kotlinx.coroutines.launch
 /** The Library's sections, in the order its list shows them. */
 enum class LibraryTab(val label: String, val icon: ImageVector) {
     PLAYLISTS("Playlists", Icons.AutoMirrored.Rounded.QueueMusic),
+    CRATES("Crates", Icons.Rounded.Inventory2),
     ARTISTS("Artists", Icons.Rounded.Person),
     ALBUMS("Albums", Icons.Rounded.Album),
     SONGS("Songs", Icons.Rounded.MusicNote),
     GENRES("Genres", Icons.Rounded.Category),
+    TAGS("Tags", Icons.Rounded.Sell),
     FAVOURITES("Favourites", Icons.Rounded.Favorite),
     DOWNLOADS("Downloads", Icons.Rounded.DownloadForOffline),
     RADIO("Radio", Icons.Rounded.Radio),
@@ -66,6 +71,8 @@ object Routes {
     const val UPDATE = "update"
     const val SHELF = "shelf/{id}"
     const val STATIONS = "stations"
+    const val CRATE = "crate/{id}"
+    const val TAG = "tag/{name}"
 
     fun library(tab: LibraryTab? = null) = if (tab == null) LIBRARY else "library/${tab.name}"
     fun album(id: String) = "album/${Uri.encode(id)}"
@@ -73,6 +80,8 @@ object Routes {
     fun playlist(id: String) = "playlist/${Uri.encode(id)}"
     fun genre(name: String) = "genre/${Uri.encode(name)}"
     fun shelf(id: String) = "shelf/${Uri.encode(id)}"
+    fun crate(id: String) = "crate/${Uri.encode(id)}"
+    fun tag(name: String) = "tag/${Uri.encode(name)}"
     fun downloads(page: DownloadsPage? = null) = if (page == null) "downloads" else "downloads?page=${page.name}"
 }
 
@@ -82,6 +91,7 @@ class Dialogs {
     var addToPlaylist by mutableStateOf<List<Song>?>(null)
     var rate by mutableStateOf<Song?>(null)
     var sleepTimer by mutableStateOf(false)
+    var addToCrate by mutableStateOf<CrateItem?>(null)
 }
 
 /**
@@ -113,6 +123,12 @@ class AppActions(
     fun openLibrary(tab: LibraryTab) = navigate(Routes.library(tab))
     fun openDownloads(page: DownloadsPage = DownloadsPage.NOW) = navigate(Routes.downloads(page))
     fun openUpdate() = navigate(Routes.UPDATE)
+    fun openCrate(id: String) = navigate(Routes.crate(id))
+    fun openTag(name: String) = navigate(Routes.tag(name))
+
+    fun addToCrate(item: CrateItem) {
+        dialogs.addToCrate = item
+    }
 
     fun play(songs: List<Song>, startIndex: Int = 0) = player.play(songs, startIndex, shuffle = false)
 
