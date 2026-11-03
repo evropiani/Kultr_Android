@@ -46,9 +46,9 @@ import app.kultr.android.ui.Routes
 import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AlbumCard
 import app.kultr.android.ui.components.EmptyState
-import app.kultr.android.ui.components.Loading
 import app.kultr.android.ui.components.SectionHeader
 import app.kultr.android.ui.components.Shelf
+import app.kultr.android.ui.components.SkeletonRows
 import app.kultr.android.ui.components.SongRow
 import app.kultr.android.ui.components.WideButton
 import app.kultr.android.ui.theme.Kultr
@@ -116,7 +116,7 @@ fun RecapScreen() {
             )
         }
         when {
-            history == null || (month != null && songs == null) -> item { Loading() }
+            history == null || (month != null && songs == null) -> item { SkeletonRows() }
             recap == null || recap.isEmpty -> item {
                 EmptyState(
                     Icons.Rounded.CalendarMonth,

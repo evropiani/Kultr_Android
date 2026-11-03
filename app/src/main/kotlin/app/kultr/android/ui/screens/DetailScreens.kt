@@ -60,12 +60,13 @@ import app.kultr.android.ui.components.ArtworkFill
 import app.kultr.android.ui.components.ConfirmDialog
 import app.kultr.android.ui.components.EmptyState
 import app.kultr.android.ui.components.InfoLine
-import app.kultr.android.ui.components.Loading
 import app.kultr.android.ui.components.MenuAction
 import app.kultr.android.ui.components.Pill
 import app.kultr.android.ui.components.SectionHeader
 import app.kultr.android.ui.components.SelectionBar
 import app.kultr.android.ui.components.Shelf
+import app.kultr.android.ui.components.SkeletonDetail
+import app.kultr.android.ui.components.SkeletonRows
 import app.kultr.android.ui.components.SongSelection
 import app.kultr.android.ui.components.TextInputDialog
 import app.kultr.android.ui.components.WideButton
@@ -179,7 +180,7 @@ fun AlbumScreen(id: String) {
     val selection = rememberSelection()
 
     if (shown == null) {
-        Column { BackBar(); Loading() }
+        Column { BackBar(); SkeletonDetail() }
         return
     }
     val discs = songs.groupBy { it.discNumber ?: 1 }
@@ -225,7 +226,7 @@ fun AlbumScreen(id: String) {
             )
         }
         if (songs.isEmpty()) {
-            item(key = "empty") { Loading() }
+            item(key = "empty") { SkeletonRows(count = 6, artwork = false) }
         }
         discs.forEach { (disc, discSongs) ->
             if (discs.size > 1) item(key = "disc$disc") { SectionHeader("Disc $disc") }
@@ -281,7 +282,7 @@ fun ArtistScreen(id: String) {
     var bioOpen by remember { mutableStateOf(false) }
 
     if (shown == null) {
-        Column { BackBar(); Loading() }
+        Column { BackBar(); SkeletonDetail() }
         return
     }
     val allAlbums = albums.ifEmpty { remote?.album.orEmpty() }

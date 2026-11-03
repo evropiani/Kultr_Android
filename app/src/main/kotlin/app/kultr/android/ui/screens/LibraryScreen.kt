@@ -66,12 +66,13 @@ import app.kultr.android.ui.components.AlbumCard
 import app.kultr.android.ui.components.ArtistCard
 import app.kultr.android.ui.components.Artwork
 import app.kultr.android.ui.components.EmptyState
-import app.kultr.android.ui.components.Loading
 import app.kultr.android.ui.components.Pill
 import app.kultr.android.ui.components.PlaylistCard
 import app.kultr.android.ui.components.SectionHeader
 import app.kultr.android.ui.components.SelectionBar
 import app.kultr.android.ui.components.Shelf
+import app.kultr.android.ui.components.SkeletonGrid
+import app.kultr.android.ui.components.SkeletonRows
 import app.kultr.android.ui.components.TextInputDialog
 import app.kultr.android.ui.components.minCell
 import app.kultr.android.ui.components.rememberSelection
@@ -217,7 +218,7 @@ private fun AlbumsTab(query: String) {
     val settings by actions.graph.settings.settings.collectAsStateWithLifecycle()
     val albums by remember { actions.graph.library.albums() }.collectAsStateWithLifecycle(null)
     var sort by rememberSaveable { mutableStateOf(AlbumSort.NAME) }
-    val list = albums ?: return Loading()
+    val list = albums ?: return SkeletonGrid(settings.gridSize.minCell())
     val shown = remember(list, query, sort) {
         val needle = query.trim().lowercase()
         val filtered = if (needle.isEmpty()) list else list.filter {
@@ -231,7 +232,7 @@ private fun AlbumsTab(query: String) {
             AlbumSort.PLAYS -> filtered.sortedByDescending { it.playCount ?: 0 }
         }
     }
-    if (list.isEmpty()) return EmptyLibrary()
+    if (list.isEmpty()) return EmptyLibrary(LibraryTab.ALBUMS)
     LazyVerticalGrid(
         columns = GridCells.Adaptive(settings.gridSize.minCell()),
         contentPadding = PaddingValues(start = 10.dp, top = 10.dp, end = 10.dp, bottom = chromePadding(10.dp)),
@@ -248,13 +249,26 @@ private fun AlbumsTab(query: String) {
 }
 
 @Composable
-fun EmptyLibrary() {
+fun EmptyLibrary(tab: LibraryTab) {
     val actions = LocalActions.current
+    val local = LocalMusicMode.current
+    val fill = if (local) {
+        "Choose the folders your music is in, and Kultr reads them."
+    } else {
+        "Kultr keeps a copy of your library on this phone. Sync it once, and after that only changes are fetched."
+    }
+    val (title, body) = when (tab) {
+        LibraryTab.ALBUMS -> "No albums yet" to fill
+        LibraryTab.ARTISTS -> "No artists yet" to fill
+        LibraryTab.SONGS -> "No tracks yet" to fill
+        LibraryTab.GENRES -> "No genres yet" to "Genres come from the tags in your music. $fill"
+        else -> "Nothing here yet" to fill
+    }
     EmptyState(
-        icon = Icons.Rounded.LibraryMusic,
-        title = "Nothing here yet",
-        body = "Sync your library to browse it on this phone.",
-        action = { Pill("Open Sync", accent = true, onClick = { actions.navigate(app.kultr.android.ui.Routes.SYNC) }) },
+        icon = tab.icon,
+        title = title,
+        body = body,
+        action = { Pill(if (local) "Open Sync" else "Sync my library", icon = Icons.Rounded.Refresh, accent = true, onClick = { actions.navigate(app.kultr.android.ui.Routes.SYNC) }) },
     )
 }
 
@@ -265,8 +279,8 @@ private fun ArtistsTab(query: String) {
     val actions = LocalActions.current
     val settings by actions.graph.settings.settings.collectAsStateWithLifecycle()
     val artists by remember { actions.graph.library.artists() }.collectAsStateWithLifecycle(null)
-    val list = artists ?: return Loading()
-    if (list.isEmpty()) return EmptyLibrary()
+    val list = artists ?: return SkeletonGrid(settings.gridSize.minCell(), round = true)
+    if (list.isEmpty()) return EmptyLibrary(LibraryTab.ARTISTS)
     val shown = remember(list, query) {
         val needle = query.trim().lowercase()
         if (needle.isEmpty()) list else list.filter { it.name.lowercase().contains(needle) }
@@ -295,8 +309,8 @@ private fun SongsTab(query: String) {
     val downloaded by graph.offline.downloadedIds.collectAsStateWithLifecycle()
     var sort by rememberSaveable { mutableStateOf(SongSort.TITLE) }
     val selection = rememberSelection()
-    val list = songs ?: return Loading()
-    if (list.isEmpty()) return EmptyLibrary()
+    val list = songs ?: return SkeletonRows()
+    if (list.isEmpty()) return EmptyLibrary(LibraryTab.SONGS)
     val shown = remember(list, query, sort) {
         val needle = query.trim().lowercase()
         val filtered = if (needle.isEmpty()) list else list.filter {
@@ -356,7 +370,7 @@ private fun PlaylistsTab(query: String) {
     val playlists by remember { graph.library.playlists() }.collectAsStateWithLifecycle(null)
     var creating by remember { mutableStateOf(false) }
     var refreshing by remember { mutableStateOf(false) }
-    val list = playlists ?: return Loading()
+    val list = playlists ?: return SkeletonRows()
     val shown = remember(list, query) {
         val needle = query.trim().lowercase()
         if (needle.isEmpty()) list else list.filter { it.name.lowercase().contains(needle) }
@@ -402,8 +416,8 @@ private fun PlaylistsTab(query: String) {
 private fun GenresTab(query: String) {
     val actions = LocalActions.current
     val genres by remember { actions.graph.library.genres() }.collectAsStateWithLifecycle(null)
-    val list = genres ?: return Loading()
-    if (list.isEmpty()) return EmptyLibrary()
+    val list = genres ?: return SkeletonRows()
+    if (list.isEmpty()) return EmptyLibrary(LibraryTab.GENRES)
     val shown = remember(list, query) {
         val needle = query.trim().lowercase()
         if (needle.isEmpty()) list else list.filter { it.value.lowercase().contains(needle) }
@@ -517,7 +531,7 @@ private fun RadioTab(query: String) {
             emptyList()
         }
     }
-    val list = stations ?: return Loading()
+    val list = stations ?: return SkeletonRows()
     val shown = remember(list, query, settings.favouriteRadios) {
         val needle = query.trim().lowercase()
         (if (needle.isEmpty()) list else list.filter { it.name.lowercase().contains(needle) })

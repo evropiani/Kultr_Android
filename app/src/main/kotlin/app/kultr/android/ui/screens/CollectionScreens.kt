@@ -73,10 +73,11 @@ import app.kultr.android.ui.components.ArtistCard
 import app.kultr.android.ui.components.ArtworkFill
 import app.kultr.android.ui.components.ConfirmDialog
 import app.kultr.android.ui.components.EmptyState
-import app.kultr.android.ui.components.Loading
 import app.kultr.android.ui.components.Pill
 import app.kultr.android.ui.components.SectionHeader
 import app.kultr.android.ui.components.Shelf
+import app.kultr.android.ui.components.SkeletonGrid
+import app.kultr.android.ui.components.SkeletonRows
 import app.kultr.android.ui.components.TextInputDialog
 import app.kultr.android.ui.components.WideButton
 import app.kultr.android.ui.components.minCell
@@ -281,7 +282,7 @@ fun TagScreen(tag: String) {
             PageTitle(tag)
         }
         val (albums, artists) = found ?: run {
-            item { Loading() }
+            item { SkeletonGrid(110.dp, count = 4) }
             return@LazyColumn
         }
         if (albums.isEmpty() && artists.isEmpty()) {
@@ -543,7 +544,7 @@ fun CrateScreen(id: String) {
         }
         val shown = contents
         when {
-            shown == null -> item { Loading() }
+            shown == null -> item { SkeletonRows() }
             crate.byRules -> {
                 item { SectionHeader("Tracks") }
                 songItems(songs, player.current?.id, downloaded, selection, onPlay = { actions.play(songs, it) }, compact = settings.compactRows)

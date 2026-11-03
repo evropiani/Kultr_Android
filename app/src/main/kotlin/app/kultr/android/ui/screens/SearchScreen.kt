@@ -46,10 +46,10 @@ import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.AlbumCard
 import app.kultr.android.ui.components.ArtistCard
 import app.kultr.android.ui.components.EmptyState
-import app.kultr.android.ui.components.Loading
 import app.kultr.android.ui.components.SectionHeader
 import app.kultr.android.ui.components.SelectionBar
 import app.kultr.android.ui.components.Shelf
+import app.kultr.android.ui.components.SkeletonRows
 import app.kultr.android.ui.components.rememberSelection
 import app.kultr.android.ui.components.songItems
 import app.kultr.android.ui.theme.Kultr
@@ -134,7 +134,7 @@ fun SearchScreen(query: String, onRun: (KultrCommand) -> Unit) {
                     )
                 }
                 lookFor.length < 2 -> Unit
-                loading && results.isEmpty -> item { Loading() }
+                loading && results.isEmpty -> item { SkeletonRows() }
                 error != null -> item { EmptyState(Icons.Rounded.CloudQueue, "Search failed", body = error) }
                 results.isEmpty && command != null -> Unit
                 results.isEmpty -> item { EmptyState(Icons.Rounded.Search, "Nothing matches “$trimmed”", body = "Check the spelling, or try fewer words.") }

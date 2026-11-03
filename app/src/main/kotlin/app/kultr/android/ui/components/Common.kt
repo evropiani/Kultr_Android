@@ -1,16 +1,23 @@
 package app.kultr.android.ui.components
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,18 +31,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.kultr.android.ui.theme.EyebrowStyle
 import app.kultr.android.ui.theme.Kultr
+import app.kultr.android.ui.theme.LocalReduceMotion
 
 /** A translucent panel with an accent-tinted edge — Kultr's "glass". */
 @Composable
@@ -203,6 +214,87 @@ fun EmptyState(
             Text(body, style = MaterialTheme.typography.bodyMedium, color = Kultr.colors.ink2, textAlign = TextAlign.Center)
         }
         action?.invoke()
+    }
+}
+
+/** Placeholders breathe gently while their page loads; still with Reduce motion. */
+@Composable
+private fun Modifier.placeholder(): Modifier {
+    if (LocalReduceMotion.current) return this
+    val pulse by rememberInfiniteTransition(label = "placeholder").animateFloat(
+        1f,
+        0.55f,
+        infiniteRepeatable(tween(900), RepeatMode.Reverse),
+        label = "pulse",
+    )
+    return this.graphicsLayer { alpha = pulse }
+}
+
+private val SKELETON_WIDTHS = listOf(0.62f to 0.38f, 0.48f to 0.3f, 0.7f to 0.44f, 0.55f to 0.26f, 0.66f to 0.4f)
+
+/** A list still loading: the shape of its rows, not a spinner. */
+@Composable
+fun SkeletonRows(modifier: Modifier = Modifier, count: Int = 8, artwork: Boolean = true) {
+    val fill = Kultr.colors.sand
+    Column(modifier.fillMaxWidth().placeholder()) {
+        repeat(count) { i ->
+            val (title, subtitle) = SKELETON_WIDTHS[i % SKELETON_WIDTHS.size]
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).height(44.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (artwork) {
+                    Box(Modifier.size(44.dp).clip(RoundedCornerShape(6.dp)).background(fill))
+                    Spacer(Modifier.width(12.dp))
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.fillMaxWidth(title).height(12.dp).clip(RoundedCornerShape(50)).background(fill))
+                    Box(Modifier.fillMaxWidth(subtitle).height(10.dp).clip(RoundedCornerShape(50)).background(fill))
+                }
+            }
+        }
+    }
+}
+
+/** A grid of covers still loading. */
+@Composable
+fun SkeletonGrid(minCell: Dp, modifier: Modifier = Modifier, count: Int = 12, round: Boolean = false) {
+    val fill = Kultr.colors.sand
+    val shape = if (round) CircleShape else RoundedCornerShape(Kultr.radii.md)
+    BoxWithConstraints(modifier.fillMaxWidth().padding(10.dp).placeholder()) {
+        val columns = (maxWidth / minCell).toInt().coerceAtLeast(1)
+        Column {
+            (0 until count).chunked(columns).forEach { row ->
+                Row {
+                    row.forEach { _ ->
+                        Column(Modifier.weight(1f).padding(6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(shape).background(fill))
+                            Box(Modifier.fillMaxWidth(0.75f).height(12.dp).clip(RoundedCornerShape(50)).background(fill))
+                            Box(Modifier.fillMaxWidth(0.5f).height(10.dp).clip(RoundedCornerShape(50)).background(fill))
+                        }
+                    }
+                    repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+        }
+    }
+}
+
+/** An album, artist or playlist page still loading: the cover, the title, the buttons, then tracks. */
+@Composable
+fun SkeletonDetail(modifier: Modifier = Modifier) {
+    val fill = Kultr.colors.sand
+    Column(modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).placeholder(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.size(220.dp).clip(RoundedCornerShape(Kultr.radii.lg)).background(fill))
+            Spacer(Modifier.height(18.dp))
+            Box(Modifier.fillMaxWidth(0.6f).height(22.dp).clip(RoundedCornerShape(50)).background(fill))
+            Spacer(Modifier.height(10.dp))
+            Box(Modifier.fillMaxWidth(0.4f).height(14.dp).clip(RoundedCornerShape(50)).background(fill))
+            Spacer(Modifier.height(18.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                repeat(2) { Box(Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(Kultr.radii.md)).background(fill)) }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        SkeletonRows(count = 6, artwork = false)
     }
 }
 
