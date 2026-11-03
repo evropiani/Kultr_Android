@@ -323,6 +323,7 @@ fun GlassNavigationBar(
     onBack: () -> Unit,
     query: String,
     onQueryChange: (String) -> Unit,
+    onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val reduce = LocalReduceMotion.current
@@ -368,6 +369,7 @@ fun GlassNavigationBar(
                 query = query,
                 onQueryChange = onQueryChange,
                 onSearch = onSearch,
+                onSubmit = onSubmit,
                 focus = focus,
                 modifier = Modifier.width(right),
             )
@@ -382,6 +384,7 @@ private fun SearchCapsule(
     query: String,
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
+    onSubmit: () -> Unit,
     focus: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
@@ -427,7 +430,10 @@ private fun SearchCapsule(
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.ink),
                     cursorBrush = SolidColor(colors.accent),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
+                    keyboardActions = KeyboardActions(onSearch = {
+                        keyboard?.hide()
+                        onSubmit()
+                    }),
                     modifier = Modifier.fillMaxWidth().focusRequester(focus),
                     decorationBox = { field ->
                         if (query.isEmpty()) {

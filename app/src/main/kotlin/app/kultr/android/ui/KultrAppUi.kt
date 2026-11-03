@@ -75,8 +75,10 @@ import app.kultr.android.ui.components.rememberGlassBackdrop
 import app.kultr.android.ui.player.ArtworkBackdrop
 import app.kultr.android.ui.player.MiniPlayer
 import app.kultr.android.ui.player.NowPlayingScreen
+import app.kultr.android.ui.screens.AddToCrateDialog
 import app.kultr.android.ui.screens.AlbumScreen
 import app.kultr.android.ui.screens.ArtistScreen
+import app.kultr.android.ui.screens.CrateScreen
 import app.kultr.android.ui.screens.DownloadIndicator
 import app.kultr.android.ui.screens.DownloadsScreen
 import app.kultr.android.ui.screens.GenreScreen
@@ -84,18 +86,16 @@ import app.kultr.android.ui.screens.HomeScreen
 import app.kultr.android.ui.screens.LibraryScreen
 import app.kultr.android.ui.screens.LibrarySectionScreen
 import app.kultr.android.ui.screens.LoginScreen
+import app.kultr.android.ui.screens.PlannerScreen
 import app.kultr.android.ui.screens.PlaylistScreen
+import app.kultr.android.ui.screens.RecapScreen
 import app.kultr.android.ui.screens.SearchScreen
 import app.kultr.android.ui.screens.SettingsScreen
 import app.kultr.android.ui.screens.ShelfScreen
 import app.kultr.android.ui.screens.StationsScreen
-import app.kultr.android.ui.screens.RecapScreen
-import app.kultr.android.ui.screens.PlannerScreen
-import app.kultr.android.ui.screens.AddToCrateDialog
-import app.kultr.android.ui.screens.CrateScreen
-import app.kultr.android.ui.screens.TagScreen
 import app.kultr.android.ui.screens.StatsScreen
 import app.kultr.android.ui.screens.SyncScreen
+import app.kultr.android.ui.screens.TagScreen
 import app.kultr.android.ui.screens.UpdateBanner
 import app.kultr.android.ui.screens.UpdateScreen
 import app.kultr.android.ui.screens.WelcomeFlow
@@ -104,6 +104,7 @@ import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.settings.AccentMode
 import app.kultr.core.settings.Settings
 import app.kultr.core.util.ArtworkColor
+import app.kultr.core.util.KultrCommand
 import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
@@ -294,6 +295,11 @@ private fun MainUi(
         }
     }
 
+    fun runCommand(command: KultrCommand) {
+        Commands.run(command, actions) { route -> Tab.entries.firstOrNull { it.route == route }?.let(::openTab) }
+        searchQuery = ""
+    }
+
     val activeProfile by graph.auth.active.collectAsStateWithLifecycle()
     CompositionLocalProvider(
         LocalActions provides actions,
@@ -328,7 +334,7 @@ private fun MainUi(
                             ?: LibraryTab.ALBUMS
                         LibrarySectionScreen(tab)
                     }
-                    composable(Routes.SEARCH) { SearchScreen(searchQuery) }
+                    composable(Routes.SEARCH) { SearchScreen(searchQuery, onRun = ::runCommand) }
                     composable(Routes.SETTINGS) { SettingsScreen(onAddServer = onAddServer, onSignIn = onSignIn) }
                     composable(Routes.ALBUM) { AlbumScreen(it.arguments?.getString("id").orEmpty()) }
                     composable(Routes.ARTIST) { ArtistScreen(it.arguments?.getString("id").orEmpty()) }
@@ -388,6 +394,7 @@ private fun MainUi(
                         onBack = { openTab(lastTab) },
                         query = searchQuery,
                         onQueryChange = { searchQuery = it },
+                        onSubmit = { Commands.parse(searchQuery.trim(), actions)?.let(::runCommand) },
                     )
                 }
             }

@@ -150,3 +150,39 @@ class RecapTest {
         assertEquals(100, recap.previousSeconds)
     }
 }
+
+class CommandsTest {
+    private val stations = listOf("Night Drive", "Warm Up")
+    private val crates = listOf("Digging")
+
+    private fun parse(text: String) = parseCommand(text, stations, crates)
+
+    @org.junit.Test
+    fun plainWordsBecomeCommands() {
+        assertEquals(KultrCommand.Pause, parse("Pause"))
+        assertEquals(KultrCommand.Next, parse("skip this!"))
+        assertEquals(KultrCommand.ShuffleAll, parse("surprise me"))
+        assertEquals(KultrCommand.SleepAfterTrack, parse("stop after this song"))
+        assertEquals(KultrCommand.Sleep(30), parse("sleep in half an hour"))
+        assertEquals(KultrCommand.Sleep(45), parse("timer 45"))
+        assertEquals(KultrCommand.Sleep(120), parse("sleep timer 2 hours"))
+        assertEquals(KultrCommand.Sleep(90), parse("sleep 90min"))
+        assertEquals(KultrCommand.Plan(60), parse("plan an hour"))
+        assertEquals(KultrCommand.Plan(null), parse("plan a set"))
+        assertEquals(KultrCommand.Open(CommandPlace.SETTINGS), parse("open settings"))
+        assertEquals(KultrCommand.Open(CommandPlace.RECAP), parse("show my monthly recap"))
+        assertEquals(KultrCommand.Open(CommandPlace.LISTENING), parse("go to stats"))
+    }
+
+    @org.junit.Test
+    fun namesBeatSearches() {
+        assertEquals(KultrCommand.Station("Night Drive"), parse("play night drive"))
+        assertEquals(KultrCommand.Station("Warm Up"), parse("tune in to warm"))
+        assertEquals(KultrCommand.PlayCrate("Digging"), parse("play digging"))
+        assertEquals(KultrCommand.Crate("Digging"), parse("open digging"))
+        assertEquals(KultrCommand.Play("radiohead"), parse("play some radiohead"))
+        assertEquals(KultrCommand.Shuffle("daft punk"), parse("shuffle daft punk"))
+        assertNull(parse("radiohead"))
+        assertNull(parse("sleep well"))
+    }
+}

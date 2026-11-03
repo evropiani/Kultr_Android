@@ -1,15 +1,26 @@
 package app.kultr.android.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardReturn
 import androidx.compose.material.icons.rounded.CloudQueue
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -22,10 +33,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.data.SearchResults
 import app.kultr.android.data.db.Counts
+import app.kultr.android.ui.Commands
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.chromePadding
@@ -40,6 +54,7 @@ import app.kultr.android.ui.components.rememberSelection
 import app.kultr.android.ui.components.songItems
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.describeError
+import app.kultr.core.util.KultrCommand
 import kotlinx.coroutines.delay
 
 /**
@@ -49,7 +64,7 @@ import kotlinx.coroutines.delay
  * grown out of the search button; this page shows what it finds.
  */
 @Composable
-fun SearchScreen(query: String) {
+fun SearchScreen(query: String, onRun: (KultrCommand) -> Unit) {
     val actions = LocalActions.current
     val graph = actions.graph
     val counts by graph.library.counts.collectAsStateWithLifecycle(Counts(0, 0, 0, 0, 0))
@@ -63,9 +78,13 @@ fun SearchScreen(query: String) {
     val local = LocalMusicMode.current
     // The phone's own music is all in the library; only a server has more to ask.
     val useServer = !local && (serverSearch || counts.songs == 0)
+    val trimmed = query.trim()
+    // A command searches for what it names ("shuffle love" → "love"), or for nothing.
+    val command = remember(trimmed) { Commands.parse(trimmed, actions) }
+    val lookFor = Commands.subject(command) ?: trimmed
 
-    LaunchedEffect(query, useServer) {
-        val q = query.trim()
+    LaunchedEffect(lookFor, useServer) {
+        val q = lookFor
         if (q.length < 2) {
             results = SearchResults()
             error = null
@@ -104,13 +123,21 @@ fun SearchScreen(query: String) {
         }
         SelectionBar(selection, results.songs)
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = chromePadding())) {
+            // The command bar: words Kultr can do, above what it finds.
+            command?.let { item(key = "command") { CommandRow(it) { onRun(it) } } }
             when {
-                query.trim().length < 2 -> item {
-                    EmptyState(Icons.Rounded.Search, "Find anything", body = "Type at least two letters.")
+                trimmed.length < 2 -> item {
+                    EmptyState(
+                        Icons.Rounded.Search,
+                        "Find anything, or say what to do",
+                        body = "Type at least two letters. Or try “play Night Drive”, “shuffle” and an artist, “sleep in 30 minutes”, “next” or “plan an hour”.",
+                    )
                 }
+                lookFor.length < 2 -> Unit
                 loading && results.isEmpty -> item { Loading() }
                 error != null -> item { EmptyState(Icons.Rounded.CloudQueue, "Search failed", body = error) }
-                results.isEmpty -> item { EmptyState(Icons.Rounded.Search, "Nothing matches “${query.trim()}”") }
+                results.isEmpty && command != null -> Unit
+                results.isEmpty -> item { EmptyState(Icons.Rounded.Search, "Nothing matches “$trimmed”", body = "Check the spelling, or try fewer words.") }
                 else -> {
                     if (results.artists.isNotEmpty()) {
                         item(key = "artists") {
@@ -139,5 +166,32 @@ fun SearchScreen(query: String) {
                 }
             }
         }
+    }
+}
+
+/** A command the words make: tap it, or press Search on the keyboard, and Kultr does it. */
+@Composable
+private fun CommandRow(command: KultrCommand, onRun: () -> Unit) {
+    val colors = Kultr.colors
+    val (icon, text) = Commands.describe(command)
+    Row(
+        Modifier
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(colors.sand)
+            .clickable(onClick = onRun)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(40.dp).clip(CircleShape).background(colors.accent), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = colors.onAccent)
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(text, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = colors.ink, maxLines = 2)
+            Text("Tap, or press Search on the keyboard", style = MaterialTheme.typography.bodySmall, color = colors.ink3)
+        }
+        Icon(Icons.AutoMirrored.Rounded.KeyboardReturn, contentDescription = null, tint = colors.ink3)
     }
 }
