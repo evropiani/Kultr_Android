@@ -144,6 +144,7 @@ fun HomeScreen() {
             }
         }
 
+        if (counts.albums > 0 && settings.showHomeWidgets) item(key = "widgets") { HomeWidgetsGrid() }
         if (counts.albums == 0 && local) {
             item(key = "empty") { LocalEmptyState(syncing) }
         } else if (counts.albums == 0) {

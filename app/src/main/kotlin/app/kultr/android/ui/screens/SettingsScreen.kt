@@ -349,6 +349,8 @@ private fun HomeSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) 
     val on = resolveHomeTiles(s.homeTiles)
     val off = availableHomeTiles(s.homeTiles)
     var adding by remember { mutableStateOf(false) }
+    HomeWidgetSettings()
+    Spacer(Modifier.height(8.dp))
     Text(
         "Shelves are shown in this order. One with nothing in it is skipped.",
         color = Kultr.colors.ink3,
