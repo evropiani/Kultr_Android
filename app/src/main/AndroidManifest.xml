@@ -33,6 +33,13 @@
                 <action android:name="android.intent.action.MUSIC_PLAYER" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <!-- A Kultr Studio style someone shared: kultr://style/… -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="kultr" android:host="style" />
+            </intent-filter>
             <!-- "Play … on Kultr" from the assistant and Android Auto voice search. -->
             <intent-filter>
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />

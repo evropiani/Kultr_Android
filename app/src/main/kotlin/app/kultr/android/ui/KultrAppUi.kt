@@ -89,6 +89,8 @@ import app.kultr.android.ui.screens.LoginScreen
 import app.kultr.android.ui.screens.PlannerScreen
 import app.kultr.android.ui.screens.PlaylistScreen
 import app.kultr.android.ui.screens.RecapScreen
+import app.kultr.android.ui.screens.StudioScreen
+import app.kultr.android.ui.screens.StylePreviewDialog
 import app.kultr.android.ui.screens.SearchScreen
 import app.kultr.android.ui.screens.SettingsScreen
 import app.kultr.android.ui.screens.ShelfScreen
@@ -346,6 +348,7 @@ private fun MainUi(
                     composable(Routes.SHELF) { ShelfScreen(it.arguments?.getString("id").orEmpty()) }
                     composable(Routes.STATIONS) { StationsScreen() }
                     composable(Routes.RECAP) { RecapScreen() }
+                    composable(Routes.STUDIO) { StudioScreen() }
                     composable(
                         Routes.PLANNER,
                         arguments = listOf(navArgument("minutes") { type = NavType.StringType; nullable = true; defaultValue = null }),
@@ -458,6 +461,8 @@ private fun MainUi(
 
         dialogs.addToPlaylist?.let { songs -> AddToPlaylistDialog(songs, onDismiss = { dialogs.addToPlaylist = null }) }
         dialogs.addToCrate?.let { item -> AddToCrateDialog(item, onDismiss = { dialogs.addToCrate = null }) }
+        val incomingStyle by graph.incomingStyle.collectAsStateWithLifecycle()
+        incomingStyle?.let { style -> StylePreviewDialog(style, onDone = { graph.incomingStyle.value = null }) }
         dialogs.rate?.let { song -> RatingDialog(song, onDismiss = { dialogs.rate = null }) }
         if (dialogs.sleepTimer) SleepTimerDialog(onDismiss = { dialogs.sleepTimer = false })
     }

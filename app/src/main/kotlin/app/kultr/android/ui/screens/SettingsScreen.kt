@@ -29,6 +29,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -91,6 +92,7 @@ import app.kultr.android.data.UpdateCheck
 import app.kultr.android.ui.AppIcon
 import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.MusicFolders
+import app.kultr.android.ui.Routes
 import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.BrandIcons
 import app.kultr.android.ui.components.ConfirmDialog
@@ -229,6 +231,12 @@ private fun SettingSlider(
 
 @Composable
 private fun AppearanceSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) {
+    val actions = LocalActions.current
+    SettingRow(
+        "Kultr Studio",
+        hint = "Ready-made styles, the player's layout and its info line; share your look as a link.",
+        onClick = { actions.navigate(Routes.STUDIO) },
+    ) { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = Kultr.colors.ink3) }
     Choice("Theme", listOf(ThemeMode.SYSTEM to "System", ThemeMode.LIGHT to "Light", ThemeMode.DARK to "Dark"), s.theme) { v -> update { it.copy(theme = v) } }
     Toggle(
         "Night mode",
@@ -273,6 +281,7 @@ private fun AppearanceSettings(s: Settings, update: ((Settings) -> Settings) -> 
         ) { v -> update { it.copy(accentBlend = v.roundToInt()) } }
     }
     Toggle("Blurred artwork background", s.backdropArtwork) { v -> update { it.copy(backdropArtwork = v) } }
+    Toggle("Clear glass", s.clearGlass, hint = "The floating bar and buttons show more of the page through them.") { v -> update { it.copy(clearGlass = v) } }
     Choice("Corners", listOf(CornerStyle.SHARP to "Sharp", CornerStyle.SOFT to "Soft", CornerStyle.ROUND to "Round"), s.corners) { v -> update { it.copy(corners = v) } }
     Choice("Panel borders", listOf(SurfaceBorder.NEUTRAL to "Neutral", SurfaceBorder.ACCENT to "Accent"), s.surfaceBorder) { v -> update { it.copy(surfaceBorder = v) } }
     SettingSlider("Border opacity", s.borderOpacity.toFloat(), 0f..100f, { "${it.roundToInt()}%" }) { v -> update { it.copy(borderOpacity = v.roundToInt()) } }

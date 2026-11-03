@@ -25,6 +25,7 @@ import app.kultr.android.ui.KultrAppUi
 import app.kultr.android.ui.rememberAccent
 import app.kultr.android.ui.theme.KultrTheme
 import app.kultr.android.ui.theme.isDark
+import app.kultr.core.settings.StudioStyle
 import kotlinx.coroutines.launch
 
 class KultrActivity : ComponentActivity() {
@@ -79,6 +80,10 @@ class KultrActivity : ComponentActivity() {
         intent ?: return
         if (intent.getBooleanExtra(EXTRA_OPEN_PLAYER, false)) openPlayerRequest++
         if (intent.getBooleanExtra(OfflineManager.EXTRA_OPEN_DOWNLOADS, false)) openDownloadsRequest++
+        // A Kultr Studio style link: shown first, used only if asked.
+        if (intent.action == Intent.ACTION_VIEW && intent.data?.scheme == "kultr") {
+            StudioStyle.read(intent.dataString.orEmpty())?.let { KultrApp.graph.incomingStyle.value = it }
+        }
         if (intent.action == MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH) {
             val query = intent.getStringExtra(SearchManager.QUERY).orEmpty().trim()
             KultrApp.graph.scope.launch { playFromSearch(query) }

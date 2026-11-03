@@ -87,15 +87,17 @@ fun Modifier.glass(shape: Shape, tint: Color? = null, blur: Dp = 18.dp): Modifie
     val layer = if (source != null) rememberGraphicsLayer() else null
     val colors = Kultr.colors
     val density = LocalDensity.current
-    val effects = remember(density) { GlassEffects(with(density) { blur.toPx() }, with(density) { 8.dp.toPx() }) }
+    val effects = remember(density, colors.clearGlass) {
+        GlassEffects(with(density) { (if (colors.clearGlass) blur * 0.45f else blur).toPx() }, with(density) { 8.dp.toPx() })
+    }
     var position by remember { mutableStateOf(Offset.Zero) }
 
     // A thin tint, so the colours behind show through; without a blur it has
     // to carry the legibility on its own, so it is nearly solid.
     val fill = tint ?: when {
-        layer == null -> colors.elevated.copy(alpha = 0.92f)
-        colors.dark -> Color(0xFF15151E).copy(alpha = 0.4f)
-        else -> Color.White.copy(alpha = 0.42f)
+        layer == null -> colors.elevated.copy(alpha = if (colors.clearGlass) 0.8f else 0.92f)
+        colors.dark -> Color(0xFF15151E).copy(alpha = if (colors.clearGlass) 0.16f else 0.4f)
+        else -> Color.White.copy(alpha = if (colors.clearGlass) 0.18f else 0.42f)
     }
     val light = if (colors.dark) Color.White.copy(alpha = 0.34f) else Color.White
     val shade = if (colors.dark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.07f)

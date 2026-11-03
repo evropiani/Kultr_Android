@@ -85,3 +85,36 @@ class SettingsFileTest {
         assertEquals(10, Settings(eqGains = listOf(1.0)).eqBandGains.size)
     }
 }
+
+class StudioTest {
+    @org.junit.Test
+    fun templatesShowWhatTheTrackHas() {
+        val template = "{year}{?genre: · {genre}}{?bpm: · {bpm} BPM}"
+        kotlin.test.assertEquals("2019 · Electronic", renderTemplate(template, mapOf("year" to "2019", "genre" to "Electronic")))
+        kotlin.test.assertEquals("2019 · 124 BPM", renderTemplate(template, mapOf("year" to "2019", "bpm" to "124")))
+        kotlin.test.assertEquals("a{b", renderTemplate("a{b", emptyMap()))
+    }
+
+    @org.junit.Test
+    fun stylesTravelAsLinks() {
+        val console = STUDIO_PRESETS.first { it.name == "Console" }
+        val back = StudioStyle.read(console.link)
+        kotlin.test.assertEquals(console, back)
+        val applied = console.appliedTo(Settings(karousel = true))
+        kotlin.test.assertTrue(applied.karousel)
+        kotlin.test.assertTrue(console.matches(applied))
+        kotlin.test.assertFalse(console.matches(Settings()))
+        // A link from Kultr for iOS leaves out what it doesn't know.
+        val ios = StudioStyle.read("""{"name":"Mine","theme":"dark","corners":"round","playerBlocks":[]}""")
+        kotlin.test.assertEquals(ThemeMode.DARK, ios?.theme)
+        kotlin.test.assertEquals(PlayerBlock.entries, ios?.playerBlocks)
+        kotlin.test.assertNull(StudioStyle.read("not a style"))
+    }
+
+    @org.junit.Test
+    fun smallWidgetsPairUp() {
+        val w = { size: HomeWidget.Size -> HomeWidget(size = size) }
+        val rows = homeWidgetRows(listOf(w(HomeWidget.Size.SMALL), w(HomeWidget.Size.MEDIUM), w(HomeWidget.Size.SMALL), w(HomeWidget.Size.SMALL), w(HomeWidget.Size.SMALL)))
+        kotlin.test.assertEquals(listOf(listOf(0), listOf(1), listOf(2, 3), listOf(4)), rows)
+    }
+}

@@ -180,6 +180,17 @@ data class Settings(
     val annotations: Map<String, NoteAndTags> = emptyMap(),
     /** Your crates, in the order Library shows them. */
     val crates: List<Crate> = emptyList(),
+
+    // ---- Kultr Studio and Home widgets
+    /** The widgets at the top of Home, in order. */
+    val homeWidgets: List<HomeWidget> = DEFAULT_HOME_WIDGETS,
+    val showHomeWidgets: Boolean = true,
+    /** Glass you can see more of the page through. */
+    val clearGlass: Boolean = false,
+    /** The player's parts, top to bottom; a part left out is hidden. */
+    val playerBlocks: List<PlayerBlock> = PlayerBlock.entries,
+    /** The player's info line as a template ([renderTemplate]); empty for Kultr's own. */
+    val factsTemplate: String = "",
 ) {
     /** EQ gains, always exactly one per band. */
     val eqBandGains: List<Double>

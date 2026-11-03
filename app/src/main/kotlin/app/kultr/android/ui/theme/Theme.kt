@@ -39,6 +39,8 @@ data class KultrColors(
     val dark: Boolean,
     /** Night mode: dark, with pure black behind everything for OLED screens. */
     val night: Boolean = false,
+    /** Kultr Studio's clear glass: more of the page shows through floating controls. */
+    val clearGlass: Boolean = false,
     val accent: Color,
     val onAccent: Color,
     val background: Color,
@@ -114,6 +116,7 @@ fun kultrColors(dark: Boolean, accent: Color, settings: Settings): KultrColors {
         KultrColors(
             dark = true,
             night = night,
+            clearGlass = settings.clearGlass,
             accent = accent,
             onAccent = onAccent,
             background = if (night) Color.Black else Color(0xFF1C1A17),
@@ -131,6 +134,7 @@ fun kultrColors(dark: Boolean, accent: Color, settings: Settings): KultrColors {
         val paper = Color(0xFFFFFCF6)
         KultrColors(
             dark = false,
+            clearGlass = settings.clearGlass,
             accent = accent,
             onAccent = onAccent,
             background = Color(0xFFF6F0E5),

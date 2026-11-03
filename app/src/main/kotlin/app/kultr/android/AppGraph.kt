@@ -19,6 +19,8 @@ import app.kultr.android.data.UiMessages
 import app.kultr.android.data.Updates
 import app.kultr.android.data.buildHttpClient
 import app.kultr.android.data.db.KultrDatabase
+import app.kultr.core.settings.StudioStyle
+import kotlinx.coroutines.flow.MutableStateFlow
 import app.kultr.android.playback.PlaybackHub
 import app.kultr.android.playback.PlayerConnection
 import kotlinx.coroutines.CoroutineScope
@@ -78,6 +80,9 @@ class AppGraph(val app: Application) {
     val crates = CrateLibrary(this)
     val updates = Updates(this)
     val hub = PlaybackHub()
+
+    /** A Kultr Studio style someone shared (a kultr://style/ link or file), waiting to be looked at. */
+    val incomingStyle = MutableStateFlow<StudioStyle?>(null)
     val player = PlayerConnection(this)
 
     /** Streamed audio is cached, so replays and seeks do not refetch. */

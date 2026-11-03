@@ -103,6 +103,8 @@ import app.kultr.android.ui.starredShown
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.Song
 import app.kultr.core.dsp.TrackAnalysis
+import app.kultr.core.settings.PlayerBlock
+import app.kultr.core.settings.renderTemplate
 import app.kultr.core.util.Format
 import app.kultr.core.util.LyricsDoc
 import coil3.compose.AsyncImage
@@ -203,69 +205,38 @@ fun NowPlayingScreen(state: PlayerUiState, onClose: () -> Unit) {
             item(key = "header") {
                 Column(Modifier.statusBarsPadding().padding(horizontal = 20.dp)) {
                     PlayerTopBar(current, settings.injektEnabled, downloaded.contains(current.id), onClose)
-                    Spacer(Modifier.height(8.dp))
-                    SwipeArtwork(current)
-                    Spacer(Modifier.height(20.dp))
-                    Text(
-                        current.title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = colors.ink,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                        Text(
-                            current.artist.orEmpty(),
-                            color = colors.ink2,
-                            style = MaterialTheme.typography.bodyLarge,
-                            maxLines = 1,
-                            modifier = Modifier.clickable(enabled = current.artistId != null) {
-                                onClose()
-                                actions.openArtist(current.artistId)
-                            },
-                        )
-                        if (!current.album.isNullOrEmpty() && !current.isRadio) {
-                            Text(" — ", color = colors.ink3)
-                            Text(
-                                current.album.orEmpty(),
-                                color = colors.ink2,
-                                style = MaterialTheme.typography.bodyLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false).clickable(enabled = current.albumId != null) {
-                                    onClose()
-                                    actions.openAlbum(current.albumId)
-                                },
-                            )
+                    // Kultr Studio decides the order, and which parts show.
+                    settings.playerBlocks.forEach { block ->
+                        when (block) {
+                            PlayerBlock.ARTWORK -> {
+                                Spacer(Modifier.height(8.dp))
+                                SwipeArtwork(current)
+                                Spacer(Modifier.height(12.dp))
+                            }
+                            PlayerBlock.TITLE -> {
+                                Spacer(Modifier.height(8.dp))
+                                SongTitle(current, onClose)
+                            }
+                            PlayerBlock.FACTS -> {
+                                Spacer(Modifier.height(10.dp))
+                                SongFacts(current, settings.factsTemplate, onClose)
+                            }
+                            PlayerBlock.PROGRESS -> {
+                                Spacer(Modifier.height(16.dp))
+                                Scrubber(
+                                    positionMs = position,
+                                    durationMs = state.durationMs,
+                                    onSeek = { graph.player.seekTo(it) },
+                                    style = settings.playhead,
+                                    plan = plan,
+                                    countDown = settings.timeRemaining,
+                                    onToggleCountDown = { graph.settings.update { it.copy(timeRemaining = !it.timeRemaining) } },
+                                    reduceMotion = settings.reduceMotion,
+                                )
+                            }
+                            PlayerBlock.TRANSPORT -> Transport(state, current)
                         }
                     }
-                    Spacer(Modifier.height(10.dp))
-                    InfoLine(
-                        listOfNotNull(
-                            current.year?.let { "$it" to null },
-                            current.genre?.let { genre -> genre to { onClose(); actions.openGenre(genre) } },
-                            current.suffix?.let { it.uppercase() to null },
-                            current.bitRate?.let { "$it kbps" to null },
-                            current.userRating?.takeIf { it > 0 }?.let { "$it ★" to { actions.rate(current) } },
-                        ),
-                        Modifier.fillMaxWidth(),
-                        center = true,
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Scrubber(
-                        positionMs = position,
-                        durationMs = state.durationMs,
-                        onSeek = { graph.player.seekTo(it) },
-                        style = settings.playhead,
-                        plan = plan,
-                        countDown = settings.timeRemaining,
-                        onToggleCountDown = { graph.settings.update { it.copy(timeRemaining = !it.timeRemaining) } },
-                        reduceMotion = settings.reduceMotion,
-                    )
-                    Transport(state, current)
                     Spacer(Modifier.height(12.dp))
                     Segmented(
                         options = PlayerTab.entries.filter { it != PlayerTab.LYRICS || settings.showLyrics }.map { it to it.label },
@@ -282,6 +253,94 @@ fun NowPlayingScreen(state: PlayerUiState, onClose: () -> Unit) {
             }
         }
     }
+}
+
+/** The title, and the artist and album, each opening its page. */
+@Composable
+private fun SongTitle(current: Song, onClose: () -> Unit) {
+    val actions = LocalActions.current
+    val colors = Kultr.colors
+    Text(
+        current.title,
+        style = MaterialTheme.typography.headlineSmall,
+        color = colors.ink,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Spacer(Modifier.height(4.dp))
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+        Text(
+            current.artist.orEmpty(),
+            color = colors.ink2,
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 1,
+            modifier = Modifier.clickable(enabled = current.artistId != null) {
+                onClose()
+                actions.openArtist(current.artistId)
+            },
+        )
+        if (!current.album.isNullOrEmpty() && !current.isRadio) {
+            Text(" — ", color = colors.ink3)
+            Text(
+                current.album.orEmpty(),
+                color = colors.ink2,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false).clickable(enabled = current.albumId != null) {
+                    onClose()
+                    actions.openAlbum(current.albumId)
+                },
+            )
+        }
+    }
+}
+
+/**
+ * Year, genre, format, bitrate and rating as one line, the genre and rating
+ * tappable; or, with a template from Kultr Studio, whatever that says.
+ */
+@Composable
+private fun SongFacts(current: Song, template: String, onClose: () -> Unit) {
+    val actions = LocalActions.current
+    if (template.isBlank()) {
+        InfoLine(
+            listOfNotNull(
+                current.year?.let { "$it" to null },
+                current.genre?.let { genre -> genre to { onClose(); actions.openGenre(genre) } },
+                current.suffix?.let { it.uppercase() to null },
+                current.bitRate?.let { "$it kbps" to null },
+                current.userRating?.takeIf { it > 0 }?.let { "$it ★" to { actions.rate(current) } },
+            ),
+            Modifier.fillMaxWidth(),
+            center = true,
+        )
+        return
+    }
+    val analysis by remember(current.id) { actions.graph.analysis.observe(current.id) }.collectAsStateWithLifecycle(null)
+    val values = mapOf(
+        "year" to current.year?.toString(),
+        "genre" to current.genre,
+        "format" to current.suffix?.uppercase(),
+        "bitrate" to current.bitRate?.toString(),
+        "bpm" to (analysis?.bpm?.takeIf { it > 0 }?.roundToInt() ?: current.bpm?.takeIf { it > 0 })?.toString(),
+        "key" to analysis?.camelot,
+        "energy" to analysis?.energy?.let { "${(it * 10).roundToInt().coerceAtLeast(1)}" },
+        "rating" to current.userRating?.takeIf { it > 0 }?.toString(),
+        "plays" to current.playCount?.takeIf { it > 0 }?.toString(),
+        "album" to current.album,
+    ).mapNotNull { (key, value) -> value?.let { key to it } }.toMap()
+    Text(
+        renderTemplate(template, values),
+        style = MaterialTheme.typography.labelLarge,
+        color = Kultr.colors.ink3,
+        textAlign = TextAlign.Center,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable
