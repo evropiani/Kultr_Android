@@ -1,5 +1,6 @@
 package app.kultr.core.api
 
+import app.kultr.core.util.t
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -39,22 +40,22 @@ class NetworkException(message: String, cause: Throwable? = null) : IOException(
 /** Human-readable explanations for the Subsonic error codes Navidrome uses. */
 fun describeError(err: Throwable): String = when (err) {
     is SubsonicException -> when (err.code) {
-        0 -> err.message?.takeIf { it.isNotBlank() } ?: "The server reported a generic error."
-        10 -> "The server is missing a required parameter."
-        20 -> "Your server is too old for this client."
-        30 -> "This client is too old for your server."
-        40 -> "Wrong username or password."
-        41 -> "Token authentication is disabled on this server. Switch to “Plain password” in the advanced options (and use HTTPS!)."
-        50 -> "Your account is not allowed to do that."
-        60 -> "This feature needs a Subsonic Premium subscription (not applicable to Navidrome)."
-        70 -> "Not found."
-        else -> err.message?.takeIf { it.isNotBlank() } ?: "Server error ${err.code}."
+        0 -> err.message?.takeIf { it.isNotBlank() } ?: t("The server reported a generic error.")
+        10 -> t("The server is missing a required parameter.")
+        20 -> t("Your server is too old for this client.")
+        30 -> t("This client is too old for your server.")
+        40 -> t("Wrong username or password.")
+        41 -> t("Token authentication is disabled on this server. Switch to “Plain password” in the advanced options (and use HTTPS!).")
+        50 -> t("Your account is not allowed to do that.")
+        60 -> t("This feature needs a Subsonic Premium subscription (not applicable to Navidrome).")
+        70 -> t("Not found.")
+        else -> err.message?.takeIf { it.isNotBlank() } ?: t("Server error %@.", err.code)
     }
-    is NetworkException -> err.message ?: "Network error."
-    is java.net.UnknownHostException -> "Could not find that server. Check the address."
-    is java.net.ConnectException -> "Could not connect to the server. Is it running, and reachable from this phone?"
-    is java.net.SocketTimeoutException -> "The server took too long to answer."
-    is javax.net.ssl.SSLException -> "A secure connection could not be made: ${err.message}"
+    is NetworkException -> err.message ?: t("Network error.")
+    is java.net.UnknownHostException -> t("Could not find that server. Check the address.")
+    is java.net.ConnectException -> t("Could not connect to the server. Is it running, and reachable from this phone?")
+    is java.net.SocketTimeoutException -> t("The server took too long to answer.")
+    is javax.net.ssl.SSLException -> t("A secure connection could not be made: %@", err.message)
     else -> err.message ?: err.toString()
 }
 
@@ -173,7 +174,7 @@ class SubsonicClient(
      * empty strings and empty lists are left out; lists repeat the key.
      */
     fun buildUrl(endpoint: String, params: List<Pair<String, Any?>> = emptyList(), stable: Boolean = false): String {
-        val root = base ?: throw NetworkException("“$baseUrl” is not a valid server address.")
+        val root = base ?: throw NetworkException(t("“%@” is not a valid server address.", baseUrl))
         val builder = root.newBuilder().addPathSegments("rest/$endpoint")
         for ((key, value) in authParams(stable)) builder.addQueryParameter(key, value)
         for ((key, value) in params) {
@@ -207,7 +208,7 @@ class SubsonicClient(
             val reason = describeError(err)
             throw NetworkException(
                 if (err is java.io.InterruptedIOException && err !is java.net.SocketTimeoutException) {
-                    "The server did not answer within ${timeoutMs / 1000}s."
+                    t("The server did not answer within %@s.", timeoutMs / 1000)
                 } else {
                     reason
                 },
@@ -216,24 +217,24 @@ class SubsonicClient(
         }
         response.use { res ->
             if (!res.isSuccessful) {
-                throw NetworkException("Server responded with HTTP ${res.code} ${res.message}.".trim())
+                throw NetworkException(t("Server responded with HTTP %@ %@.", res.code, res.message).trim())
             }
             val text = res.body.string()
             val root = try {
                 json.parseToJsonElement(text).jsonObject
             } catch (err: Exception) {
                 throw NetworkException(
-                    "The server sent something that is not a Subsonic JSON response. Is the address pointing at Navidrome?",
+                    t("The server sent something that is not a Subsonic JSON response. Is the address pointing at Navidrome?"),
                     err,
                 )
             }
             val body = root["subsonic-response"] as? JsonObject
-                ?: throw NetworkException("Malformed response: no “subsonic-response” envelope.")
+                ?: throw NetworkException(t("Malformed response: no “subsonic-response” envelope."))
             val status = (body["status"] as? kotlinx.serialization.json.JsonPrimitive)?.content
             if (status == "failed") {
                 val error = body["error"] as? JsonObject
                 val code = error?.get("code")?.jsonPrimitive?.intOrNull ?: 0
-                val message = (error?.get("message") as? kotlinx.serialization.json.JsonPrimitive)?.content ?: "Unknown error"
+                val message = (error?.get("message") as? kotlinx.serialization.json.JsonPrimitive)?.content ?: t("Unknown error")
                 throw SubsonicException(code, message)
             }
             return body

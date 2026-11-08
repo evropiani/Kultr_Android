@@ -9,6 +9,7 @@ import app.kultr.core.injekt.gaplessPlan
 import app.kultr.core.injekt.hardCutPlan
 import app.kultr.core.settings.CrossfadeCurve
 import app.kultr.core.settings.Settings
+import app.kultr.core.util.t
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -855,9 +856,9 @@ class PlaybackEngine(
             transition = Transition(
                 plan = crossfadePlan(fadeMs / 1000.0 / 0.4, fadeMs / 1000.0, CrossfadeCurve.EQUAL_POWER).let {
                     if (fadeSeconds != null) {
-                        it.copy(label = "Mix", reason = "A whole crossfade into the next track, asked for.")
+                        it.copy(label = t("Mix"), reason = t("A whole crossfade into the next track, asked for."))
                     } else {
-                        it.copy(label = "Skip", reason = "A short fade instead of a hard cut.")
+                        it.copy(label = t("Skip"), reason = t("A short fade instead of a hard cut."))
                     }
                 },
                 from = from,

@@ -79,6 +79,7 @@ import app.kultr.core.settings.resolveHomeTiles
 import app.kultr.core.sync.SyncMode
 import app.kultr.core.sync.SyncState
 import app.kultr.core.util.Format
+import app.kultr.core.util.t
 import java.util.Calendar
 
 private fun tileIcon(id: String): ImageVector = when {
@@ -113,17 +114,17 @@ fun HomeScreen() {
                     Text(Format.greeting(hour), style = MaterialTheme.typography.headlineMedium, color = Kultr.colors.ink, modifier = Modifier.weight(1f))
                     CastButton()
                     IconButton(onClick = { actions.navigate(Routes.STATS) }) {
-                        Icon(Icons.Rounded.BarChart, contentDescription = "Listening stats", tint = Kultr.colors.ink2)
+                        Icon(Icons.Rounded.BarChart, contentDescription = t("Listening stats"), tint = Kultr.colors.ink2)
                     }
                     IconButton(onClick = { actions.navigate(Routes.SYNC) }) {
-                        Icon(Icons.Rounded.Sync, contentDescription = "Sync", tint = if (syncing) Kultr.colors.accent else Kultr.colors.ink2)
+                        Icon(Icons.Rounded.Sync, contentDescription = t("Sync"), tint = if (syncing) Kultr.colors.accent else Kultr.colors.ink2)
                     }
                 }
                 Text(
                     if (syncing) {
-                        progress?.message ?: "Syncing…"
+                        progress?.message ?: t("Syncing…")
                     } else {
-                        "${Format.count(counts.songs, "track")} · ${Format.count(counts.albums, "album")} · checked ${Format.relative(syncState.lastCheck)}"
+                        t("%@ · %@ · checked %@", Format.count(counts.songs, "track"), Format.count(counts.albums, "album"), Format.relative(syncState.lastCheck))
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = Kultr.colors.ink3,
@@ -133,11 +134,11 @@ fun HomeScreen() {
                 if (counts.songs > 0) {
                     Spacer(Modifier.height(14.dp))
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Pill("Shuffle all", icon = Icons.Rounded.Shuffle, onClick = {
+                        Pill(t("Shuffle all"), icon = Icons.Rounded.Shuffle, onClick = {
                             actions.launch { actions.shuffle(graph.library.randomSongs(200)) }
                         })
-                        Pill("Start an InjeKt set", icon = Icons.Rounded.AutoAwesome, accent = true, onClick = { actions.startInjektSet() })
-                        Pill("Plan a set", icon = Icons.Rounded.ShowChart, onClick = { actions.navigate(Routes.planner()) })
+                        Pill(t("Start an InjeKt set"), icon = Icons.Rounded.AutoAwesome, accent = true, onClick = { actions.startInjektSet() })
+                        Pill(t("Plan a set"), icon = Icons.Rounded.ShowChart, onClick = { actions.navigate(Routes.planner()) })
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -151,12 +152,11 @@ fun HomeScreen() {
             item(key = "empty") {
                 EmptyState(
                     icon = Icons.Rounded.Album,
-                    title = if (syncing) "Syncing your library…" else "Your library is not synced yet",
-                    body = "Kultr keeps a copy of your library on this phone, so browsing is instant and works without a connection. " +
-                        "It is a one-time job — after that, only changes are fetched.",
+                    title = if (syncing) t("Syncing your library…") else t("Your library is not synced yet"),
+                    body = t("Kultr keeps a copy of your library on this phone, so browsing is instant and works without a connection. It is a one-time job — after that, only changes are fetched."),
                     action = {
                         Pill(
-                            if (syncing) "Syncing…" else "Sync my library",
+                            if (syncing) t("Syncing…") else t("Sync my library"),
                             icon = Icons.Rounded.Sync,
                             accent = true,
                             enabled = !syncing,
@@ -173,8 +173,8 @@ fun HomeScreen() {
                 item(key = "none") {
                     EmptyState(
                         icon = Icons.Rounded.Favorite,
-                        title = "Nothing on the home page yet",
-                        body = "Choose what appears here, and in what order, in Settings → Home page.",
+                        title = t("Nothing on the home page yet"),
+                        body = t("Choose what appears here, and in what order, in Settings → Home page."),
                     )
                 }
             }
@@ -312,7 +312,7 @@ private fun ShelfHeader(tile: HomeTile, onOpen: () -> Unit) {
         tile.title,
         icon = tileIcon(tile.id),
         modifier = Modifier.padding(top = 12.dp).clickable(onClick = onOpen),
-        action = { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "See all", tint = Kultr.colors.ink3) },
+        action = { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = t("See all"), tint = Kultr.colors.ink3) },
     )
 }
 
@@ -376,7 +376,7 @@ fun StationCard(station: RadioStation, modifier: Modifier = Modifier, onClick: (
         ArtworkFill(null, Modifier.fillMaxWidth().aspectRatio(1f), label = station.name)
         Spacer(Modifier.height(8.dp))
         Text(station.name, style = MaterialTheme.typography.bodyMedium, color = Kultr.colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text("Radio", style = MaterialTheme.typography.bodySmall, color = Kultr.colors.ink3)
+        Text(t("Radio"), style = MaterialTheme.typography.bodySmall, color = Kultr.colors.ink3)
     }
 }
 
@@ -389,20 +389,20 @@ private fun LocalEmptyState(scanning: Boolean) {
     EmptyState(
         icon = Icons.Rounded.Album,
         title = when {
-            scanning -> "Reading your music…"
-            folders.isEmpty() -> "Where is your music?"
-            else -> "No music found yet"
+            scanning -> t("Reading your music…")
+            folders.isEmpty() -> t("Where is your music?")
+            else -> t("No music found yet")
         },
         body = if (folders.isEmpty()) {
-            "Choose the folders your music is in. Kultr reads them and builds a library of your albums, artists and covers."
+            t("Choose the folders your music is in. Kultr reads them and builds a library of your albums, artists and covers.")
         } else {
-            "Kultr looked through ${folders.joinToString { it.name }} and found nothing it can play yet. Add another folder, or scan again after copying music in."
+            t("Kultr looked through %@ and found nothing it can play yet. Add another folder, or scan again after copying music in.", folders.joinToString { it.name })
         },
         action = {
             when {
-                folders.isEmpty() -> Pill("Choose a folder", icon = Icons.Rounded.Album, accent = true, onClick = pick)
+                folders.isEmpty() -> Pill(t("Choose a folder"), icon = Icons.Rounded.Album, accent = true, onClick = pick)
                 else -> Pill(
-                    if (scanning) "Reading…" else "Scan again",
+                    if (scanning) t("Reading…") else t("Scan again"),
                     icon = Icons.Rounded.Sync,
                     accent = true,
                     enabled = !scanning,

@@ -28,13 +28,14 @@ import app.kultr.android.ui.components.DropAction
 import app.kultr.core.api.Album
 import app.kultr.core.api.Artist
 import app.kultr.core.api.Song
+import app.kultr.core.util.t
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** The Library's sections, in the order its list shows them. */
-enum class LibraryTab(val label: String, val icon: ImageVector) {
+enum class LibraryTab(private val english: String, val icon: ImageVector) {
     PLAYLISTS("Playlists", Icons.AutoMirrored.Rounded.QueueMusic),
     CRATES("Crates", Icons.Rounded.Inventory2),
     ARTISTS("Artists", Icons.Rounded.Person),
@@ -47,13 +48,21 @@ enum class LibraryTab(val label: String, val icon: ImageVector) {
     RADIO("Radio", Icons.Rounded.Radio),
     ;
 
+    val label: String get() = t(english)
+
+
     companion object {
         /** Music on the phone has no internet radio, and nothing to download. */
         fun shown(local: Boolean): List<LibraryTab> = if (local) entries.filter { it != RADIO && it != DOWNLOADS } else entries
     }
 }
 
-enum class DownloadsPage(val label: String) { NOW("Downloading"), OFFLINE("On this phone") }
+enum class DownloadsPage(private val english: String) {
+    NOW("Downloading"), OFFLINE("On this phone"),
+    ;
+
+    val label: String get() = t(english)
+}
 
 object Routes {
     const val HOME = "home"
@@ -174,46 +183,46 @@ class AppActions(
     }
 
     fun setFavourite(song: Song, starred: Boolean) = scope.launch {
-        report(favourite(listOf(songKey(song.id)), starred) { graph.library.setStarred(song, starred) }, if (starred) "Added to favourites" else null)
+        report(favourite(listOf(songKey(song.id)), starred) { graph.library.setStarred(song, starred) }, if (starred) t("Added to favourites") else null)
     }
 
     fun setFavourite(songs: List<Song>, starred: Boolean) = scope.launch {
         report(
             favourite(songs.map { songKey(it.id) }, starred) { graph.library.setStarred(songs, starred) },
-            if (starred) "Added ${songs.size} to favourites" else "Removed ${songs.size} from favourites",
+            if (starred) t("Added %@ to favourites", songs.size) else t("Removed %@ from favourites", songs.size),
         )
     }
 
     fun setAlbumFavourite(album: Album, starred: Boolean) = scope.launch {
         report(
             favourite(listOf(albumKey(album.id)), starred) { graph.library.setAlbumStarred(album, starred) },
-            if (starred) "Added “${album.name}” to favourites" else null,
+            if (starred) t("Added “%@” to favourites", album.name) else null,
         )
     }
 
     fun setArtistFavourite(artist: Artist, starred: Boolean) = scope.launch {
         report(
             favourite(listOf(artistKey(artist.id)), starred) { graph.library.setArtistStarred(artist, starred) },
-            if (starred) "Added “${artist.name}” to favourites" else null,
+            if (starred) t("Added “%@” to favourites", artist.name) else null,
         )
     }
 
     fun setRating(song: Song, rating: Int) = scope.launch {
-        report(graph.library.setRating(song, rating), if (rating > 0) "Rated $rating ★" else "Rating cleared")
+        report(graph.library.setRating(song, rating), if (rating > 0) t("Rated %@ ★", rating) else t("Rating cleared"))
     }
 
     fun download(songs: List<Song>, label: String? = null) = scope.launch { graph.offline.download(songs, label) }
 
     fun removeDownloads(songs: List<Song>) = scope.launch {
         val removed = graph.offline.remove(songs.map { it.id })
-        messages.show(if (removed > 0) "Removed $removed download${if (removed == 1) "" else "s"}." else "Nothing to remove.")
+        messages.show(if (removed > 0) t(if (removed == 1) "Removed %@ download." else "Removed %@ downloads.", removed) else t("Nothing to remove."))
     }
 
     /** Start a flowing set from [seed] (or a random track), continued by InjeKt. */
     fun startInjektSet(seed: Song? = null) = scope.launch {
         val start = seed ?: graph.library.randomSongs(1).firstOrNull()
         if (start == null) {
-            messages.show("Sync your library first.")
+            messages.show(t("Sync your library first."))
             return@launch
         }
         val rest = app.kultr.android.playback.AutoQueue(graph).build(start, emptyList(), count = 24)
@@ -227,11 +236,11 @@ class AppActions(
             payload.resolve().filter { !it.isRadio }
         } catch (err: Exception) {
             if (err is kotlinx.coroutines.CancellationException) throw err
-            messages.error("Could not load “${payload.label}”: ${app.kultr.core.api.describeError(err)}")
+            messages.error(t("Could not load “%@”: %@", payload.label, app.kultr.core.api.describeError(err)))
             return@launch
         }
         if (songs.isEmpty()) {
-            messages.show("“${payload.label}” has no tracks here yet.")
+            messages.show(t("“%@” has no tracks here yet.", payload.label))
             return@launch
         }
         when (action) {
@@ -241,18 +250,18 @@ class AppActions(
                 val shown = favourites.value
                 val missing = songs.filter { !(shown[songKey(it.id)] ?: it.isStarred) }
                 if (missing.isEmpty()) {
-                    messages.show("Already in your favourites.")
+                    messages.show(t("Already in your favourites."))
                 } else {
                     report(
                         favourite(missing.map { songKey(it.id) }, true) { graph.library.setStarred(missing, true) },
-                        "Favourited ${missing.size} track${if (missing.size == 1) "" else "s"}",
+                        t(if (missing.size == 1) "Favourited %@ track" else "Favourited %@ tracks", missing.size),
                     )
                 }
             }
             DropAction.DOWNLOAD -> graph.offline.download(songs, payload.label)
             DropAction.REMOVE -> {
                 val removed = graph.offline.remove(songs.map { it.id })
-                messages.show(if (removed > 0) "Removed $removed download${if (removed == 1) "" else "s"}." else "Nothing from “${payload.label}” was downloaded.")
+                messages.show(if (removed > 0) t(if (removed == 1) "Removed %@ download." else "Removed %@ downloads.", removed) else t("Nothing from “%@” was downloaded.", payload.label))
             }
         }
     }

@@ -26,6 +26,7 @@ import app.kultr.core.engine.Deck
 import app.kultr.core.engine.DeckListener
 import app.kultr.core.engine.DeckStatus
 import app.kultr.core.engine.QueueItem
+import app.kultr.core.util.t
 import kotlin.math.abs
 
 /**
@@ -65,7 +66,7 @@ class DeckSources(context: Context, private val graph: AppGraph) {
             }
         }
         val client = graph.auth.client.value
-            ?: throw IllegalStateException("Not signed in")
+            ?: throw IllegalStateException(t("Not signed in"))
         val bitrate = settings.bitrateFor(graph.network.isMetered)
         val format = settings.preferredFormat.takeIf { bitrate > 0 && it.isNotBlank() }
         val url = client.streamUrl(song.id, bitrate.takeIf { it > 0 }, format)
@@ -142,7 +143,7 @@ class ExoDeck(
             player.setMediaSource(sources.sourceFor(item), startMs)
             player.prepare()
         } catch (err: IllegalStateException) {
-            listener?.onError(this, "Sign in to a server to play this.")
+            listener?.onError(this, t("Sign in to a server to play this."))
         }
     }
 
@@ -246,15 +247,15 @@ class ExoDeck(
 
     private fun describe(error: PlaybackException): String = when (error.errorCode) {
         PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ->
-            "The server refused to stream “${current?.song?.title}”."
+            t("The server refused to stream “%@”.", current?.song?.title)
         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
-        -> "The connection to your server dropped while streaming."
-        PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND -> "The offline copy of “${current?.song?.title}” is missing."
+        -> t("The connection to your server dropped while streaming.")
+        PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND -> t("The offline copy of “%@” is missing.", current?.song?.title)
         PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
         PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
         PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
-        -> "This phone cannot play “${current?.song?.title}”. Try a transcode format in Settings → Audio."
-        else -> "Playback failed: ${error.errorCodeName}."
+        -> t("This phone cannot play “%@”. Try a transcode format in Settings → Audio.", current?.song?.title)
+        else -> t("Playback failed: %@.", error.errorCodeName)
     }
 }

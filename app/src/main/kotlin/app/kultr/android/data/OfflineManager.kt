@@ -17,8 +17,8 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import app.kultr.android.AppGraph
-import app.kultr.android.KultrApp
 import app.kultr.android.KultrActivity
+import app.kultr.android.KultrApp
 import app.kultr.android.R
 import app.kultr.android.data.db.DownloadEntity
 import app.kultr.android.data.db.DownloadState
@@ -30,6 +30,7 @@ import app.kultr.core.api.Song
 import app.kultr.core.api.SubsonicClient
 import app.kultr.core.api.describeError
 import app.kultr.core.api.md5Hex
+import app.kultr.core.util.t
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -205,7 +206,7 @@ class OfflineManager(private val graph: AppGraph) {
             }
         }
         if (pending.isEmpty()) {
-            graph.messages.success(if (label != null) "$label is already downloaded." else "Everything is already downloaded.")
+            graph.messages.success(if (label != null) t("%@ is already downloaded.", label) else t("Everything is already downloaded."))
             return
         }
         val now = System.currentTimeMillis()
@@ -223,9 +224,9 @@ class OfflineManager(private val graph: AppGraph) {
         val skipped = wanted.size - pending.size
         graph.messages.show(
             buildString {
-                append("Downloading ${pending.size} track${if (pending.size == 1) "" else "s"}")
-                if (skipped > 0) append(" · $skipped already here")
-                if (graph.settings.current.offlineWifiOnly && graph.network.isMetered) append(" · waiting for Wi-Fi")
+                append(t(if (pending.size == 1) "Downloading %@ track" else "Downloading %@ tracks", pending.size))
+                if (skipped > 0) append(t(" · %@ already here", skipped))
+                if (graph.settings.current.offlineWifiOnly && graph.network.isMetered) append(t(" · waiting for Wi-Fi"))
             },
         )
     }
@@ -337,7 +338,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
         var done = 0
         var failed = 0
         var bytes = 0L
-        runCatching { setForeground(foregroundInfo("Preparing downloads…", 0, 0)) }
+        runCatching { setForeground(foregroundInfo(t("Preparing downloads…"), 0, 0)) }
 
         try {
             while (true) {
@@ -363,7 +364,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
                                     DownloadProgress(done, total, failed, bytes, row.songId)
                                 }
                                 graph.offline.report(progress)
-                                runCatching { setForeground(foregroundInfo("Downloading for offline", done + failed, total)) }
+                                runCatching { setForeground(foregroundInfo(t("Downloading for offline"), done + failed, total)) }
                             }
                         }
                     }.awaitAll()
@@ -375,7 +376,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
         }
         if (done + failed > 0) {
             graph.messages.show(
-                if (failed == 0) "Downloaded $done track${if (done == 1) "" else "s"}." else "Downloaded $done, $failed failed.",
+                if (failed == 0) t(if (done == 1) "Downloaded %@ track." else "Downloaded %@ tracks.", done) else t("Downloaded %@, %@ failed.", done, failed),
                 if (failed == 0) MessageKind.SUCCESS else MessageKind.WARNING,
             )
         }
@@ -387,7 +388,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
         val song = db.library().song(row.songId)?.toSong()
             ?: runCatching { client.getSong(row.songId) }.getOrNull()
         return try {
-            if (song == null) throw IOException("This track is no longer on the server.")
+            if (song == null) throw IOException(t("This track is no longer on the server."))
             val settings = graph.settings.current
             val transcode = settings.offlineBitrate > 0
             val url = if (transcode) {
@@ -409,7 +410,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
             val size = response.use { res ->
                 if (!res.isSuccessful) throw IOException("HTTP ${res.code}")
                 val contentType = res.header("Content-Type")
-                if (contentType != null && contentType.contains("json")) throw IOException("The server refused the download.")
+                if (contentType != null && contentType.contains("json")) throw IOException(t("The server refused the download."))
                 val length = res.body.contentLength()
                 val expected = if (length > 0) length else estimateSize(song, if (transcode) settings.offlineBitrate else null)
                 withContext(Dispatchers.IO) {
@@ -432,7 +433,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
                         }
                     }
                     if (target.exists()) target.delete()
-                    if (!partial.renameTo(target)) throw IOException("Could not save the file.")
+                    if (!partial.renameTo(target)) throw IOException(t("Could not save the file."))
                 }
                 target.length()
             }

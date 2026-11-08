@@ -31,9 +31,9 @@ object Format {
         val hours = seconds / 3600
         val minutes = ((seconds % 3600) / 60.0).roundToInt()
         return when {
-            hours > 0 -> "$hours hr $minutes min"
-            minutes > 0 -> "$minutes min"
-            else -> "$seconds sec"
+            hours > 0 -> t("%@ hr %@ min", hours, minutes)
+            minutes > 0 -> t("%@ min", minutes)
+            else -> t("%@ sec", seconds)
         }
     }
 
@@ -48,18 +48,19 @@ object Format {
 
     fun count(value: Int?, singular: String, plural: String = singular + "s"): String {
         val n = value ?: 0
-        return "${NumberFormat.getIntegerInstance().format(n)} ${if (n == 1) singular else plural}"
+        // "%@ tracks" is looked up as a whole, so a language can put its own word around the number.
+        return t("%@ " + if (n == 1) singular else plural, NumberFormat.getIntegerInstance().format(n))
     }
 
     fun relative(timestamp: Long?, now: Long = System.currentTimeMillis()): String {
-        if (timestamp == null || timestamp <= 0) return "never"
+        if (timestamp == null || timestamp <= 0) return t("never")
         val minutes = ((now - timestamp) / 60_000.0).roundToLong()
-        if (minutes < 1) return "just now"
-        if (minutes < 60) return "$minutes min ago"
+        if (minutes < 1) return t("just now")
+        if (minutes < 60) return t("%@ min ago", minutes)
         val hours = (minutes / 60.0).roundToLong()
-        if (hours < 24) return "$hours hr ago"
+        if (hours < 24) return t("%@ hr ago", hours)
         val days = (hours / 24.0).roundToLong()
-        if (days < 30) return "$days day${if (days == 1L) "" else "s"} ago"
+        if (days < 30) return t(if (days == 1L) "%@ day ago" else "%@ days ago", days)
         return java.text.DateFormat.getDateInstance().format(java.util.Date(timestamp))
     }
 
@@ -75,9 +76,9 @@ object Format {
     }
 
     fun greeting(hour: Int): String = when {
-        hour < 5 -> "Still up?"
-        hour < 12 -> "Good morning"
-        hour < 18 -> "Good afternoon"
-        else -> "Good evening"
+        hour < 5 -> t("Still up?")
+        hour < 12 -> t("Good morning")
+        hour < 18 -> t("Good afternoon")
+        else -> t("Good evening")
     }
 }

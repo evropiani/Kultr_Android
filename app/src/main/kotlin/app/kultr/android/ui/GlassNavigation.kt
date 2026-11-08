@@ -83,6 +83,7 @@ import androidx.compose.ui.unit.sp
 import app.kultr.android.ui.components.glass
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.android.ui.theme.LocalReduceMotion
+import app.kultr.core.util.t
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -355,7 +356,7 @@ fun GlassNavigationBar(
                 if (progress > 0.001f) {
                     GlassRoundButton(
                         icon = back.icon,
-                        label = "Back to ${back.label}",
+                        label = t("Back to %@", back.label),
                         selected = false,
                         onClick = onBack,
                         modifier = Modifier.graphicsLayer { alpha = ((progress - 0.35f) / 0.65f).coerceIn(0f, 1f) },
@@ -405,7 +406,7 @@ private fun SearchCapsule(
                 if (searching) {
                     Modifier
                 } else {
-                    Modifier.clickable(interactionSource = interaction, indication = null, role = Role.Tab, onClickLabel = "Search", onClick = onSearch)
+                    Modifier.clickable(interactionSource = interaction, indication = null, role = Role.Tab, onClickLabel = t("Search"), onClick = onSearch)
                 },
             )
             // The icon sits where it does in the round button, and the field grows beside it.
@@ -414,7 +415,7 @@ private fun SearchCapsule(
     ) {
         Icon(
             Icons.Rounded.Search,
-            contentDescription = if (searching) null else "Search",
+            contentDescription = if (searching) null else t("Search"),
             tint = if (searching) colors.accent else colors.ink2,
             modifier = Modifier.size(26.dp),
         )
@@ -437,7 +438,7 @@ private fun SearchCapsule(
                     modifier = Modifier.fillMaxWidth().focusRequester(focus),
                     decorationBox = { field ->
                         if (query.isEmpty()) {
-                            Text("Artists, albums, tracks", style = MaterialTheme.typography.bodyLarge, color = colors.ink3, maxLines = 1)
+                            Text(t("Artists, albums, tracks"), style = MaterialTheme.typography.bodyLarge, color = colors.ink3, maxLines = 1)
                         }
                         field()
                     },
@@ -445,7 +446,7 @@ private fun SearchCapsule(
             }
             if (searching && query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Rounded.Clear, contentDescription = "Clear", tint = colors.ink3)
+                    Icon(Icons.Rounded.Clear, contentDescription = t("Clear"), tint = colors.ink3)
                 }
             }
         }

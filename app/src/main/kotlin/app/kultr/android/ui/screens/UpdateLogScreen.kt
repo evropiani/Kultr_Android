@@ -40,6 +40,7 @@ import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.chromePadding
 import app.kultr.android.ui.components.WideButton
 import app.kultr.android.ui.theme.Kultr
+import app.kultr.core.util.t
 
 /** Settings → About → Update log: what changed in every version, the newest open. */
 @Composable
@@ -49,7 +50,7 @@ fun UpdateLogScreen() {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = chromePadding(24.dp))) {
         item {
             BackBar()
-            Text("Update log", style = MaterialTheme.typography.headlineMedium, color = Kultr.colors.ink, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
+            Text(t("Update log"), style = MaterialTheme.typography.headlineMedium, color = Kultr.colors.ink, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
         }
         items(log.all, key = { it.version }) { notes ->
             val expanded = notes.version in open
@@ -58,7 +59,7 @@ fun UpdateLogScreen() {
                     Modifier.fillMaxWidth().clickable { open = if (expanded) open - notes.version else open + notes.version }.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Kultr ${notes.version}", style = MaterialTheme.typography.titleMedium, color = Kultr.colors.ink, modifier = Modifier.weight(1f))
+                    Text(t("Kultr %@", notes.version), style = MaterialTheme.typography.titleMedium, color = Kultr.colors.ink, modifier = Modifier.weight(1f))
                     Icon(if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, contentDescription = null, tint = Kultr.colors.ink3)
                 }
                 AnimatedVisibility(expanded) { Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) { Notes(notes.markdown) } }
@@ -80,19 +81,19 @@ fun WhatsNewDialog(versions: List<VersionNotes>, onDone: () -> Unit) {
                     Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = colors.accent, modifier = Modifier.size(36.dp))
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        if (versions.size == 1) "What's new in Kultr ${versions[0].version}" else "What's new since you last opened Kultr",
+                        if (versions.size == 1) t("What's new in Kultr %@", versions[0].version) else t("What's new since you last opened Kultr"),
                         style = MaterialTheme.typography.headlineSmall,
                         color = colors.ink,
                     )
                 }
                 items(versions, key = { it.version }) { notes ->
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (versions.size > 1) Text("Kultr ${notes.version}", style = MaterialTheme.typography.titleLarge, color = colors.accent)
+                        if (versions.size > 1) Text(t("Kultr %@", notes.version), style = MaterialTheme.typography.titleLarge, color = colors.accent)
                         Notes(notes.markdown)
                     }
                 }
             }
-            WideButton("Continue", Icons.Rounded.AutoAwesome, onClick = onDone, modifier = Modifier.fillMaxWidth().padding(16.dp), accent = true)
+            WideButton(t("Continue"), Icons.Rounded.AutoAwesome, onClick = onDone, modifier = Modifier.fillMaxWidth().padding(16.dp), accent = true)
         }
     }
 }

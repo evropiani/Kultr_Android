@@ -71,6 +71,7 @@ import app.kultr.android.ui.components.Pill
 import app.kultr.android.ui.components.glass
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.sync.SyncMode
+import app.kultr.core.util.t
 import kotlinx.coroutines.launch
 
 private enum class WelcomeStep { HELLO, CHOICE, SERVER, FOLDERS, TOUR }
@@ -159,10 +160,10 @@ private fun Hello(onNext: () -> Unit) {
         Spacer(Modifier.height(72.dp))
         Image(painterResource(R.drawable.kultr_logo), contentDescription = null, modifier = Modifier.size(132.dp))
         Spacer(Modifier.height(28.dp))
-        Text("Welcome to Kultr", style = MaterialTheme.typography.headlineLarge, color = colors.ink, textAlign = TextAlign.Center)
+        Text(t("Welcome to Kultr"), style = MaterialTheme.typography.headlineLarge, color = colors.ink, textAlign = TextAlign.Center)
         Spacer(Modifier.height(12.dp))
         Text(
-            "Your music, mixed the way a DJ would mix it. From your own Navidrome server, or straight from this phone.",
+            t("Your music, mixed the way a DJ would mix it. From your own Navidrome server, or straight from this phone."),
             style = MaterialTheme.typography.bodyLarge,
             color = colors.ink2,
             textAlign = TextAlign.Center,
@@ -170,7 +171,7 @@ private fun Hello(onNext: () -> Unit) {
         )
         Spacer(Modifier.height(56.dp))
         Pill(
-            "Get started",
+            t("Get started"),
             icon = Icons.AutoMirrored.Rounded.ArrowForward,
             accent = true,
             onClick = onNext,
@@ -185,10 +186,10 @@ private fun Choice(graph: AppGraph, returning: Boolean, onServer: () -> Unit, on
     val profiles by graph.auth.profiles.collectAsStateWithLifecycle()
     Page {
         Spacer(Modifier.height(48.dp))
-        Text("Where is your music?", style = MaterialTheme.typography.headlineMedium, color = colors.ink, textAlign = TextAlign.Center)
+        Text(t("Where is your music?"), style = MaterialTheme.typography.headlineMedium, color = colors.ink, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
         Text(
-            "You can add the other one later, in Settings.",
+            t("You can add the other one later, in Settings."),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.ink3,
             textAlign = TextAlign.Center,
@@ -196,22 +197,22 @@ private fun Choice(graph: AppGraph, returning: Boolean, onServer: () -> Unit, on
         Spacer(Modifier.height(28.dp))
         ChoiceCard(
             icon = Icons.Rounded.Dns,
-            title = "On my Navidrome server",
-            body = "Sign in, and Kultr keeps a copy of your library on this phone, so browsing is instant and works offline. Plays are counted on your server.",
+            title = t("On my Navidrome server"),
+            body = t("Sign in, and Kultr keeps a copy of your library on this phone, so browsing is instant and works offline. Plays are counted on your server."),
             onClick = onServer,
         )
         Spacer(Modifier.height(14.dp))
         ChoiceCard(
             icon = Icons.Rounded.PhoneAndroid,
-            title = "On this phone",
-            body = "Choose the folders your music is in. No server, no account: Kultr plays your files, with their covers, albums and artists.",
+            title = t("On this phone"),
+            body = t("Choose the folders your music is in. No server, no account: Kultr plays your files, with their covers, albums and artists."),
             onClick = onLocal,
         )
         // Signed out of everything: the libraries already set up are one tap away.
         val saved = profiles.filter { it.enabled && it.usable }
         if (returning && saved.isNotEmpty()) {
             Spacer(Modifier.height(28.dp))
-            Text("Or go back to", color = colors.ink3, style = MaterialTheme.typography.labelLarge)
+            Text(t("Or go back to"), color = colors.ink3, style = MaterialTheme.typography.labelLarge)
             saved.forEach { profile ->
                 Pill(
                     profile.label,
@@ -259,10 +260,10 @@ private fun Folders(graph: AppGraph, onBack: () -> Unit, onDone: () -> Unit) {
     val folders by graph.local.folders.collectAsStateWithLifecycle()
     Page {
         Spacer(Modifier.height(48.dp))
-        Text("Choose your music folders", style = MaterialTheme.typography.headlineMedium, color = colors.ink, textAlign = TextAlign.Center)
+        Text(t("Choose your music folders"), style = MaterialTheme.typography.headlineMedium, color = colors.ink, textAlign = TextAlign.Center)
         Spacer(Modifier.height(10.dp))
         Text(
-            "Pick the folders your music is in: Music, a memory card, a folder of downloads. Kultr gets access to those folders and nothing else, and finds new music in them on its own.",
+            t("Pick the folders your music is in: Music, a memory card, a folder of downloads. Kultr gets access to those folders and nothing else, and finds new music in them on its own."),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.ink2,
             textAlign = TextAlign.Center,
@@ -278,9 +279,9 @@ private fun Folders(graph: AppGraph, onBack: () -> Unit, onDone: () -> Unit) {
         ) { MusicFolders() }
         Spacer(Modifier.height(28.dp))
         Row(Modifier.fillMaxWidth().widthIn(max = 480.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill("Back", onClick = onBack)
+            Pill(t("Back"), onClick = onBack)
             Pill(
-                "Continue",
+                t("Continue"),
                 icon = Icons.AutoMirrored.Rounded.ArrowForward,
                 accent = true,
                 enabled = folders.isNotEmpty(),
@@ -299,40 +300,36 @@ private fun Tour(local: Boolean, onDone: () -> Unit) {
     val features = listOf(
         Feature(
             Icons.Rounded.AutoAwesome,
-            "Mixes like a DJ",
-            "InjeKt measures each track's tempo, key and structure, then blends one into the next on the beat. " +
-                "Prefer it simple? Crossfade, gapless or a clean cut, in Settings.",
+            t("Mixes like a DJ"),
+            t("InjeKt measures each track's tempo, key and structure, then blends one into the next on the beat. Prefer it simple? Crossfade, gapless or a clean cut, in Settings."),
         ),
         Feature(
             Icons.Rounded.TouchApp,
-            "Glass you can slide",
-            "Touch the tab bar and slide your finger: the lens follows it. Swipe sideways through your library, " +
-                "and pull the player down to close it.",
+            t("Glass you can slide"),
+            t("Touch the tab bar and slide your finger: the lens follows it. Pull the player down to close it, and hold Next to mix into the next track."),
         ),
         Feature(
             Icons.Rounded.PanTool,
-            "Drag it where it goes",
-            "Long-press a track, an album or an artist and drop it on Play next, Add to queue or Favourite.",
+            t("Drag it where it goes"),
+            t("Long-press a track, an album or an artist and drop it on Play next, Add to queue or Favourite."),
         ),
         if (local) {
             Feature(
                 Icons.Rounded.Widgets,
-                "On your home screen",
-                "Add the Kultr widget, as large as you like, with the artwork if you want it. Headphone buttons, " +
-                    "the lock screen and Android Auto work too.",
+                t("On your home screen"),
+                t("Add the Kultr widget, as large as you like, with the artwork if you want it. Headphone buttons, the lock screen and Android Auto work too."),
             )
         } else {
             Feature(
                 Icons.Rounded.DownloadForOffline,
-                "Take it offline",
-                "Download albums, playlists or your whole library, and they play without a connection. " +
-                    "Plays made offline reach your server later.",
+                t("Take it offline"),
+                t("Download albums, playlists or your whole library, and they play without a connection. Plays made offline reach your server later."),
             )
         },
         Feature(
             Icons.Rounded.Palette,
-            "Make it yours",
-            "Choose the shelves on your home page, colours taken from your artwork, light or dark. It's all in Settings.",
+            t("Make it yours"),
+            t("Choose the shelves and widgets on your home page, or a whole new look in Kultr Studio. It's all in Settings."),
         ),
     )
     val pager = rememberPagerState { features.size }
@@ -341,7 +338,7 @@ private fun Tour(local: Boolean, onDone: () -> Unit) {
 
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.End) {
-            if (!last) TextButton(onClick = onDone) { Text("Skip", color = colors.ink2) }
+            if (!last) TextButton(onClick = onDone) { Text(t("Skip"), color = colors.ink2) }
         }
         HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { index ->
             FeaturePage(features[index])
@@ -362,7 +359,7 @@ private fun Tour(local: Boolean, onDone: () -> Unit) {
             }
         }
         Pill(
-            if (last) "Start listening" else "Next",
+            if (last) t("Start listening") else t("Next"),
             icon = Icons.AutoMirrored.Rounded.ArrowForward,
             accent = true,
             onClick = { if (last) onDone() else scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } },

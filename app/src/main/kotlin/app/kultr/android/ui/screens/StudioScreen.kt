@@ -84,6 +84,7 @@ import app.kultr.core.settings.TEMPLATE_FIELDS
 import app.kultr.core.settings.ThemeMode
 import app.kultr.core.settings.renderTemplate
 import app.kultr.core.util.ArtworkColor
+import app.kultr.core.util.t
 import kotlinx.coroutines.launch
 
 private val EXAMPLES = TEMPLATE_FIELDS.toMap()
@@ -102,82 +103,82 @@ fun StudioScreen() {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     val s by graph.settings.settings.collectAsStateWithLifecycle()
-    var name by rememberSaveable { mutableStateOf("My style") }
+    var name by rememberSaveable { mutableStateOf(t("My style")) }
     val current = StudioStyle.of(s, name)
     fun update(transform: (Settings) -> Settings) = graph.settings.update(transform)
 
     val saveFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
         uri ?: return@rememberLauncherForActivityResult
         runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(StudioStyle.json(current).toByteArray()) } }
-            .onSuccess { graph.messages.show("Style saved") }
-            .onFailure { graph.messages.error("The style could not be saved.") }
+            .onSuccess { graph.messages.show(t("Style saved")) }
+            .onFailure { graph.messages.error(t("The style could not be saved.")) }
     }
     val openFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         uri ?: return@rememberLauncherForActivityResult
         val text = runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } }.getOrNull()
         val style = text?.let(StudioStyle::read)
-        if (style != null) graph.incomingStyle.value = style else graph.messages.error("That file isn't a Kultr style.")
+        if (style != null) graph.incomingStyle.value = style else graph.messages.error(t("That file isn't a Kultr style."))
     }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = chromePadding(32.dp))) {
         item {
             BackBar()
-            Text("Kultr Studio", style = MaterialTheme.typography.headlineMedium, color = colors.ink, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
+            Text(t("Kultr Studio"), style = MaterialTheme.typography.headlineMedium, color = colors.ink, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
             StudioPreview(s, Modifier.padding(horizontal = 16.dp))
         }
         item {
-            SectionHeader("Start from a style", modifier = Modifier.padding(top = 16.dp))
+            SectionHeader(t("Start from a style"), modifier = Modifier.padding(top = 16.dp))
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 STUDIO_PRESETS.forEach { preset ->
                     PresetCard(preset, chosen = preset.matches(s)) { graph.settings.replace(preset.appliedTo(graph.settings.current)) }
                 }
             }
-            Note("A style is only the look: your library, servers and other settings stay as they are.")
+            Note(t("A style is only the look: your library, servers and other settings stay as they are."))
         }
         item {
-            SectionHeader("Colours")
-            Picker("Theme", listOf(ThemeMode.SYSTEM to "System", ThemeMode.LIGHT to "Light", ThemeMode.DARK to "Dark"), s.theme) { v -> update { it.copy(theme = v) } }
-            SwitchRow("Night mode (pure black)", s.nightMode) { v -> update { it.copy(nightMode = v) } }
-            SwitchRow("Colour from the artwork", s.accentMode == AccentMode.ARTWORK) { v ->
+            SectionHeader(t("Colours"))
+            Picker(t("Theme"), listOf(ThemeMode.SYSTEM to t("System"), ThemeMode.LIGHT to t("Light"), ThemeMode.DARK to t("Dark")), s.theme) { v -> update { it.copy(theme = v) } }
+            SwitchRow(t("Night mode (pure black)"), s.nightMode) { v -> update { it.copy(nightMode = v) } }
+            SwitchRow(t("Colour from the artwork"), s.accentMode == AccentMode.ARTWORK) { v ->
                 update { it.copy(accentMode = if (v) AccentMode.ARTWORK else AccentMode.FIXED) }
             }
-            SwitchRow("Blurred cover behind the player", s.backdropArtwork) { v -> update { it.copy(backdropArtwork = v) } }
-            Note("The accent colours and the rest are in Settings → Appearance.")
+            SwitchRow(t("Blurred cover behind the player"), s.backdropArtwork) { v -> update { it.copy(backdropArtwork = v) } }
+            Note(t("The accent colours and the rest are in Settings → Appearance."))
         }
         item {
-            SectionHeader("Shape and glass")
-            Picker("Corners", listOf(CornerStyle.SHARP to "Sharp", CornerStyle.SOFT to "Soft", CornerStyle.ROUND to "Round"), s.corners) { v -> update { it.copy(corners = v) } }
-            Picker("Grid", listOf(GridSize.SMALL to "Small covers", GridSize.MEDIUM to "Medium", GridSize.LARGE to "Large"), s.gridSize) { v -> update { it.copy(gridSize = v) } }
-            SwitchRow("Compact rows", s.compactRows) { v -> update { it.copy(compactRows = v) } }
-            SwitchRow("Clear glass", s.clearGlass) { v -> update { it.copy(clearGlass = v) } }
-            Picker("Playhead", PlayheadStyle.entries.map { it to it.label }, s.playhead) { v -> update { it.copy(playhead = v) } }
+            SectionHeader(t("Shape and glass"))
+            Picker(t("Corners"), listOf(CornerStyle.SHARP to t("Sharp"), CornerStyle.SOFT to t("Soft"), CornerStyle.ROUND to t("Round")), s.corners) { v -> update { it.copy(corners = v) } }
+            Picker(t("Grid"), listOf(GridSize.SMALL to t("Small covers"), GridSize.MEDIUM to t("Medium"), GridSize.LARGE to t("Large")), s.gridSize) { v -> update { it.copy(gridSize = v) } }
+            SwitchRow(t("Compact rows"), s.compactRows) { v -> update { it.copy(compactRows = v) } }
+            SwitchRow(t("Clear glass"), s.clearGlass) { v -> update { it.copy(clearGlass = v) } }
+            Picker(t("Playhead"), PlayheadStyle.entries.map { it to it.label }, s.playhead) { v -> update { it.copy(playhead = v) } }
         }
         item {
-            SectionHeader("The player, top to bottom")
+            SectionHeader(t("The player, top to bottom"))
             val ordered = s.playerBlocks + PlayerBlock.entries.filter { it !in s.playerBlocks }
             ordered.forEachIndexed { index, block ->
                 val on = block in s.playerBlocks
                 Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(block.label, style = MaterialTheme.typography.bodyLarge, color = if (on) colors.ink else colors.ink3, modifier = Modifier.weight(1f))
                     IconButton(enabled = on && index > 0, onClick = { update { it.copy(playerBlocks = it.playerBlocks.moved(block, -1)) } }) {
-                        Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Move ${block.label} up")
+                        Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = t("Move %@ up", block.label))
                     }
                     IconButton(enabled = on && index < s.playerBlocks.size - 1, onClick = { update { it.copy(playerBlocks = it.playerBlocks.moved(block, 1)) } }) {
-                        Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Move ${block.label} down")
+                        Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = t("Move %@ down", block.label))
                     }
                     Switch(checked = on, enabled = !on || s.playerBlocks.size > 1, onCheckedChange = { show ->
                         update { it.copy(playerBlocks = if (show) it.playerBlocks + block else it.playerBlocks - block) }
                     })
                 }
             }
-            Note("Move a part up or down, or switch it off to hide it.")
+            Note(t("Move a part up or down, or switch it off to hide it."))
         }
         item {
-            SectionHeader("The info line")
+            SectionHeader(t("The info line"))
             OutlinedTextField(
                 s.factsTemplate,
                 { v -> update { it.copy(factsTemplate = v) } },
-                placeholder = { Text("Kultr's own line") },
+                placeholder = { Text(t("Kultr's own line")) },
                 textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             )
@@ -200,36 +201,36 @@ fun StudioScreen() {
                 }
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Looks like", color = colors.ink3, modifier = Modifier.weight(1f))
-                Text(if (s.factsTemplate.isEmpty()) "2019 · Electronic · FLAC" else renderTemplate(s.factsTemplate, EXAMPLES), color = colors.ink, maxLines = 1)
+                Text(t("Looks like"), color = colors.ink3, modifier = Modifier.weight(1f))
+                Text(if (s.factsTemplate.isEmpty()) t("2019 · Electronic · FLAC") else renderTemplate(s.factsTemplate, EXAMPLES), color = colors.ink, maxLines = 1)
             }
             if (s.factsTemplate.isNotEmpty()) {
-                TextButton(onClick = { update { it.copy(factsTemplate = "") } }, modifier = Modifier.padding(horizontal = 4.dp)) { Text("Back to Kultr's own line") }
+                TextButton(onClick = { update { it.copy(factsTemplate = "") } }, modifier = Modifier.padding(horizontal = 4.dp)) { Text(t("Back to Kultr's own line")) }
             }
             Note("{bpm} puts the tempo in. {?genre: · {genre}} shows the genre, and its dot, only when a track has one. Tap a name to add it.")
         }
         item {
-            SectionHeader("Share")
-            OutlinedTextField(name, { name = it }, label = { Text("Style name") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+            SectionHeader(t("Share"))
+            OutlinedTextField(name, { name = it }, label = { Text(t("Style name")) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
             Spacer(Modifier.height(8.dp))
-            ActionRow("Share as a link", Icons.Rounded.Link) {
+            ActionRow(t("Share as a link"), Icons.Rounded.Link) {
                 val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_SUBJECT, name).putExtra(Intent.EXTRA_TEXT, "A Kultr style: $name\n${current.link}")
                 context.startActivity(Intent.createChooser(send, "Share “$name”"))
             }
-            ActionRow("Save as a file", Icons.AutoMirrored.Rounded.InsertDriveFile) { saveFile.launch("$name.kultrstyle.json") }
-            ActionRow("Copy the link", Icons.Rounded.ContentCopy) {
-                scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Kultr style", current.link))) }
-                graph.messages.show("Style link copied")
+            ActionRow(t("Save as a file"), Icons.AutoMirrored.Rounded.InsertDriveFile) { saveFile.launch("$name.kultrstyle.json") }
+            ActionRow(t("Copy the link"), Icons.Rounded.ContentCopy) {
+                scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(t("Kultr style"), current.link))) }
+                graph.messages.show(t("Style link copied"))
             }
-            ActionRow("Use a link from the clipboard", Icons.Rounded.ContentPaste) {
+            ActionRow(t("Use a link from the clipboard"), Icons.Rounded.ContentPaste) {
                 scope.launch {
                     val text = clipboard.getClipEntry()?.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)?.toString()
                     val style = text?.let(StudioStyle::read)
-                    if (style != null) graph.incomingStyle.value = style else graph.messages.show("There's no Kultr style link on the clipboard.")
+                    if (style != null) graph.incomingStyle.value = style else graph.messages.show(t("There's no Kultr style link on the clipboard."))
                 }
             }
-            ActionRow("Open a style file", Icons.Rounded.FolderOpen) { openFile.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }
-            Note("Someone opening your link sees the style first, then chooses whether to use it.")
+            ActionRow(t("Open a style file"), Icons.Rounded.FolderOpen) { openFile.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }
+            Note(t("Someone opening your link sees the style first, then chooses whether to use it."))
         }
     }
 }
@@ -307,8 +308,8 @@ private fun PresetCard(style: StudioStyle, chosen: Boolean, onClick: () -> Unit)
         }
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(style.name, style = MaterialTheme.typography.labelLarge, color = colors.ink)
-            if (chosen) Icon(Icons.Rounded.Check, contentDescription = "Chosen", tint = colors.accent, modifier = Modifier.padding(start = 4.dp).size(14.dp))
+            Text(t(style.name), style = MaterialTheme.typography.labelLarge, color = colors.ink)
+            if (chosen) Icon(Icons.Rounded.Check, contentDescription = t("Chosen"), tint = colors.accent, modifier = Modifier.padding(start = 4.dp).size(14.dp))
         }
     }
 }
@@ -339,7 +340,7 @@ private fun StudioPreview(s: Settings, modifier: Modifier = Modifier) {
                     Text("Ama Okoro — Night Ferries", style = MaterialTheme.typography.bodyMedium, color = colors.ink2)
                 }
                 PlayerBlock.FACTS -> Text(
-                    if (s.factsTemplate.isEmpty()) "2019 · Electronic · FLAC" else renderTemplate(s.factsTemplate, EXAMPLES),
+                    if (s.factsTemplate.isEmpty()) t("2019 · Electronic · FLAC") else renderTemplate(s.factsTemplate, EXAMPLES),
                     style = MaterialTheme.typography.labelMedium,
                     color = colors.ink3,
                     textAlign = TextAlign.Center,
@@ -372,17 +373,17 @@ fun StylePreviewDialog(style: StudioStyle, onDone: () -> Unit) {
         ) {
             Spacer(Modifier.height(24.dp))
             Icon(Icons.Rounded.Palette, contentDescription = null, tint = colors.accent, modifier = Modifier.size(36.dp))
-            Text("“${style.name}”", style = MaterialTheme.typography.headlineSmall, color = colors.ink)
-            Text("A Kultr style someone shared: the look only, nothing else.", style = MaterialTheme.typography.bodyMedium, color = colors.ink2, textAlign = TextAlign.Center)
+            Text("“${t(style.name)}”", style = MaterialTheme.typography.headlineSmall, color = colors.ink)
+            Text(t("A Kultr style someone shared: the look only, nothing else."), style = MaterialTheme.typography.bodyMedium, color = colors.ink2, textAlign = TextAlign.Center)
             // The preview in the style's own colours, whatever the app looks like now.
             KultrTheme(look, accent) { StudioPreview(look) }
             Spacer(Modifier.weight(1f))
-            WideButton("Use this style", Icons.Rounded.Palette, onClick = {
+            WideButton(t("Use this style"), Icons.Rounded.Palette, onClick = {
                 graph.settings.replace(style.appliedTo(graph.settings.current))
-                graph.messages.show("Now using “${style.name}”")
+                graph.messages.show(t("Now using “%@”", t(style.name)))
                 onDone()
             }, modifier = Modifier.fillMaxWidth(), accent = true)
-            TextButton(onClick = onDone) { Text("Not now", color = colors.ink2) }
+            TextButton(onClick = onDone) { Text(t("Not now"), color = colors.ink2) }
         }
     }
 }

@@ -29,6 +29,7 @@ import app.kultr.core.api.describeError
 import app.kultr.core.sync.SyncState
 import app.kultr.core.util.LyricsDoc
 import app.kultr.core.util.LyricsParser
+import app.kultr.core.util.t
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -54,7 +55,7 @@ data class SearchResults(
     val isEmpty: Boolean get() = artists.isEmpty() && albums.isEmpty() && songs.isEmpty()
 }
 
-class NotConnectedException : Exception("You are not connected to a server.")
+class NotConnectedException : Exception(t("You are not connected to a server."))
 
 /** Playlists made in the phone's own library. */
 private const val LOCAL_PLAYLIST_PREFIX = "local-playlist:"

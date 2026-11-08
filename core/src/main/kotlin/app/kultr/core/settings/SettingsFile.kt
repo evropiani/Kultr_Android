@@ -1,6 +1,7 @@
 package app.kultr.core.settings
 
 import app.kultr.core.api.AuthMode
+import app.kultr.core.util.t
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -104,13 +105,13 @@ object SettingsFile {
             json.parseToJsonElement(text) as? JsonObject
         } catch (_: Exception) {
             null
-        } ?: throw InvalidFileException("That file is not a Kultr settings export.")
+        } ?: throw InvalidFileException(t("That file is not a Kultr settings export."))
 
         if ((root["kind"] as? JsonPrimitive)?.content != KIND) {
-            throw InvalidFileException("That file is not a Kultr settings export.")
+            throw InvalidFileException(t("That file is not a Kultr settings export."))
         }
         val incoming = root["settings"] as? JsonObject
-            ?: throw InvalidFileException("The file has no settings in it.")
+            ?: throw InvalidFileException(t("The file has no settings in it."))
 
         val defaults = json.encodeToJsonElement(Settings()).jsonObject
         var working = json.encodeToJsonElement(current).jsonObject
@@ -121,10 +122,10 @@ object SettingsFile {
         for ((key, value) in incoming) {
             val expected = defaults[key]
             when {
-                expected == null -> skipped += key to "not a setting Kultr for Android has"
-                FORBIDDEN.containsMatchIn(key) -> skipped += key to "credentials are never imported"
-                key in DEVICE_LOCAL_KEYS -> skipped += key to "specific to the device it was exported from"
-                !sameShape(expected, value) -> skipped += key to "wrong type"
+                expected == null -> skipped += key to t("not a setting Kultr for Android has")
+                FORBIDDEN.containsMatchIn(key) -> skipped += key to t("credentials are never imported")
+                key in DEVICE_LOCAL_KEYS -> skipped += key to t("specific to the device it was exported from")
+                !sameShape(expected, value) -> skipped += key to t("wrong type")
                 else -> {
                     val candidate = if (key in FIXED_LENGTH_KEYS && value is JsonArray && expected is JsonArray) {
                         JsonArray(value.take(expected.size))
@@ -134,7 +135,7 @@ object SettingsFile {
                     val next = JsonObject(working + (key to candidate))
                     val decoded = runCatching { json.decodeFromJsonElement<Settings>(next) }.getOrNull()
                     if (decoded == null) {
-                        skipped += key to "value not understood"
+                        skipped += key to t("value not understood")
                     } else {
                         working = next
                         result = decoded
@@ -146,7 +147,7 @@ object SettingsFile {
 
         val servers = readServers(root["servers"])
         if (applied.isEmpty() && servers.isEmpty()) {
-            throw InvalidFileException("Nothing in that file could be applied.")
+            throw InvalidFileException(t("Nothing in that file could be applied."))
         }
         return ImportResult(result, applied, skipped, servers)
     }

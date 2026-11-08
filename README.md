@@ -96,6 +96,10 @@ or folders on this phone) and shows around the app.
   that downloads the new APK, checks its SHA-256, and hands it to Android's
   installer. After an update, What's new shows every change since the version
   you last opened, and Settings → About → Update log has them all.
+- **In English and German.** Kultr follows the phone's language, or the one
+  chosen for it in Android's settings (Settings → Apps → Kultr → Language, from
+  Android 13); the command bar understands German too ("spiele Nachtfahrt",
+  "schlaf in 30 Minuten").
 - **Also:** synced and plain lyrics, ratings and favourites, playlist editing,
   internet radio, saving the session as a playlist, a glass lens with the
   beats when you drag the progress bar, a player you pull down to close, and
@@ -147,7 +151,7 @@ safe: without it, no update can be signed to install over existing copies.
 | Module | What it holds |
 | --- | --- |
 | `core` | Plain Kotlin, no Android: the Subsonic API client, the audio analysis (FFT, tempo, key, structure), the InjeKt transition planner and energy planner, the two-deck playback engine, Karousel and station rules, the library and listening sync, the catalogue that groups local files into albums and artists, the command bar's words, the monthly recap, version comparison and release notes, and the settings model (Studio styles, crates, notes, widgets) with its import/export. Unit-tested on the JVM. |
-| `app` | The Android app: a Room database per library (each server, and the music on the phone), the folder scanner, WorkManager jobs for sync, downloads and analysis, the update checker, a Media3 `MediaLibraryService` whose player drives two ExoPlayer decks through the core engine (with a custom audio processor for fades, EQ and filters), the home screen widget, and the Jetpack Compose interface with its liquid glass. |
+| `app` | The Android app: its German (`assets/l10n/de.json`, the same file Kultr for iOS translates from, plus Android's own lines), a Room database per library (each server, and the music on the phone), the folder scanner, WorkManager jobs for sync, downloads and analysis, the update checker, a Media3 `MediaLibraryService` whose player drives two ExoPlayer decks through the core engine (with a custom audio processor for fades, EQ and filters), the home screen widget, and the Jetpack Compose interface with its liquid glass. |
 
 Libraries: Jetpack Compose with Material 3, Media3 (ExoPlayer, session and Cast),
 Room, WorkManager, Navigation, Coil, OkHttp and kotlinx.serialization.

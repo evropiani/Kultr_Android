@@ -55,6 +55,7 @@ import app.kultr.android.ui.components.songItems
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.describeError
 import app.kultr.core.util.KultrCommand
+import app.kultr.core.util.t
 import kotlinx.coroutines.delay
 
 /**
@@ -105,7 +106,7 @@ fun SearchScreen(query: String, onRun: (KultrCommand) -> Unit) {
 
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Text(
-            "Search",
+            t("Search"),
             style = MaterialTheme.typography.headlineMedium,
             color = Kultr.colors.ink,
             modifier = Modifier.padding(start = 16.dp, top = 12.dp),
@@ -113,7 +114,7 @@ fun SearchScreen(query: String, onRun: (KultrCommand) -> Unit) {
         if (!local) {
             Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    if (counts.songs == 0) "Searching your server (the library is not synced yet)" else "Search on the server instead",
+                    if (counts.songs == 0) t("Searching your server (the library is not synced yet)") else t("Search on the server instead"),
                     color = Kultr.colors.ink3,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.weight(1f),
@@ -129,19 +130,19 @@ fun SearchScreen(query: String, onRun: (KultrCommand) -> Unit) {
                 trimmed.length < 2 -> item {
                     EmptyState(
                         Icons.Rounded.Search,
-                        "Find anything, or say what to do",
-                        body = "Type at least two letters. Or try “play Night Drive”, “shuffle” and an artist, “sleep in 30 minutes”, “next” or “plan an hour”.",
+                        t("Find anything, or say what to do"),
+                        body = t("Type at least two letters. Or try “play Night Drive”, “shuffle” and an artist, “sleep in 30 minutes”, “next” or “plan an hour”."),
                     )
                 }
                 lookFor.length < 2 -> Unit
                 loading && results.isEmpty -> item { SkeletonRows() }
-                error != null -> item { EmptyState(Icons.Rounded.CloudQueue, "Search failed", body = error) }
+                error != null -> item { EmptyState(Icons.Rounded.CloudQueue, t("Search failed"), body = error) }
                 results.isEmpty && command != null -> Unit
-                results.isEmpty -> item { EmptyState(Icons.Rounded.Search, "Nothing matches “$trimmed”", body = "Check the spelling, or try fewer words.") }
+                results.isEmpty -> item { EmptyState(Icons.Rounded.Search, t("Nothing matches “%@”", trimmed), body = t("Check the spelling, or try fewer words.")) }
                 else -> {
                     if (results.artists.isNotEmpty()) {
                         item(key = "artists") {
-                            SectionHeader("Artists")
+                            SectionHeader(t("Artists"))
                             Shelf(results.artists, key = { it.id }, cardWidth = 120.dp) { artist, modifier ->
                                 ArtistCard(artist, { actions.openArtist(artist.id) }, modifier)
                             }
@@ -149,12 +150,12 @@ fun SearchScreen(query: String, onRun: (KultrCommand) -> Unit) {
                     }
                     if (results.albums.isNotEmpty()) {
                         item(key = "albums") {
-                            SectionHeader("Albums")
+                            SectionHeader(t("Albums"))
                             Shelf(results.albums, key = { it.id }) { album, modifier -> AlbumCard(album, { actions.openAlbum(album.id) }, modifier) }
                         }
                     }
                     if (results.songs.isNotEmpty()) {
-                        item(key = "songs") { SectionHeader("Tracks") }
+                        item(key = "songs") { SectionHeader(t("Tracks")) }
                         songItems(
                             results.songs,
                             currentId = player.current?.id,
@@ -190,7 +191,7 @@ private fun CommandRow(command: KultrCommand, onRun: () -> Unit) {
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(text, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = colors.ink, maxLines = 2)
-            Text("Tap, or press Search on the keyboard", style = MaterialTheme.typography.bodySmall, color = colors.ink3)
+            Text(t("Tap, or press Search on the keyboard"), style = MaterialTheme.typography.bodySmall, color = colors.ink3)
         }
         Icon(Icons.AutoMirrored.Rounded.KeyboardReturn, contentDescription = null, tint = colors.ink3)
     }

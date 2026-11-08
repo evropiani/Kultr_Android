@@ -1,0 +1,14 @@
+<resources>
+    <string name="channel_downloads">Downloads</string>
+
+    <!-- Home screen widget -->
+    <string name="widget_name">Kultr — Wird gespielt</string>
+    <string name="widget_description">Was gerade läuft, mit Zurück, Wiedergabe/Pause und Weiter. Größe veränderbar.</string>
+    <string name="widget_idle_title">Nichts läuft</string>
+    <string name="widget_idle_subtitle">Tippe, um Kultr zu öffnen</string>
+    <string name="widget_open">Kultr öffnen</string>
+    <string name="widget_play">Wiedergabe</string>
+    <string name="widget_pause">Pause</string>
+    <string name="widget_next">Weiter</string>
+    <string name="widget_previous">Zurück</string>
+</resources>

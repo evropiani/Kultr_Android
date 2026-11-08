@@ -8,6 +8,7 @@ import app.kultr.core.karousel.Station
 import app.kultr.core.karousel.addedSinceDay
 import app.kultr.core.karousel.decadeStations
 import app.kultr.core.settings.taggedIds
+import app.kultr.core.util.t
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -89,9 +90,9 @@ class StationLibrary(private val graph: AppGraph) {
     companion object {
         fun emptyMessage(station: Station): String =
             if (station.needsAnalysis) {
-                "Nothing fits “${station.name}” yet. It needs InjeKt's analysis: open Sync and tap Analyse missing."
+                t("Nothing fits “%@” yet. It needs InjeKt's analysis: open Sync and tap Analyse missing.", station.title)
             } else {
-                "Nothing in your library fits “${station.name}”."
+                t("Nothing in your library fits “%@”.", station.title)
             }
     }
 }

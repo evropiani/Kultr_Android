@@ -9,6 +9,7 @@ import app.kultr.core.api.ServerInfo
 import app.kultr.core.api.Song
 import app.kultr.core.api.SubsonicClient
 import app.kultr.core.api.describeError
+import app.kultr.core.util.t
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
@@ -150,25 +151,25 @@ class LibrarySync(
         }
 
         try {
-            emit(SyncPhase.CONNECTING, "Contacting your server…", 0, 1, 0.0)
+            emit(SyncPhase.CONNECTING, t("Contacting your server…"), 0, 1, 0.0)
             val info: ServerInfo = client.ping()
 
             // ------------------------------------------------------ artists --
-            emit(SyncPhase.ARTISTS, "Reading artists…", 0, 1, W_ARTISTS)
+            emit(SyncPhase.ARTISTS, t("Reading artists…"), 0, 1, W_ARTISTS)
             val artists = client.getArtists()
             store.putArtists(artists)
             emit(SyncPhase.ARTISTS, "${artists.size.pretty()} artists", 1, 1, W_ARTISTS)
             base += W_ARTISTS
 
             // ------------------------------------------------------- albums --
-            emit(SyncPhase.ALBUMS, "Reading albums…", 0, 1, W_ALBUMS)
+            emit(SyncPhase.ALBUMS, t("Reading albums…"), 0, 1, W_ALBUMS)
             val albums = mutableListOf<Album>()
             var offset = 0
             while (true) {
                 kotlinx.coroutines.currentCoroutineContext().ensureActive()
                 val page = client.getAlbumList2(AlbumListType.ALPHABETICAL_BY_NAME, size = ALBUM_PAGE, offset = offset)
                 albums += page
-                emit(SyncPhase.ALBUMS, "Reading albums… ${albums.size.pretty()}", albums.size, albums.size + ALBUM_PAGE, W_ALBUMS)
+                emit(SyncPhase.ALBUMS, t("Reading albums… %@", albums.size.pretty()), albums.size, albums.size + ALBUM_PAGE, W_ALBUMS)
                 if (page.size < ALBUM_PAGE) break
                 offset += ALBUM_PAGE
                 // A misbehaving server that always returns a full page must not spin forever.
@@ -193,7 +194,7 @@ class LibrarySync(
 
             emit(
                 SyncPhase.SONGS,
-                if (stale.isNotEmpty()) "Reading tracks…" else "Tracks already up to date",
+                if (stale.isNotEmpty()) t("Reading tracks…") else t("Tracks already up to date"),
                 0,
                 max(1, stale.size),
                 W_SONGS,
@@ -239,7 +240,7 @@ class LibrarySync(
                                 if (done % 5 == 0 || done == stale.size) {
                                     emit(
                                         SyncPhase.SONGS,
-                                        "Reading tracks… ${songsSeen.pretty()} from ${done.pretty()}/${stale.size.pretty()} albums",
+                                        t("Reading tracks… %@ from %@/%@ albums", songsSeen.pretty(), done.pretty(), stale.size.pretty()),
                                         done,
                                         max(1, stale.size),
                                         W_SONGS,
@@ -254,7 +255,7 @@ class LibrarySync(
             base += W_SONGS
 
             // ---------------------------------------------------- playlists --
-            emit(SyncPhase.PLAYLISTS, "Reading playlists…", 0, 1, W_PLAYLISTS)
+            emit(SyncPhase.PLAYLISTS, t("Reading playlists…"), 0, 1, W_PLAYLISTS)
             var playlists = client.getPlaylists()
             if (includePlaylistContents && playlists.isNotEmpty()) {
                 val detailed = playlists.toMutableList()
@@ -265,9 +266,9 @@ class LibrarySync(
                     } catch (err: CancellationException) {
                         throw err
                     } catch (err: Exception) {
-                        errors += "Playlist ${playlist.name}: ${describeError(err)}"
+                        errors += t("Playlist %@: %@", playlist.name, describeError(err))
                     }
-                    emit(SyncPhase.PLAYLISTS, "Reading playlists… ${i + 1}/${playlists.size}", i + 1, playlists.size, W_PLAYLISTS)
+                    emit(SyncPhase.PLAYLISTS, t("Reading playlists… %@/%@", i + 1, playlists.size), i + 1, playlists.size, W_PLAYLISTS)
                 }
                 playlists = detailed
             }
@@ -275,12 +276,12 @@ class LibrarySync(
             base += W_PLAYLISTS
 
             // ------------------------------------------------------- genres --
-            emit(SyncPhase.GENRES, "Reading genres…", 0, 1, W_GENRES)
+            emit(SyncPhase.GENRES, t("Reading genres…"), 0, 1, W_GENRES)
             store.replaceGenres(client.getGenres())
             base += W_GENRES
 
             // ------------------------------------------------------ cleanup --
-            emit(SyncPhase.CLEANUP, "Tidying up…", 1, 1, 0.0)
+            emit(SyncPhase.CLEANUP, t("Tidying up…"), 1, 1, 0.0)
             val albumIds = albums.map { it.id }.toHashSet()
             val albumsRemoved = store.deleteAlbumsNotIn(albumIds)
             store.deleteArtistsNotIn(artists.map { it.id }.toHashSet())
@@ -299,7 +300,7 @@ class LibrarySync(
                     newestAlbumCreated = newest,
                 ),
             )
-            onProgress(SyncProgress(SyncPhase.DONE, "Library up to date", 1, 1, 1.0))
+            onProgress(SyncProgress(SyncPhase.DONE, t("Library up to date"), 1, 1, 1.0))
             return SyncSummary(
                 mode = mode,
                 startedAt = startedAt,
@@ -314,7 +315,7 @@ class LibrarySync(
                 albumsPlayed = albumsPlayed,
             )
         } catch (err: CancellationException) {
-            onProgress(SyncProgress(SyncPhase.CANCELLED, "Sync cancelled", 0, 1, 0.0))
+            onProgress(SyncProgress(SyncPhase.CANCELLED, t("Sync cancelled"), 0, 1, 0.0))
             throw err
         } catch (err: Exception) {
             onProgress(SyncProgress(SyncPhase.ERROR, describeError(err), 0, 1, 0.0))
@@ -332,23 +333,23 @@ class LibrarySync(
         val state = store.syncState()
         val newest = client.getAlbumList2(AlbumListType.NEWEST, size = 1).firstOrNull()?.created
         if (newest != null && state.newestAlbumCreated != null && newest > state.newestAlbumCreated) {
-            return QuickCheck(true, "New albums were added to your server.")
+            return QuickCheck(true, t("New albums were added to your server."))
         }
         if (newest != null && state.newestAlbumCreated == null) {
-            return QuickCheck(true, "The library on this phone has never been synced.")
+            return QuickCheck(true, t("The library on this phone has never been synced."))
         }
         try {
             val scan = client.getScanStatus()
             val count = scan.count
             if (count != null && state.counts.songs > 0 && count != state.counts.songs.toLong()) {
-                return QuickCheck(true, "Server reports ${count.toInt().pretty()} tracks, this phone has ${state.counts.songs.pretty()}.")
+                return QuickCheck(true, t("Server reports %@ tracks, this phone has %@.", count.toInt().pretty(), state.counts.songs.pretty()))
             }
         } catch (err: CancellationException) {
             throw err
         } catch (_: Exception) {
             // getScanStatus needs admin rights on some setups; ignore.
         }
-        return QuickCheck(false, "Everything matches.")
+        return QuickCheck(false, t("Everything matches."))
     }
 
     private companion object {

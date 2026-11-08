@@ -1,5 +1,6 @@
 package app.kultr.core.settings
 
+import app.kultr.core.util.t
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -18,20 +19,27 @@ data class HomeWidget(
     val ref: String? = null,
 ) {
     @Serializable
-    enum class Kind(val label: String, val note: String) {
+    enum class Kind(private val english: String, private val englishNote: String) {
         @SerialName("nowPlaying") NOW_PLAYING("Now playing", "The track, with play and skip. Tap to open the player."),
         @SerialName("listening") LISTENING("Listening this week", "Hours this week, against your usual."),
         @SerialName("nextMix") NEXT_MIX("Next mix", "What InjeKt plays next, and when."),
         @SerialName("station") STATION("A station", "One tap starts it."),
         @SerialName("crate") CRATE("A crate", "Its covers; tap to play it."),
         @SerialName("shortcut") SHORTCUT("A shortcut", "One tap for anything you'd type in Search."),
+        ;
+
+        val label: String get() = t(english)
+        val note: String get() = t(englishNote)
     }
 
     @Serializable
-    enum class Size(val label: String) {
+    enum class Size(private val english: String) {
         @SerialName("small") SMALL("Small"),
         @SerialName("medium") MEDIUM("Medium"),
         @SerialName("large") LARGE("Large"),
+        ;
+
+        val label: String get() = t(english)
     }
 }
 
@@ -71,12 +79,15 @@ fun homeWidgetRows(widgets: List<HomeWidget>): List<List<Int>> {
 
 /** The player's parts, in the order they can be stacked. */
 @Serializable
-enum class PlayerBlock(val label: String) {
+enum class PlayerBlock(private val english: String) {
     @SerialName("artwork") ARTWORK("Cover"),
     @SerialName("title") TITLE("Title and artist"),
     @SerialName("facts") FACTS("Info line"),
     @SerialName("progress") PROGRESS("Progress"),
     @SerialName("transport") TRANSPORT("Buttons"),
+    ;
+
+    val label: String get() = t(english)
 }
 
 /**

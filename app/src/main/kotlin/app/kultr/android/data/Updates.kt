@@ -14,6 +14,7 @@ import app.kultr.android.AppGraph
 import app.kultr.android.BuildConfig
 import app.kultr.core.api.hexEncode
 import app.kultr.core.util.Versions
+import app.kultr.core.util.t
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -131,7 +132,7 @@ class Updates(private val graph: AppGraph) {
         } catch (err: CancellationException) {
             throw err
         } catch (err: Exception) {
-            UpdateCheck.Failed(err.message ?: "Could not reach GitHub.")
+            UpdateCheck.Failed(err.message ?: t("Could not reach GitHub."))
         }
         _check.value = result
         return result
@@ -148,13 +149,13 @@ class Updates(private val graph: AppGraph) {
             .header("Accept", "application/vnd.github+json")
             .build()
         graph.http.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("GitHub answered ${response.code}.")
+            if (!response.isSuccessful) throw IOException(t("GitHub answered %@.", response.code))
             val body = json.decodeFromString(GitHubRelease.serializer(), response.body.string())
             val apk = body.assets.firstOrNull { it.name.endsWith(".apk", ignoreCase = true) }
             val sha = body.assets.firstOrNull { it.name.endsWith(".apk.sha256", ignoreCase = true) }
             return AppRelease(
                 version = Versions.fromTag(body.tagName),
-                title = body.name?.takeIf { it.isNotBlank() } ?: "Kultr ${Versions.fromTag(body.tagName)}",
+                title = body.name?.takeIf { it.isNotBlank() } ?: t("Kultr %@", Versions.fromTag(body.tagName)),
                 notes = body.body.orEmpty(),
                 publishedAt = body.publishedAt,
                 pageUrl = body.htmlUrl,
@@ -177,7 +178,7 @@ class Updates(private val graph: AppGraph) {
             return
         }
         if (!context.packageManager.canRequestPackageInstalls()) {
-            graph.messages.show("Allow Kultr to install updates, then tap Update again.", long = true)
+            graph.messages.show(t("Allow Kultr to install updates, then tap Update again."), long = true)
             val settings = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:${context.packageName}".toUri())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             runCatching { context.startActivity(settings) }.onFailure { openPage(release) }
@@ -200,7 +201,7 @@ class Updates(private val graph: AppGraph) {
                 _download.value = UpdateDownload.Idle
                 openPage(release)
             } catch (err: Exception) {
-                _download.value = UpdateDownload.Failed(err.message ?: "The download failed.")
+                _download.value = UpdateDownload.Failed(err.message ?: t("The download failed."))
             }
         }
     }
@@ -218,7 +219,7 @@ class Updates(private val graph: AppGraph) {
         val file = File(directory, "Kultr-${release.version}.apk")
         val digest = MessageDigest.getInstance("SHA-256")
         graph.http.newCall(Request.Builder().url(url).build()).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("The download failed (${response.code}).")
+            if (!response.isSuccessful) throw IOException(t("The download failed (%@).", response.code))
             val body = response.body
             val total = body.contentLength().takeIf { it > 0 }
             var done = 0L
@@ -242,7 +243,7 @@ class Updates(private val graph: AppGraph) {
             }.getOrNull()?.trim()?.substringBefore(' ')?.lowercase()
             if (expected != null && expected.length == 64 && expected != hexEncode(digest.digest())) {
                 file.delete()
-                throw IOException("The download did not match its checksum. Try again.")
+                throw IOException(t("The download did not match its checksum. Try again."))
             }
         }
         return file

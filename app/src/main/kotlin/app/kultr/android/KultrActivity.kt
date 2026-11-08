@@ -26,6 +26,7 @@ import app.kultr.android.ui.rememberAccent
 import app.kultr.android.ui.theme.KultrTheme
 import app.kultr.android.ui.theme.isDark
 import app.kultr.core.settings.StudioStyle
+import app.kultr.core.util.t
 import kotlinx.coroutines.launch
 
 class KultrActivity : ComponentActivity() {
@@ -109,7 +110,7 @@ class KultrActivity : ComponentActivity() {
             }
         }
         if (songs.isEmpty()) {
-            KultrApp.graph.messages.show(if (query.isEmpty()) "Sync your library first." else "Nothing found for “$query”.")
+            KultrApp.graph.messages.show(if (query.isEmpty()) t("Sync your library first.") else t("Nothing found for “%@”.", query))
             return
         }
         KultrApp.graph.player.play(songs.take(200), 0)

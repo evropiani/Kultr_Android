@@ -58,6 +58,7 @@ import app.kultr.android.ui.components.Pill
 import app.kultr.android.ui.theme.DEFAULT_ACCENT
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.android.ui.theme.KultrTheme
+import app.kultr.core.util.t
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -129,9 +130,9 @@ private fun ConfigScreen(
             Modifier.weight(1f).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Text("Now playing widget", style = MaterialTheme.typography.headlineSmall, color = colors.ink)
+            Text(t("Now playing widget"), style = MaterialTheme.typography.headlineSmall, color = colors.ink)
             Text(
-                "Everything stays centred, and grows with the widget when you resize it.",
+                t("Everything stays centred, and grows with the widget when you resize it."),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.ink2,
             )
@@ -152,15 +153,15 @@ private fun ConfigScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Show artwork", style = MaterialTheme.typography.titleMedium, color = colors.ink)
-                    Text("To the left of the controls", style = MaterialTheme.typography.bodySmall, color = colors.ink3)
+                    Text(t("Show artwork"), style = MaterialTheme.typography.titleMedium, color = colors.ink)
+                    Text(t("To the left of the controls"), style = MaterialTheme.typography.bodySmall, color = colors.ink3)
                 }
                 Switch(checked = showArt, onCheckedChange = { showArt = it })
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Background", style = MaterialTheme.typography.titleMedium, color = colors.ink, modifier = Modifier.weight(1f))
+                    Text(t("Background"), style = MaterialTheme.typography.titleMedium, color = colors.ink, modifier = Modifier.weight(1f))
                     Text(
                         when (percent) {
                             100 -> "100% · solid"
@@ -178,8 +179,8 @@ private fun ConfigScreen(
                     steps = 19,
                 )
                 Row {
-                    Text("Invisible", style = MaterialTheme.typography.labelSmall, color = colors.ink3, modifier = Modifier.weight(1f))
-                    Text("Solid", style = MaterialTheme.typography.labelSmall, color = colors.ink3)
+                    Text(t("Invisible"), style = MaterialTheme.typography.labelSmall, color = colors.ink3, modifier = Modifier.weight(1f))
+                    Text(t("Solid"), style = MaterialTheme.typography.labelSmall, color = colors.ink3)
                 }
             }
         }
@@ -189,8 +190,8 @@ private fun ConfigScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onCancel) { Text("Cancel", color = colors.ink2) }
-            Pill("Save", accent = true, onClick = { onSave(percent, showArt) })
+            TextButton(onClick = onCancel) { Text(t("Cancel"), color = colors.ink2) }
+            Pill(t("Save"), accent = true, onClick = { onSave(percent, showArt) })
         }
     }
 }

@@ -185,4 +185,37 @@ class CommandsTest {
         assertNull(parse("radiohead"))
         assertNull(parse("sleep well"))
     }
+
+    @org.junit.Test
+    fun germanWordsToo() {
+        val stations = listOf("Night Drive", "Nachtfahrt")
+        assertEquals(KultrCommand.Station("Nachtfahrt"), parseCommand("spiele Nachtfahrt", stations))
+        assertEquals(KultrCommand.Sleep(30), parse("schlaf in 30 Minuten"))
+        assertEquals(KultrCommand.Sleep(60), parse("schlafe in einer Stunde"))
+        assertEquals(KultrCommand.Sleep(120), parse("timer 2 Stunden"))
+        assertEquals(KultrCommand.SleepAfterTrack, parse("Nach diesem Titel stoppen"))
+        assertEquals(KultrCommand.Next, parse("weiter"))
+        assertEquals(KultrCommand.MixNow, parse("jetzt mischen"))
+        assertEquals(KultrCommand.Open(CommandPlace.SETTINGS), parse("öffne Einstellungen"))
+        assertEquals(KultrCommand.Open(CommandPlace.CRATES), parse("zeig meine Kisten"))
+        assertEquals(KultrCommand.Plan(60), parse("plane eine Stunde"))
+        assertEquals(KultrCommand.Shuffle("radiohead"), parse("zufällig Radiohead"))
+        assertEquals(KultrCommand.Play("radiohead"), parse("spiele etwas von Radiohead ab"))
+    }
+}
+
+class WordsTest {
+    @org.junit.Test
+    fun placeholdersAndPlurals() {
+        val german = mapOf("%@ track" to "%@ Titel", "%@ tracks" to "%@ Titel", "%@ hr %@ min" to "%@ Std. %@ Min.", "%1\$@ of %2\$@" to "%2\$@: %1\$@")
+        Words.lookup = { key, _ -> german[key] }
+        try {
+            assertEquals("3 Titel", Format.count(3, "track"))
+            assertEquals("1 Std. 5 Min.", Format.duration(3900))
+            assertEquals("B: A", t("%1\$@ of %2\$@", "A", "B"))
+            assertEquals("Untranslated 4", t("Untranslated %@", 4))
+        } finally {
+            Words.lookup = { _, _ -> null }
+        }
+    }
 }

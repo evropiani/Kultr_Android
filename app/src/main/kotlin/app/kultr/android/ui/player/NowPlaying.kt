@@ -107,11 +107,17 @@ import app.kultr.core.settings.PlayerBlock
 import app.kultr.core.settings.renderTemplate
 import app.kultr.core.util.Format
 import app.kultr.core.util.LyricsDoc
+import app.kultr.core.util.t
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.CancellationException
 import kotlin.math.roundToInt
 
-private enum class PlayerTab(val label: String) { QUEUE("Up next"), LYRICS("Lyrics"), INJEKT("InjeKt") }
+private enum class PlayerTab(private val english: String) {
+    QUEUE("Up next"), LYRICS("Lyrics"), INJEKT("InjeKt"),
+    ;
+
+    val label: String get() = t(english)
+}
 
 /** Blurred artwork behind everything, darkened so text stays readable. */
 @Composable
@@ -184,10 +190,10 @@ fun NowPlayingScreen(state: PlayerUiState, onClose: () -> Unit) {
         if (song == null) {
             Column(Modifier.fillMaxSize().statusBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
                 IconButton(onClick = onClose, modifier = Modifier.align(Alignment.Start)) {
-                    Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Close player")
+                    Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = t("Close player"))
                 }
                 Spacer(Modifier.weight(1f))
-                Text("Nothing is playing.", color = colors.ink2)
+                Text(t("Nothing is playing."), color = colors.ink2)
                 Spacer(Modifier.weight(1f))
             }
             return@Box
@@ -350,58 +356,58 @@ private fun PlayerTopBar(song: Song, injektOn: Boolean, downloaded: Boolean, onC
     val actions = LocalActions.current
     var menu by remember { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onClose) { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Close player") }
-        Eyebrow(if (song.isRadio) "Internet radio" else song.album ?: "Now playing", Modifier.weight(1f))
+        IconButton(onClick = onClose) { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = t("Close player")) }
+        Eyebrow(if (song.isRadio) t("Internet radio") else song.album ?: t("Now playing"), Modifier.weight(1f))
         Pill(
-            if (injektOn) "InjeKt on" else "InjeKt off",
+            if (injektOn) t("InjeKt on") else t("InjeKt off"),
             onClick = { actions.graph.settings.update { it.copy(injektEnabled = !it.injektEnabled) } },
             icon = Icons.Rounded.AutoAwesome,
             accent = injektOn,
         )
         CastButton(tint = Kultr.colors.ink)
         Box {
-            IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, contentDescription = "More") }
+            IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, contentDescription = t("More")) }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(
-                    text = { Text("Sleep timer…") },
+                    text = { Text(t("Sleep timer…")) },
                     leadingIcon = { Icon(Icons.Rounded.Bedtime, null) },
                     onClick = { menu = false; actions.dialogs.sleepTimer = true },
                 )
                 if (!song.isRadio) {
                     DropdownMenuItem(
-                        text = { Text("Add to playlist…") },
+                        text = { Text(t("Add to playlist…")) },
                         leadingIcon = { Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null) },
                         onClick = { menu = false; actions.addToPlaylist(listOf(song)) },
                     )
                     DropdownMenuItem(
-                        text = { Text("Rate…") },
+                        text = { Text(t("Rate…")) },
                         leadingIcon = { Icon(Icons.Rounded.Star, null) },
                         onClick = { menu = false; actions.rate(song) },
                     )
                     if (song.albumId != null) {
                         DropdownMenuItem(
-                            text = { Text("Go to album") },
+                            text = { Text(t("Go to album")) },
                             leadingIcon = { Icon(Icons.Rounded.Album, null) },
                             onClick = { menu = false; onClose(); actions.openAlbum(song.albumId) },
                         )
                     }
                     if (song.artistId != null) {
                         DropdownMenuItem(
-                            text = { Text("Go to artist") },
+                            text = { Text(t("Go to artist")) },
                             leadingIcon = { Icon(Icons.Rounded.Person, null) },
                             onClick = { menu = false; onClose(); actions.openArtist(song.artistId) },
                         )
                     }
                     if (!downloaded) {
                         DropdownMenuItem(
-                            text = { Text("Download") },
+                            text = { Text(t("Download")) },
                             leadingIcon = { Icon(Icons.Rounded.Download, null) },
                             onClick = { menu = false; actions.download(listOf(song), song.title) },
                         )
                     }
                 }
                 DropdownMenuItem(
-                    text = { Text("Stop and clear queue") },
+                    text = { Text(t("Stop and clear queue")) },
                     leadingIcon = { Icon(Icons.Rounded.Close, null) },
                     onClick = { menu = false; actions.graph.player.stop(); onClose() },
                 )
@@ -471,21 +477,21 @@ private fun Transport(state: PlayerUiState, song: Song) {
             icon = if (mode == ShuffleMode.KAROUSEL) Icons.Rounded.AllInclusive else Icons.Rounded.Shuffle,
             on = mode != ShuffleMode.OFF,
             description = when (mode) {
-                ShuffleMode.OFF -> "Shuffle off"
-                ShuffleMode.SHUFFLE -> "Shuffle on"
-                ShuffleMode.KAROUSEL -> "Karousel on"
+                ShuffleMode.OFF -> t("Shuffle off")
+                ShuffleMode.SHUFFLE -> t("Shuffle on")
+                ShuffleMode.KAROUSEL -> t("Karousel on")
             },
         ) {
             actions.graph.messages.show(
                 when (player.cycleShuffle()) {
-                    ShuffleMode.SHUFFLE -> "Shuffle on"
-                    ShuffleMode.KAROUSEL -> "Karousel on: when the queue runs out, music like it keeps playing"
-                    ShuffleMode.OFF -> "Shuffle and Karousel off"
+                    ShuffleMode.SHUFFLE -> t("Shuffle on")
+                    ShuffleMode.KAROUSEL -> t("Karousel on: when the queue runs out, music like it keeps playing")
+                    ShuffleMode.OFF -> t("Shuffle and Karousel off")
                 },
             )
         }
         IconButton(onClick = { player.previous() }, modifier = Modifier.size(56.dp)) {
-            Icon(Icons.Rounded.SkipPrevious, contentDescription = "Previous", tint = colors.ink, modifier = Modifier.size(34.dp))
+            Icon(Icons.Rounded.SkipPrevious, contentDescription = t("Previous"), tint = colors.ink, modifier = Modifier.size(34.dp))
         }
         Box(
             Modifier
@@ -500,7 +506,7 @@ private fun Transport(state: PlayerUiState, song: Song) {
             } else {
                 Icon(
                     if (state.playWhenReady && !state.ended) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = if (state.playWhenReady) "Pause" else "Play",
+                    contentDescription = if (state.playWhenReady) t("Pause") else t("Play"),
                     tint = colors.background,
                     modifier = Modifier.size(40.dp),
                 )
@@ -515,25 +521,25 @@ private fun Transport(state: PlayerUiState, song: Song) {
                     onClick = { player.next() },
                     onLongClick = {
                         actions.graph.hub.mixNow()
-                        actions.graph.messages.show("Mixing into the next track")
+                        actions.graph.messages.show(t("Mixing into the next track"))
                     },
-                    onLongClickLabel = "Mix into the next track",
+                    onLongClickLabel = t("Mix into the next track"),
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Rounded.SkipNext, contentDescription = "Next", tint = colors.ink, modifier = Modifier.size(34.dp))
+            Icon(Icons.Rounded.SkipNext, contentDescription = t("Next"), tint = colors.ink, modifier = Modifier.size(34.dp))
         }
         ModeButton(
             icon = if (state.repeatMode == Player.REPEAT_MODE_ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
             on = state.repeatMode != Player.REPEAT_MODE_OFF,
             description = when (state.repeatMode) {
-                Player.REPEAT_MODE_ONE -> "Repeat this track"
-                Player.REPEAT_MODE_ALL -> "Repeat the queue"
-                else -> "Repeat off"
+                Player.REPEAT_MODE_ONE -> t("Repeat this track")
+                Player.REPEAT_MODE_ALL -> t("Repeat the queue")
+                else -> t("Repeat off")
             },
         ) {
             if (state.repeatMode == Player.REPEAT_MODE_OFF && mode == ShuffleMode.KAROUSEL) {
-                actions.graph.messages.show("Repeat on: Karousel waits until repeat is off again")
+                actions.graph.messages.show(t("Repeat on: Karousel waits until repeat is off again"))
             }
             player.cycleRepeat()
         }
@@ -543,14 +549,14 @@ private fun Transport(state: PlayerUiState, song: Song) {
             IconButton(onClick = { actions.setFavourite(live ?: song, !starred) }) {
                 Icon(
                     if (starred) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                    contentDescription = if (starred) "Remove from favourites" else "Add to favourites",
+                    contentDescription = if (starred) t("Remove from favourites") else t("Add to favourites"),
                     tint = if (starred) colors.accent else colors.ink2,
                 )
             }
         }
         val timer by actions.graph.hub.sleepTimer.collectAsStateWithLifecycle()
         IconButton(onClick = { actions.dialogs.sleepTimer = true }) {
-            Icon(Icons.Rounded.Bedtime, contentDescription = "Sleep timer", tint = if (timer != null) colors.accent else colors.ink2)
+            Icon(Icons.Rounded.Bedtime, contentDescription = t("Sleep timer"), tint = if (timer != null) colors.accent else colors.ink2)
         }
     }
 }
@@ -579,7 +585,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.queueItems(state: Pla
     item(key = "queue-head") {
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                if (upNext.isEmpty()) "Nothing queued after this track." else "${upNext.size} up next",
+                if (upNext.isEmpty()) t("Nothing queued after this track.") else t("%@ up next", upNext.size),
                 color = Kultr.colors.ink3,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f),
@@ -587,7 +593,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.queueItems(state: Pla
             var saving by remember { mutableStateOf(false) }
             if (state.queue.any { !it.song.isRadio }) {
                 IconButton(onClick = { saving = true }) {
-                    Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, contentDescription = "Save as a playlist", tint = Kultr.colors.ink2)
+                    Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, contentDescription = t("Save as a playlist"), tint = Kultr.colors.ink2)
                 }
             }
             if (saving) {
@@ -600,7 +606,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.queueItems(state: Pla
             if (upNext.isNotEmpty()) {
                 val actions = LocalActions.current
                 IconButton(onClick = { actions.graph.player.clearUpcoming() }) {
-                    Icon(Icons.Rounded.DeleteSweep, contentDescription = "Clear up next", tint = Kultr.colors.ink2)
+                    Icon(Icons.Rounded.DeleteSweep, contentDescription = t("Clear up next"), tint = Kultr.colors.ink2)
                 }
             }
         }
@@ -611,7 +617,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.queueItems(state: Pla
         QueueRow(entry.index, entry.song, state.queue.size)
     }
     if (firstKarousel < upNext.size) {
-        item(key = "karousel-head") { KarouselHeading("Music like what's playing, so it never stops.") }
+        item(key = "karousel-head") { KarouselHeading(t("Music like what's playing, so it never stops.")) }
         itemsIndexed(upNext.drop(firstKarousel), key = { _, entry -> entry.key }) { _, entry ->
             QueueRow(entry.index, entry.song, state.queue.size)
         }
@@ -619,7 +625,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.queueItems(state: Pla
         item(key = "karousel-head") {
             val settings by LocalActions.current.graph.settings.settings.collectAsStateWithLifecycle()
             if (settings.karousel && state.current?.isRadio != true) {
-                KarouselHeading("On: when the queue runs out, music like it keeps playing.")
+                KarouselHeading(t("On: when the queue runs out, music like it keeps playing."))
             }
         }
     }
@@ -640,7 +646,7 @@ private fun KarouselHeading(text: String) {
         }
         Spacer(Modifier.width(12.dp))
         Column {
-            Text("Karousel", color = colors.ink, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(t("Karousel"), color = colors.ink, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Text(text, color = colors.ink3, style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -676,11 +682,11 @@ private fun QueueRow(index: Int, song: Song, size: Int) {
         }
         song.duration?.let { Text(Format.time(it.toDouble()), color = colors.ink3, fontSize = 12.sp) }
         Box {
-            IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, contentDescription = "More", tint = colors.ink3) }
+            IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, contentDescription = t("More"), tint = colors.ink3) }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                DropdownMenuItem(text = { Text("Play now") }, onClick = { menu = false; actions.graph.player.jumpTo(index) })
-                DropdownMenuItem(text = { Text("Remove from queue") }, onClick = { menu = false; actions.graph.player.remove(index) })
-                DropdownMenuItem(text = { Text("Move to top") }, onClick = {
+                DropdownMenuItem(text = { Text(t("Play now")) }, onClick = { menu = false; actions.graph.player.jumpTo(index) })
+                DropdownMenuItem(text = { Text(t("Remove from queue")) }, onClick = { menu = false; actions.graph.player.remove(index) })
+                DropdownMenuItem(text = { Text(t("Move to top")) }, onClick = {
                     menu = false
                     val target = actions.graph.player.state.value.index + 1
                     if (target in 0 until size) actions.graph.player.move(index, target)
@@ -689,7 +695,7 @@ private fun QueueRow(index: Int, song: Song, size: Int) {
         }
         Icon(
             Icons.Rounded.DragHandle,
-            contentDescription = "Drag to reorder",
+            contentDescription = t("Drag to reorder"),
             tint = colors.ink3,
             modifier = Modifier
                 .padding(horizontal = 8.dp)
@@ -736,8 +742,8 @@ private fun LyricsPanel(song: Song, positionMs: Long) {
     val active = lyrics?.activeIndex(positionMs / 1000.0) ?: -1
     GlassPanel(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         when {
-            loading -> Text("Looking for lyrics…", color = colors.ink3)
-            lyrics == null || lyrics.lines.isEmpty() -> Text("No lyrics for this track.", color = colors.ink3)
+            loading -> Text(t("Looking for lyrics…"), color = colors.ink3)
+            lyrics == null || lyrics.lines.isEmpty() -> Text(t("No lyrics for this track."), color = colors.ink3)
             else -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 lyrics.lines.forEachIndexed { i, line ->
                     val isActive = i == active
@@ -779,32 +785,32 @@ private fun InjektPanel(state: PlayerUiState, transition: TransitionInfo) {
     Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         GlassPanel(Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Eyebrow("The next transition")
+                Eyebrow(t("The next transition"))
                 val plan = transition.active ?: transition.upcoming?.takeIf { transition.fromSongId == current.id }
                 if (!settings.injektEnabled) {
-                    Text("InjeKt is off, so tracks are handed over with a plain crossfade.", color = colors.ink2)
+                    Text(t("InjeKt is off, so tracks are handed over with a plain crossfade."), color = colors.ink2)
                 } else if (plan == null) {
                     Text(
-                        if (next == null) "Nothing is queued after this track." else "Planned about 35 seconds before the end of the track.",
+                        if (next == null) t("Nothing is queued after this track.") else t("Planned about 35 seconds before the end of the track."),
                         color = colors.ink2,
                     )
                 } else {
                     Text(plan.label, style = MaterialTheme.typography.titleMedium, color = colors.accent)
                     Text(plan.reason, color = colors.ink2, style = MaterialTheme.typography.bodyMedium)
                     Text(
-                        "Starts at ${Format.time(plan.startAt)} · lasts ${"%.1f".format(plan.duration)}s" +
-                            if (plan.inStartOffset > 1) " · next track enters at ${Format.time(plan.inStartOffset)}" else "",
+                        t("Starts at %@ · lasts %@ s", Format.time(plan.startAt), "%.1f".format(plan.duration)) +
+                            if (plan.inStartOffset > 1) t(" · next track enters at %@", Format.time(plan.inStartOffset)) else "",
                         color = colors.ink3,
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
         }
-        AnalysisCard("This track", current, currentAnalysis)
-        if (next != null) AnalysisCard("Up next", next, nextAnalysis)
+        AnalysisCard(t("This track"), current, currentAnalysis)
+        if (next != null) AnalysisCard(t("Up next"), next, nextAnalysis)
         if (currentAnalysis == null || (next != null && nextAnalysis == null)) {
             Pill(
-                if (analysing) "Analysing…" else "Analyse now",
+                if (analysing) t("Analysing…") else t("Analyse now"),
                 icon = Icons.Rounded.AutoAwesome,
                 enabled = !analysing,
                 onClick = {
@@ -834,15 +840,15 @@ private fun AnalysisCard(title: String, song: Song, analysis: TrackAnalysis?) {
                 }
             }
             if (analysis == null) {
-                Text("Not analysed yet.", color = colors.ink3, style = MaterialTheme.typography.bodySmall)
+                Text(t("Not analysed yet."), color = colors.ink3, style = MaterialTheme.typography.bodySmall)
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Stat("Tempo", "%.1f".format(analysis.bpm), if (analysis.bpmSource.name == "TAG") "from tag" else "${(analysis.bpmConfidence * 100).roundToInt()}% sure")
-                    Stat("Key", analysis.keyName, analysis.camelot)
-                    Stat("Energy", "${(analysis.energy * 100).roundToInt()}", "of 100")
+                    Stat(t("Tempo"), "%.1f".format(analysis.bpm), if (analysis.bpmSource.name == "TAG") t("from tag") else t("%@% sure", (analysis.bpmConfidence * 100).roundToInt()))
+                    Stat(t("Key"), analysis.keyName, analysis.camelot)
+                    Stat(t("Energy"), "${(analysis.energy * 100).roundToInt()}", t("of 100"))
                 }
                 Text(
-                    "Intro ends ${Format.time(analysis.introEnd)} · outro from ${Format.time(analysis.outroStart)}",
+                    t("Intro ends %@ · outro from %@", Format.time(analysis.introEnd), Format.time(analysis.outroStart)),
                     color = colors.ink3,
                     style = MaterialTheme.typography.bodySmall,
                 )

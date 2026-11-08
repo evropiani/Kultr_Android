@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Kultr</string>
+    <string name="app_name" translatable="false">Kultr</string>
     <string name="channel_downloads">Downloads</string>
 
     <!-- Home screen widget -->

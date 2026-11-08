@@ -2,6 +2,7 @@ package app.kultr.core.settings
 
 import app.kultr.core.karousel.STATION_PRESETS
 import app.kultr.core.karousel.Station
+import app.kultr.core.util.t
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -32,13 +33,17 @@ enum class CornerStyle {
 }
 
 @Serializable
-enum class PlayheadStyle(val label: String, val note: String) {
+enum class PlayheadStyle(private val english: String, private val englishNote: String) {
     @SerialName("minimal") MINIMAL("Minimal", "A plain accent-coloured bar. Still."),
     @SerialName("glow") GLOW("Glow", "A soft halo that breathes around the playhead."),
     @SerialName("pulse") PULSE("Pulse", "A ring that expands out of the playhead in time."),
     @SerialName("wave") WAVE("Wave", "Diagonal light travelling along the played part."),
     @SerialName("comet") COMET("Comet", "A bright head dragging a shimmering tail."),
     @SerialName("equalizer") EQUALIZER("Equalizer", "Sliding bars, like a level meter."),
+    ;
+
+    val label: String get() = t(english)
+    val note: String get() = t(englishNote)
 }
 
 @Serializable
@@ -49,18 +54,24 @@ enum class GridSize {
 }
 
 @Serializable
-enum class CrossfadeCurve(val label: String) {
+enum class CrossfadeCurve(private val english: String) {
     @SerialName("equalPower") EQUAL_POWER("Equal power"),
     @SerialName("linear") LINEAR("Linear"),
     @SerialName("smooth") SMOOTH("Smooth"),
     @SerialName("sharp") SHARP("Sharp"),
+    ;
+
+    val label: String get() = t(english)
 }
 
 @Serializable
-enum class ReplayGainMode(val label: String) {
+enum class ReplayGainMode(private val english: String) {
     @SerialName("off") OFF("Off"),
     @SerialName("track") TRACK("Per track"),
     @SerialName("album") ALBUM("Per album"),
+    ;
+
+    val label: String get() = t(english)
 }
 
 val EQ_BANDS = intArrayOf(32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
@@ -208,12 +219,16 @@ enum class TileKind { SONGS, ALBUMS, ARTISTS, PLAYLISTS, RADIOS, STATIONS }
 /** A shelf the home page can show. */
 data class HomeTile(
     val id: String,
-    /** Heading on the home page. */
-    val title: String,
-    /** One line in Settings, explaining what fills it. */
-    val note: String,
+    private val englishTitle: String,
+    private val englishNote: String,
     val kind: TileKind,
-)
+) {
+    /** Heading on the home page. */
+    val title: String get() = t(englishTitle)
+
+    /** One line in Settings, explaining what fills it. */
+    val note: String get() = t(englishNote)
+}
 
 val HOME_TILES: List<HomeTile> = listOf(
     HomeTile("stations", "Stations", "Endless mixes from your own library, by tempo, energy, genre or decade.", TileKind.STATIONS),

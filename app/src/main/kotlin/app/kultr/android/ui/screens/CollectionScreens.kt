@@ -92,6 +92,7 @@ import app.kultr.core.settings.Crate
 import app.kultr.core.settings.NoteAndTags
 import app.kultr.core.settings.tagCounts
 import app.kultr.core.util.Format
+import app.kultr.core.util.t
 import java.util.Locale
 import java.util.UUID
 
@@ -111,7 +112,7 @@ fun NotesSection(key: String, name: String) {
     var addingTag by remember { mutableStateOf(false) }
     var editingNote by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth()) {
-        SectionHeader("Your notes", modifier = Modifier.padding(top = 8.dp))
+        SectionHeader(t("Your notes"), modifier = Modifier.padding(top = 8.dp))
         LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(annotation.tags, key = { it }) { tag ->
                 var menu by remember { mutableStateOf(false) }
@@ -130,11 +131,11 @@ fun NotesSection(key: String, name: String) {
                         Text(tag, style = MaterialTheme.typography.labelLarge, color = colors.accent)
                     }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(text = { Text("Everything tagged “$tag”") }, leadingIcon = { Icon(Icons.Rounded.Sell, null) }, onClick = {
+                        DropdownMenuItem(text = { Text(t("Everything tagged “%@”", tag)) }, leadingIcon = { Icon(Icons.Rounded.Sell, null) }, onClick = {
                             menu = false
                             actions.openTag(tag)
                         })
-                        DropdownMenuItem(text = { Text("Remove the tag", color = colors.danger) }, leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = colors.danger) }, onClick = {
+                        DropdownMenuItem(text = { Text(t("Remove the tag"), color = colors.danger) }, leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = colors.danger) }, onClick = {
                             menu = false
                             graph.crates.setAnnotation(key, annotation.withoutTag(tag))
                         })
@@ -151,9 +152,9 @@ fun NotesSection(key: String, name: String) {
                         .padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Rounded.Add, contentDescription = "Add a tag", tint = colors.ink2, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Rounded.Add, contentDescription = t("Add a tag"), tint = colors.ink2, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Tag", style = MaterialTheme.typography.labelLarge, color = colors.ink2)
+                    Text(t("Tag"), style = MaterialTheme.typography.labelLarge, color = colors.ink2)
                 }
             }
         }
@@ -171,7 +172,7 @@ fun NotesSection(key: String, name: String) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.EditNote, contentDescription = null, tint = colors.ink3)
                     Spacer(Modifier.width(8.dp))
-                    Text("Add a note", style = MaterialTheme.typography.bodyMedium, color = colors.ink3)
+                    Text(t("Add a note"), style = MaterialTheme.typography.bodyMedium, color = colors.ink3)
                 }
             } else {
                 Text(annotation.note, style = MaterialTheme.typography.bodyMedium, color = colors.ink)
@@ -184,12 +185,12 @@ fun NotesSection(key: String, name: String) {
         var text by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { addingTag = false },
-            title = { Text("Tag “$name”") },
+            title = { Text(t("Tag “%@”", name)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(text, { text = it }, label = { Text("Tag") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(text, { text = it }, label = { Text(t("Tag")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     if (existing.isEmpty()) {
-                        Text("A word of your own, like “gym” or “rainy day”.", style = MaterialTheme.typography.bodySmall, color = colors.ink3)
+                        Text(t("A word of your own, like “gym” or “rainy day”."), style = MaterialTheme.typography.bodySmall, color = colors.ink3)
                     } else {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             items(existing) { tag -> Pill(tag, onClick = { text = tag }) }
@@ -201,9 +202,9 @@ fun NotesSection(key: String, name: String) {
                 TextButton(enabled = text.isNotBlank(), onClick = {
                     graph.crates.setAnnotation(key, annotation.withTag(text))
                     addingTag = false
-                }) { Text("Add") }
+                }) { Text(t("Add")) }
             },
-            dismissButton = { TextButton(onClick = { addingTag = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { addingTag = false }) { Text(t("Cancel")) } },
         )
     }
     if (editingNote) {
@@ -211,14 +212,14 @@ fun NotesSection(key: String, name: String) {
         AlertDialog(
             onDismissRequest = { editingNote = false },
             title = { Text(name) },
-            text = { OutlinedTextField(text, { text = it }, placeholder = { Text("Your note") }, minLines = 4, modifier = Modifier.fillMaxWidth()) },
+            text = { OutlinedTextField(text, { text = it }, placeholder = { Text(t("Your note")) }, minLines = 4, modifier = Modifier.fillMaxWidth()) },
             confirmButton = {
                 TextButton(onClick = {
                     graph.crates.setAnnotation(key, annotation.copy(note = text.trim()))
                     editingNote = false
-                }) { Text("Save") }
+                }) { Text(t("Save")) }
             },
-            dismissButton = { TextButton(onClick = { editingNote = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { editingNote = false }) { Text(t("Cancel")) } },
         )
     }
 }
@@ -236,8 +237,8 @@ fun TagsTab(query: String) {
             item {
                 EmptyState(
                     Icons.Rounded.Sell,
-                    if (needle.isEmpty()) "No tags yet" else "No tags match “$query”",
-                    body = "Open an album or an artist and tap + Tag under Your notes.",
+                    if (needle.isEmpty()) t("No tags yet") else t("No tags match “%@”", query),
+                    body = t("Open an album or an artist and tap + Tag under Your notes."),
                 )
             }
         }
@@ -286,30 +287,30 @@ fun TagScreen(tag: String) {
             return@LazyColumn
         }
         if (albums.isEmpty() && artists.isEmpty()) {
-            item { EmptyState(Icons.Rounded.Sell, "Nothing tagged “$tag”", body = "The tag was taken off everything that had it.") }
+            item { EmptyState(Icons.Rounded.Sell, t("Nothing tagged “%@”", tag), body = t("The tag was taken off everything that had it.")) }
             return@LazyColumn
         }
         item {
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                WideButton("Play", Icons.Rounded.PlayArrow, onClick = { actions.launch { actions.play(songs()) } }, modifier = Modifier.weight(1f))
-                WideButton("Shuffle", Icons.Rounded.Shuffle, onClick = { actions.launch { actions.shuffle(songs()) } }, modifier = Modifier.weight(1f))
+                WideButton(t("Play"), Icons.Rounded.PlayArrow, onClick = { actions.launch { actions.play(songs()) } }, modifier = Modifier.weight(1f))
+                WideButton(t("Shuffle"), Icons.Rounded.Shuffle, onClick = { actions.launch { actions.shuffle(songs()) } }, modifier = Modifier.weight(1f))
             }
         }
         if (albums.isNotEmpty()) {
             item {
-                SectionHeader("Albums")
+                SectionHeader(t("Albums"))
                 Shelf(albums, key = { it.id }) { album, modifier -> AlbumCard(album, { actions.openAlbum(album.id) }, modifier) }
             }
         }
         if (artists.isNotEmpty()) {
             item {
-                SectionHeader("Artists")
+                SectionHeader(t("Artists"))
                 Shelf(artists, key = { it.id }, cardWidth = 130.dp) { artist, modifier -> ArtistCard(artist, { actions.openArtist(artist.id) }, modifier) }
             }
         }
         item {
             Pill(
-                "Make a crate of everything tagged “$tag”",
+                t("Make a crate of everything tagged “%@”", tag),
                 icon = Icons.Rounded.Inventory2,
                 modifier = Modifier.padding(16.dp),
                 onClick = {
@@ -348,15 +349,15 @@ fun CratesTab(query: String) {
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Box(Modifier.padding(6.dp)) {
-                Pill("New crate", icon = Icons.Rounded.Add, accent = true, onClick = { menu = true })
+                Pill(t("New crate"), icon = Icons.Rounded.Add, accent = true, onClick = { menu = true })
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text("Fill it by hand") }, leadingIcon = { Icon(Icons.Rounded.PanTool, null) }, onClick = {
+                    DropdownMenuItem(text = { Text(t("Fill it by hand")) }, leadingIcon = { Icon(Icons.Rounded.PanTool, null) }, onClick = {
                         menu = false
                         creating = true
                     })
-                    DropdownMenuItem(text = { Text("Fill it by rules") }, leadingIcon = { Icon(Icons.Rounded.Tune, null) }, onClick = {
+                    DropdownMenuItem(text = { Text(t("Fill it by rules")) }, leadingIcon = { Icon(Icons.Rounded.Tune, null) }, onClick = {
                         menu = false
-                        rules = StationDraft(Station(name = "New crate", icon = "shippingbox.fill", minRating = 4, addedDays = 365), isNew = true, noun = "crate")
+                        rules = StationDraft(Station(name = t("New crate"), icon = "shippingbox.fill", minRating = 4, addedDays = 365), isNew = true, noun = "crate")
                     })
                 }
             }
@@ -365,19 +366,18 @@ fun CratesTab(query: String) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 EmptyState(
                     Icons.Rounded.Inventory2,
-                    if (needle.isEmpty()) "No crates yet" else "No crates match “$query”",
-                    body = "A crate holds albums, artists and tracks you choose: open the menu of any of them and tap Add to crate. " +
-                        "Or let rules fill it, like “4 stars and up, added this year”.",
+                    if (needle.isEmpty()) t("No crates yet") else t("No crates match “%@”", query),
+                    body = t("A crate holds albums, artists and tracks you choose: open the menu of any of them and tap Add to crate. Or let rules fill it, like “4 stars and up, added this year”."),
                 )
             }
         }
         items(crates, key = { it.id }) { CrateCard(it) }
     }
     if (creating) {
-        TextInputDialog("New crate", "", "Create", onConfirm = { name ->
+        TextInputDialog(t("New crate"), "", t("Create"), onConfirm = { name ->
             val crate = Crate(name = name.trim())
             graph.crates.save(crate)
-            graph.messages.show("Open the menu of an album, artist or track and tap Add to crate to fill “${crate.name}”.")
+            graph.messages.show(t("Open the menu of an album, artist or track and tap Add to crate to fill “%@”.", crate.name))
         }, onDismiss = { creating = false })
     }
     rules?.let { draft ->
@@ -461,7 +461,7 @@ fun CrateScreen(id: String) {
     if (crate == null) {
         Column {
             BackBar()
-            EmptyState(Icons.Rounded.Inventory2, "This crate is gone", body = "It was deleted.")
+            EmptyState(Icons.Rounded.Inventory2, t("This crate is gone"), body = t("It was deleted."))
         }
         return
     }
@@ -471,34 +471,34 @@ fun CrateScreen(id: String) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.weight(1f)) { BackBar() }
                 Box {
-                    IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreHoriz, contentDescription = "More", tint = colors.accent) }
+                    IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreHoriz, contentDescription = t("More"), tint = colors.accent) }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(text = { Text("Rename…") }, leadingIcon = { Icon(Icons.Rounded.Edit, null) }, onClick = {
+                        DropdownMenuItem(text = { Text(t("Rename…")) }, leadingIcon = { Icon(Icons.Rounded.Edit, null) }, onClick = {
                             menu = false
                             renaming = true
                         })
                         crate.rules?.let { r ->
-                            DropdownMenuItem(text = { Text("Change the rules…") }, leadingIcon = { Icon(Icons.Rounded.Tune, null) }, onClick = {
+                            DropdownMenuItem(text = { Text(t("Change the rules…")) }, leadingIcon = { Icon(Icons.Rounded.Tune, null) }, onClick = {
                                 menu = false
                                 rules = StationDraft(r.copy(name = crate.name, icon = crate.icon), isNew = false, noun = "crate")
                             })
-                            DropdownMenuItem(text = { Text("Make it a station") }, leadingIcon = { Icon(Icons.Rounded.Tune, null) }, onClick = {
+                            DropdownMenuItem(text = { Text(t("Make it a station")) }, leadingIcon = { Icon(Icons.Rounded.Tune, null) }, onClick = {
                                 menu = false
                                 graph.stations.save(r.copy(id = UUID.randomUUID().toString(), name = crate.name, icon = crate.icon))
-                                graph.messages.show("“${crate.name}” is a station too now")
+                                graph.messages.show(t("“%@” is a station too now", crate.name))
                             })
                         }
                         if (crate.syncPlaylist) {
-                            DropdownMenuItem(text = { Text("Update the playlist now") }, leadingIcon = { Icon(Icons.Rounded.Refresh, null) }, onClick = {
+                            DropdownMenuItem(text = { Text(t("Update the playlist now")) }, leadingIcon = { Icon(Icons.Rounded.Refresh, null) }, onClick = {
                                 menu = false
-                                actions.launch { if (graph.crates.syncNow(crate.id) == null) graph.messages.show("Playlist up to date") }
+                                actions.launch { if (graph.crates.syncNow(crate.id) == null) graph.messages.show(t("Playlist up to date")) }
                             })
                         }
-                        DropdownMenuItem(text = { Text("Add to playlist…") }, leadingIcon = { Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null) }, onClick = {
+                        DropdownMenuItem(text = { Text(t("Add to playlist…")) }, leadingIcon = { Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null) }, onClick = {
                             menu = false
                             actions.addToPlaylist(songs)
                         })
-                        DropdownMenuItem(text = { Text("Delete the crate", color = colors.danger) }, leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = colors.danger) }, onClick = {
+                        DropdownMenuItem(text = { Text(t("Delete the crate"), color = colors.danger) }, leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = colors.danger) }, onClick = {
                             menu = false
                             deleting = true
                         })
@@ -513,26 +513,26 @@ fun CrateScreen(id: String) {
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
             Text(
-                if (contents == null) "Counting…" else Format.count(songs.size, "track"),
+                if (contents == null) t("Counting…") else Format.count(songs.size, "track"),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.ink3,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
             )
             Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                WideButton("Play", Icons.Rounded.PlayArrow, onClick = { actions.play(songs) }, modifier = Modifier.weight(1f), enabled = songs.isNotEmpty())
-                WideButton("Shuffle", Icons.Rounded.Shuffle, onClick = { actions.shuffle(songs) }, modifier = Modifier.weight(1f), enabled = songs.isNotEmpty())
+                WideButton(t("Play"), Icons.Rounded.PlayArrow, onClick = { actions.play(songs) }, modifier = Modifier.weight(1f), enabled = songs.isNotEmpty())
+                WideButton(t("Shuffle"), Icons.Rounded.Shuffle, onClick = { actions.shuffle(songs) }, modifier = Modifier.weight(1f), enabled = songs.isNotEmpty())
             }
             Row(
                 Modifier.fillMaxWidth().clickable { setSync(graph, crate, !crate.syncPlaylist) }.padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Keep as a playlist", style = MaterialTheme.typography.bodyLarge, color = colors.ink)
+                    Text(t("Keep as a playlist"), style = MaterialTheme.typography.bodyLarge, color = colors.ink)
                     Text(
                         if (graph.isLocal) {
-                            "A playlist on this phone with the same tracks, updated when the crate changes."
+                            t("A playlist on this phone with the same tracks, updated when the crate changes.")
                         } else {
-                            "A playlist on your server with the same tracks, so other apps see it too. Updated when the crate changes."
+                            t("A playlist on your server with the same tracks, so other apps see it too. Updated when the crate changes.")
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.ink3,
@@ -546,7 +546,7 @@ fun CrateScreen(id: String) {
         when {
             shown == null -> item { SkeletonRows() }
             crate.byRules -> {
-                item { SectionHeader("Tracks") }
+                item { SectionHeader(t("Tracks")) }
                 songItems(songs, player.current?.id, downloaded, selection, onPlay = { actions.play(songs, it) }, compact = settings.compactRows)
             }
             else -> {
@@ -554,25 +554,25 @@ fun CrateScreen(id: String) {
                     item {
                         EmptyState(
                             Icons.Rounded.Inventory2,
-                            "Nothing in this crate yet",
-                            body = "Open the menu of an album, an artist or a track anywhere in Kultr and tap Add to crate.",
+                            t("Nothing in this crate yet"),
+                            body = t("Open the menu of an album, an artist or a track anywhere in Kultr and tap Add to crate."),
                         )
                     }
                 }
                 if (shown.albums.isNotEmpty()) {
                     item {
-                        SectionHeader("Albums")
+                        SectionHeader(t("Albums"))
                         Shelf(shown.albums, key = { it.id }) { album, modifier -> AlbumCard(album, { actions.openAlbum(album.id) }, modifier) }
                     }
                 }
                 if (shown.artists.isNotEmpty()) {
                     item {
-                        SectionHeader("Artists")
+                        SectionHeader(t("Artists"))
                         Shelf(shown.artists, key = { it.id }, cardWidth = 130.dp) { artist, modifier -> ArtistCard(artist, { actions.openArtist(artist.id) }, modifier) }
                     }
                 }
                 if (shown.handPicked.isNotEmpty()) {
-                    item { SectionHeader("Tracks") }
+                    item { SectionHeader(t("Tracks")) }
                     songItems(
                         shown.handPicked,
                         player.current?.id,
@@ -588,13 +588,13 @@ fun CrateScreen(id: String) {
     }
 
     if (renaming) {
-        TextInputDialog("Rename the crate", crate.name, "Rename", onConfirm = { graph.crates.save(crate.copy(name = it.trim())) }, onDismiss = { renaming = false })
+        TextInputDialog(t("Rename the crate"), crate.name, t("Rename"), onConfirm = { graph.crates.save(crate.copy(name = it.trim())) }, onDismiss = { renaming = false })
     }
     if (deleting) {
         ConfirmDialog(
-            title = "Delete “${crate.name}”?",
-            body = if (crate.playlistId == null) "The music stays in your library." else "The music stays in your library, and so does its playlist.",
-            confirm = "Delete",
+            title = t("Delete “%@”?", crate.name),
+            body = if (crate.playlistId == null) t("The music stays in your library.") else t("The music stays in your library, and so does its playlist."),
+            confirm = t("Delete"),
             onConfirm = {
                 graph.crates.delete(crate)
                 actions.back()
@@ -619,7 +619,7 @@ private data class CrateContents(
 
 private fun setSync(graph: app.kultr.android.AppGraph, crate: Crate, on: Boolean) {
     graph.crates.save(crate.copy(syncPlaylist = on))
-    if (on) graph.messages.show("“${crate.name}” will be kept as a playlist")
+    if (on) graph.messages.show(t("“%@” will be kept as a playlist", crate.name))
 }
 
 /** "Add to crate": every crate filled by hand, ticked where the item is in it already, and a new one. */
@@ -632,14 +632,14 @@ fun AddToCrateDialog(item: CrateItem, onDismiss: () -> Unit) {
     var creating by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add “${item.title}” to a crate", maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        title = { Text(t("Add “%@” to a crate", item.title), maxLines = 2, overflow = TextOverflow.Ellipsis) },
         text = {
             LazyColumn(Modifier.heightIn(max = 420.dp)) {
                 item {
                     Row(Modifier.fillMaxWidth().clickable { creating = true }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.Add, contentDescription = null, tint = colors.accent)
                         Spacer(Modifier.width(12.dp))
-                        Text("New crate…", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = colors.accent)
+                        Text(t("New crate…"), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = colors.accent)
                     }
                 }
                 items(crates, key = { it.id }) { crate ->
@@ -656,17 +656,17 @@ fun AddToCrateDialog(item: CrateItem, onDismiss: () -> Unit) {
                         }
                         Icon(
                             if (inside) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
-                            contentDescription = if (inside) "In the crate" else null,
+                            contentDescription = if (inside) t("In the crate") else null,
                             tint = if (inside) colors.accent else colors.ink4,
                         )
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(t("Done")) } },
     )
     if (creating) {
-        TextInputDialog("New crate", "", "Create", onConfirm = { name ->
+        TextInputDialog(t("New crate"), "", t("Create"), onConfirm = { name ->
             val crate = Crate(name = name.trim())
             graph.crates.save(crate)
             graph.crates.toggle(item, crate.id)

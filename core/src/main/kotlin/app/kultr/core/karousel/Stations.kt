@@ -3,6 +3,7 @@ package app.kultr.core.karousel
 import app.kultr.core.api.Song
 import app.kultr.core.dsp.TrackAnalysis
 import app.kultr.core.injekt.rankAutoQueue
+import app.kultr.core.util.t
 import kotlinx.serialization.Serializable
 import java.time.Instant
 import java.time.ZoneOffset
@@ -89,28 +90,31 @@ data class Station(
         get() {
             val parts = buildList {
                 bpm?.takeIf { !it.isOpen }?.let { add(range(it, " BPM") { v -> "${v.roundToInt()}" }) }
-                energy?.takeIf { !it.isOpen }?.let { add("energy " + range(it) { v -> "${(v * 10).roundToInt()}" }) }
-                keys?.takeIf { it.isNotEmpty() }?.let { add(if (it.size <= 3) it.joinToString(", ") else "${it.size} keys") }
-                genres?.takeIf { it.isNotEmpty() }?.let { add(if (it.size <= 2) it.joinToString(", ") else "${it.size} genres") }
+                energy?.takeIf { !it.isOpen }?.let { add(t("energy %@", range(it) { v -> "${(v * 10).roundToInt()}" })) }
+                keys?.takeIf { it.isNotEmpty() }?.let { add(if (it.size <= 3) it.joinToString(", ") else t("%@ keys", it.size)) }
+                genres?.takeIf { it.isNotEmpty() }?.let { add(if (it.size <= 2) it.joinToString(", ") else t("%@ genres", it.size)) }
                 years?.takeIf { !it.isOpen }?.let { add(range(it) { v -> "${v.toInt()}" }) }
-                if (unplayed) add("never played")
-                if (favourites) add("favourites")
-                minRating?.takeIf { it > 0 }?.let { add("$it★ and up") }
-                tags?.takeIf { it.isNotEmpty() }?.let { add("tagged " + it.joinToString(", ")) }
-                addedDays?.let { add(if (it == 365) "added this year" else "added in the last $it days") }
+                if (unplayed) add(t("never played"))
+                if (favourites) add(t("favourites"))
+                minRating?.takeIf { it > 0 }?.let { add(t("%@★ and up", it)) }
+                tags?.takeIf { it.isNotEmpty() }?.let { add(t("tagged %@", it.joinToString(", "))) }
+                addedDays?.let { add(if (it == 365) t("added this year") else t("added in the last %@ days", it)) }
             }
-            return if (parts.isEmpty()) "Your whole library" else parts.joinToString(" · ")
+            return if (parts.isEmpty()) t("Your whole library") else parts.joinToString(" · ")
         }
+
+    /** The name to show: a starting station's in the phone's language, your own as you wrote it. */
+    val title: String get() = t(name)
 
     companion object {
         /** A station for the decade starting [start]. */
-        fun decade(start: Int) = Station(id = "decade-$start", name = "${start}s", icon = "calendar", years = Bounds(start.toDouble(), start + 9.0))
+        fun decade(start: Int) = Station(id = "decade-$start", name = t("%@s", start), icon = "calendar", years = Bounds(start.toDouble(), start + 9.0))
 
         private fun range(bounds: Bounds, unit: String = "", text: (Double) -> String): String = when {
             bounds.min != null && bounds.max != null -> "${text(bounds.min)}–${text(bounds.max)}$unit"
-            bounds.min != null -> "${text(bounds.min)}$unit and up"
-            bounds.max != null -> "up to ${text(bounds.max)}$unit"
-            else -> "any"
+            bounds.min != null -> t("%@ and up", text(bounds.min) + unit)
+            bounds.max != null -> t("up to %@", text(bounds.max) + unit)
+            else -> t("any")
         }
     }
 }

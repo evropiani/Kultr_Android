@@ -21,6 +21,7 @@ import app.kultr.core.sync.ListeningSync
 import app.kultr.core.sync.SyncMode
 import app.kultr.core.sync.SyncProgress
 import app.kultr.core.sync.SyncSummary
+import app.kultr.core.util.t
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -62,7 +63,7 @@ class SyncManager(private val graph: AppGraph) {
     /** Start a sync unless one is already running. */
     fun start(mode: SyncMode, quiet: Boolean = false) {
         if (_running.value) {
-            if (!quiet) graph.messages.show("A sync is already running.")
+            if (!quiet) graph.messages.show(t("A sync is already running."))
             return
         }
         job = graph.scope.launch { runNow(mode, quiet) }
@@ -87,10 +88,10 @@ class SyncManager(private val graph: AppGraph) {
      */
     suspend fun runNow(mode: SyncMode, quiet: Boolean = false): String? {
         // The active library's own database: the database flow may not have caught up with a switch made just now.
-        val db = graph.auth.active.value?.id?.let(graph::databaseFor) ?: return "Not signed in."
+        val db = graph.auth.active.value?.id?.let(graph::databaseFor) ?: return t("Not signed in.")
         val local = graph.isLocal
         val client = graph.auth.client.value
-        if (!local && client == null) return "Not signed in."
+        if (!local && client == null) return t("Not signed in.")
         if (_running.value) return null
         _running.value = true
         _error.value = null
@@ -110,10 +111,10 @@ class SyncManager(private val graph: AppGraph) {
             if (!quiet) {
                 graph.messages.success(
                     when {
-                        summary.upToDate -> "Everything is up to date."
-                        summary.mode == SyncMode.FULL && local -> "Found ${summary.counts.songs} tracks in ${summary.counts.albums} albums."
-                        summary.mode == SyncMode.FULL -> "Library synced: ${summary.counts.songs} tracks in ${summary.counts.albums} albums."
-                        else -> "Updated: ${summary.albumsAdded} new, ${summary.albumsUpdated} changed, ${summary.albumsRemoved} removed."
+                        summary.upToDate -> t("Everything is up to date.")
+                        summary.mode == SyncMode.FULL && local -> t("Found %@ tracks in %@ albums.", summary.counts.songs, summary.counts.albums)
+                        summary.mode == SyncMode.FULL -> t("Library synced: %@ tracks in %@ albums.", summary.counts.songs, summary.counts.albums)
+                        else -> t("Updated: %@ new, %@ changed, %@ removed.", summary.albumsAdded, summary.albumsUpdated, summary.albumsRemoved)
                     },
                 )
                 summary.errors.firstOrNull()?.let { if (local) graph.messages.error(it) }
@@ -122,12 +123,12 @@ class SyncManager(private val graph: AppGraph) {
             if (!local) refreshListeningNow()
             null
         } catch (err: CancellationException) {
-            if (!quiet) graph.messages.show("Sync cancelled.")
+            if (!quiet) graph.messages.show(t("Sync cancelled."))
             null
         } catch (err: Exception) {
             val message = describeError(err)
             _error.value = message
-            if (!quiet) graph.messages.error("Sync failed: $message")
+            if (!quiet) graph.messages.error(t("Sync failed: %@", message))
             message
         } finally {
             _running.value = false

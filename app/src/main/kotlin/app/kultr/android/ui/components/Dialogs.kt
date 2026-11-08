@@ -40,6 +40,7 @@ import app.kultr.android.ui.LocalActions
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.Song
 import app.kultr.core.util.Format
+import app.kultr.core.util.t
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -61,14 +62,14 @@ fun AddToPlaylistDialog(songs: List<Song>, onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add $label to…") },
+        title = { Text(t("Add %@ to…", label)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("New playlist") },
+                        label = { Text(t("New playlist")) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
@@ -77,10 +78,10 @@ fun AddToPlaylistDialog(songs: List<Song>, onDismiss: () -> Unit) {
                         onClick = {
                             busy = true
                             scope.launch {
-                                finish(actions.graph.library.createPlaylist(name, songs), "Created “${name.trim()}”")
+                                finish(actions.graph.library.createPlaylist(name, songs), t("Created “%@”", name.trim()))
                             }
                         },
-                    ) { Icon(Icons.Rounded.Add, contentDescription = "Create playlist") }
+                    ) { Icon(Icons.Rounded.Add, contentDescription = t("Create playlist")) }
                 }
                 LazyColumn(Modifier.heightIn(max = 360.dp)) {
                     items(playlists, key = { it.id }) { playlist ->
@@ -90,7 +91,7 @@ fun AddToPlaylistDialog(songs: List<Song>, onDismiss: () -> Unit) {
                                 .clickable(enabled = !busy) {
                                     busy = true
                                     scope.launch {
-                                        finish(actions.graph.library.addToPlaylist(playlist.id, songs), "Added $label to “${playlist.name}”")
+                                        finish(actions.graph.library.addToPlaylist(playlist.id, songs), t("Added %@ to “%@”", label, playlist.name))
                                     }
                                 }
                                 .padding(vertical = 10.dp),
@@ -110,12 +111,12 @@ fun AddToPlaylistDialog(songs: List<Song>, onDismiss: () -> Unit) {
                     }
                 }
                 if (playlists.isEmpty()) {
-                    Text("No playlists yet — name one above to create it.", color = Kultr.colors.ink3)
+                    Text(t("No playlists yet — name one above to create it."), color = Kultr.colors.ink3)
                 }
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Cancel")) } },
     )
 }
 
@@ -125,14 +126,14 @@ fun RatingDialog(song: Song, onDismiss: () -> Unit) {
     var rating by remember { mutableIntStateOf(song.userRating ?: 0) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Rate “${song.title}”") },
+        title = { Text(t("Rate “%@”", song.title)) },
         text = {
             Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
                 for (star in 1..5) {
                     IconButton(onClick = { rating = if (rating == star) 0 else star }) {
                         Icon(
                             if (star <= rating) Icons.Rounded.Star else Icons.Rounded.StarBorder,
-                            contentDescription = "$star stars",
+                            contentDescription = t(if (star == 1) "%@ star" else "%@ stars", star),
                             tint = if (star <= rating) Kultr.colors.accent else Kultr.colors.ink3,
                             modifier = Modifier.size(32.dp),
                         )
@@ -144,9 +145,9 @@ fun RatingDialog(song: Song, onDismiss: () -> Unit) {
             TextButton(onClick = {
                 actions.setRating(song, rating)
                 onDismiss()
-            }) { Text("Save") }
+            }) { Text(t("Save")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Cancel")) } },
     )
 }
 
@@ -157,16 +158,16 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
     val timer by hub.sleepTimer.collectAsStateWithLifecycle()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Sleep timer") },
+        title = { Text(t("Sleep timer")) },
         text = {
             Column {
                 val current = timer
                 if (current != null) {
                     Text(
                         if (current.endOfTrack) {
-                            "Stopping at the end of this track."
+                            t("Stopping at the end of this track.")
                         } else {
-                            "Stopping in ${(((current.endsAtMillis ?: 0) - System.currentTimeMillis()) / 60_000).coerceAtLeast(0) + 1} min."
+                            t("Stopping in %@ min.", (((current.endsAtMillis ?: 0) - System.currentTimeMillis()) / 60_000).coerceAtLeast(0) + 1)
                         },
                         color = Kultr.colors.accent,
                         modifier = Modifier.padding(bottom = 8.dp),
@@ -180,20 +181,20 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                             .fillMaxWidth()
                             .clickable {
                                 hub.setSleepTimer(minutes)
-                                actions.graph.messages.show("Sleep timer: $minutes minutes.")
+                                actions.graph.messages.show(t("Sleep timer: %@ minutes.", minutes))
                                 onDismiss()
                             }
                             .padding(vertical = 12.dp),
                     )
                 }
                 Text(
-                    "At the end of this track",
+                    t("At the end of this track"),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
                             hub.sleepAtEndOfTrack()
-                            actions.graph.messages.show("Stopping after this track.")
+                            actions.graph.messages.show(t("Stopping after this track."))
                             onDismiss()
                         }
                         .padding(vertical = 12.dp),
@@ -202,9 +203,9 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                 val settings by actions.graph.settings.settings.collectAsStateWithLifecycle()
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("Wind down", style = MaterialTheme.typography.bodyLarge, color = Kultr.colors.ink)
+                        Text(t("Wind down"), style = MaterialTheme.typography.bodyLarge, color = Kultr.colors.ink)
                         Text(
-                            "In the last 15 minutes, Karousel plays its calmest picks first.",
+                            t("In the last 15 minutes, Karousel plays its calmest picks first."),
                             style = MaterialTheme.typography.bodySmall,
                             color = Kultr.colors.ink3,
                         )
@@ -222,10 +223,10 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                 TextButton(onClick = {
                     hub.clearSleepTimer()
                     onDismiss()
-                }) { Text("Turn off") }
+                }) { Text(t("Turn off")) }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Close")) } },
     )
 }
 
@@ -248,7 +249,7 @@ fun ConfirmDialog(
                 onDismiss()
             }) { Text(confirm, color = Kultr.colors.danger) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Cancel")) } },
     )
 }
 
@@ -272,7 +273,7 @@ fun TextInputDialog(
                 onDismiss()
             }) { Text(confirm) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Cancel")) } },
     )
 }
 
@@ -281,16 +282,16 @@ fun TextInputDialog(
 fun SaveSessionDialog(played: List<Song>, queue: List<Song>, onDismiss: () -> Unit) {
     val actions = LocalActions.current
     val graph = actions.graph
-    var name by remember { mutableStateOf("Session, " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("d MMM, HH:mm"))) }
+    var name by remember { mutableStateOf(t("Session, %@", LocalDateTime.now().format(DateTimeFormatter.ofPattern(t("d MMM, HH:mm"))))) }
     var whole by remember { mutableStateOf(played.isEmpty()) }
     val songs = (if (whole) queue else played).filter { !it.isRadio }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Save as a playlist") },
+        title = { Text(t("Save as a playlist")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                Segmented(listOf(false to "What you've played", true to "The whole queue"), whole, { whole = it })
+                OutlinedTextField(name, { name = it }, label = { Text(t("Name")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Segmented(listOf(false to t("What you've played"), true to t("The whole queue")), whole, { whole = it })
                 Text(Format.count(songs.size, "track"), style = MaterialTheme.typography.bodySmall, color = Kultr.colors.ink3)
             }
         },
@@ -302,11 +303,11 @@ fun SaveSessionDialog(played: List<Song>, queue: List<Song>, onDismiss: () -> Un
                     onDismiss()
                     actions.launch {
                         val error = graph.library.createPlaylist(title, songs)
-                        if (error != null) graph.messages.error(error) else graph.messages.success("Saved “$title”: ${Format.count(songs.size, "track")}")
+                        if (error != null) graph.messages.error(error) else graph.messages.success(t("Saved “%@”: %@", title, Format.count(songs.size, "track")))
                     }
                 },
-            ) { Text("Save") }
+            ) { Text(t("Save")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Cancel")) } },
     )
 }

@@ -70,6 +70,7 @@ import app.kultr.android.ui.starredShown
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.Song
 import app.kultr.core.util.Format
+import app.kultr.core.util.t
 
 /** An extra entry for a song's menu, for screen-specific actions. */
 data class MenuAction(val label: String, val icon: ImageVector, val onClick: () -> Unit)
@@ -133,7 +134,7 @@ fun SongRow(
         if (selecting) {
             Icon(
                 if (selected) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
-                contentDescription = if (selected) "Selected" else "Not selected",
+                contentDescription = if (selected) t("Selected") else t("Not selected"),
                 tint = if (selected) colors.accent else colors.ink3,
                 modifier = Modifier.size(22.dp),
             )
@@ -148,12 +149,12 @@ fun SongRow(
                             .matchParentSize()
                             .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f)),
                         contentAlignment = Alignment.Center,
-                    ) { Icon(Icons.Rounded.GraphicEq, contentDescription = "Playing", tint = colors.accent) }
+                    ) { Icon(Icons.Rounded.GraphicEq, contentDescription = t("Playing"), tint = colors.accent) }
                 }
             }
             number != null -> Box(Modifier.width(32.dp), contentAlignment = Alignment.Center) {
                 if (isCurrent) {
-                    Icon(Icons.Rounded.GraphicEq, contentDescription = "Playing", tint = colors.accent, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.GraphicEq, contentDescription = t("Playing"), tint = colors.accent, modifier = Modifier.size(18.dp))
                 } else {
                     Text("$number", color = colors.ink3, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
                 }
@@ -175,11 +176,11 @@ fun SongRow(
             }
         }
         if (downloaded) {
-            Icon(Icons.Rounded.DownloadDone, contentDescription = "Downloaded", tint = colors.ink3, modifier = Modifier.size(16.dp))
+            Icon(Icons.Rounded.DownloadDone, contentDescription = t("Downloaded"), tint = colors.ink3, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
         }
         if (starredShown(song)) {
-            Icon(Icons.Rounded.Favorite, contentDescription = "Favourite", tint = colors.accent, modifier = Modifier.size(16.dp))
+            Icon(Icons.Rounded.Favorite, contentDescription = t("Favourite"), tint = colors.accent, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
         }
         song.duration?.let {
@@ -194,7 +195,7 @@ fun SongMenuButton(song: Song, downloaded: Boolean, extraActions: List<MenuActio
     var open by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }) {
-            Icon(Icons.Rounded.MoreHoriz, contentDescription = "More for ${song.title}", tint = Kultr.colors.accent)
+            Icon(Icons.Rounded.MoreHoriz, contentDescription = t("More for %@", song.title), tint = Kultr.colors.accent)
         }
         SongMenu(song, downloaded, open, onDismiss = { open = false }, extraActions = extraActions)
     }
@@ -210,28 +211,28 @@ fun SongMenu(
 ) {
     val actions = LocalActions.current
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        MenuItem("Play", Icons.Rounded.PlayArrow, onDismiss) { actions.play(listOf(song)) }
-        MenuItem("Play next", Icons.Rounded.SkipNext, onDismiss) { actions.playNext(listOf(song)) }
-        MenuItem("Add to queue", Icons.AutoMirrored.Rounded.QueueMusic, onDismiss) { actions.enqueue(listOf(song)) }
+        MenuItem(t("Play"), Icons.Rounded.PlayArrow, onDismiss) { actions.play(listOf(song)) }
+        MenuItem(t("Play next"), Icons.Rounded.SkipNext, onDismiss) { actions.playNext(listOf(song)) }
+        MenuItem(t("Add to queue"), Icons.AutoMirrored.Rounded.QueueMusic, onDismiss) { actions.enqueue(listOf(song)) }
         if (!song.isRadio) {
-            MenuItem("Add to playlist…", Icons.AutoMirrored.Rounded.PlaylistAdd, onDismiss) { actions.addToPlaylist(listOf(song)) }
-            MenuItem("Add to crate…", Icons.Rounded.Inventory2, onDismiss) { actions.addToCrate(CrateItem.Songs(listOf(song))) }
+            MenuItem(t("Add to playlist…"), Icons.AutoMirrored.Rounded.PlaylistAdd, onDismiss) { actions.addToPlaylist(listOf(song)) }
+            MenuItem(t("Add to crate…"), Icons.Rounded.Inventory2, onDismiss) { actions.addToCrate(CrateItem.Songs(listOf(song))) }
             if (starredShown(song)) {
-                MenuItem("Remove from favourites", Icons.Rounded.FavoriteBorder, onDismiss) { actions.setFavourite(song, false) }
+                MenuItem(t("Remove from favourites"), Icons.Rounded.FavoriteBorder, onDismiss) { actions.setFavourite(song, false) }
             } else {
-                MenuItem("Add to favourites", Icons.Rounded.Favorite, onDismiss) { actions.setFavourite(song, true) }
+                MenuItem(t("Add to favourites"), Icons.Rounded.Favorite, onDismiss) { actions.setFavourite(song, true) }
             }
-            MenuItem(if ((song.userRating ?: 0) > 0) "Rating: ${song.userRating} ★" else "Rate…", Icons.Rounded.Star, onDismiss) { actions.rate(song) }
-            MenuItem("Start an InjeKt set from here", Icons.Rounded.AutoAwesome, onDismiss) { actions.startInjektSet(song) }
+            MenuItem(if ((song.userRating ?: 0) > 0) t("Rating: %@ ★", song.userRating) else t("Rate…"), Icons.Rounded.Star, onDismiss) { actions.rate(song) }
+            MenuItem(t("Start an InjeKt set from here"), Icons.Rounded.AutoAwesome, onDismiss) { actions.startInjektSet(song) }
             HorizontalDivider()
-            if (song.albumId != null) MenuItem("Go to album", Icons.Rounded.Album, onDismiss) { actions.openAlbum(song.albumId) }
-            if (song.artistId != null) MenuItem("Go to artist", Icons.Rounded.Person, onDismiss) { actions.openArtist(song.artistId) }
+            if (song.albumId != null) MenuItem(t("Go to album"), Icons.Rounded.Album, onDismiss) { actions.openAlbum(song.albumId) }
+            if (song.artistId != null) MenuItem(t("Go to artist"), Icons.Rounded.Person, onDismiss) { actions.openArtist(song.artistId) }
             // Music on the phone is there already.
             if (!LocalMusicMode.current) {
                 if (downloaded) {
-                    MenuItem("Remove download", Icons.Rounded.Delete, onDismiss) { actions.removeDownloads(listOf(song)) }
+                    MenuItem(t("Remove download"), Icons.Rounded.Delete, onDismiss) { actions.removeDownloads(listOf(song)) }
                 } else {
-                    MenuItem("Download", Icons.Rounded.Download, onDismiss) { actions.download(listOf(song), song.title) }
+                    MenuItem(t("Download"), Icons.Rounded.Download, onDismiss) { actions.download(listOf(song), song.title) }
                 }
             }
         }
@@ -317,46 +318,46 @@ private fun SelectionBarContent(selection: SongSelection, songs: List<Song>, mod
     var more by remember { mutableStateOf(false) }
     GlassPanel(modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), strong = true, padding = androidx.compose.foundation.layout.PaddingValues(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            IconButton(onClick = { selection.clear() }) { Icon(Icons.Rounded.Close, contentDescription = "Clear selection") }
+            IconButton(onClick = { selection.clear() }) { Icon(Icons.Rounded.Close, contentDescription = t("Clear selection")) }
             Text("${picked.size} selected", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            IconButton(onClick = { actions.play(picked); selection.clear() }) { Icon(Icons.Rounded.PlayArrow, contentDescription = "Play") }
-            IconButton(onClick = { actions.playNext(picked); selection.clear() }) { Icon(Icons.Rounded.SkipNext, contentDescription = "Play next") }
-            IconButton(onClick = { actions.enqueue(picked); selection.clear() }) { Icon(Icons.AutoMirrored.Rounded.QueueMusic, contentDescription = "Add to queue") }
+            IconButton(onClick = { actions.play(picked); selection.clear() }) { Icon(Icons.Rounded.PlayArrow, contentDescription = t("Play")) }
+            IconButton(onClick = { actions.playNext(picked); selection.clear() }) { Icon(Icons.Rounded.SkipNext, contentDescription = t("Play next")) }
+            IconButton(onClick = { actions.enqueue(picked); selection.clear() }) { Icon(Icons.AutoMirrored.Rounded.QueueMusic, contentDescription = t("Add to queue")) }
             Box {
-                IconButton(onClick = { more = true }) { Icon(Icons.Rounded.MoreVert, contentDescription = "More") }
+                IconButton(onClick = { more = true }) { Icon(Icons.Rounded.MoreVert, contentDescription = t("More")) }
                 DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
                     DropdownMenuItem(
-                        text = { Text("Select all") },
+                        text = { Text(t("Select all")) },
                         onClick = { more = false; selection.selectAll(songs) },
                     )
                     DropdownMenuItem(
-                        text = { Text("Add to playlist…") },
+                        text = { Text(t("Add to playlist…")) },
                         leadingIcon = { Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null) },
                         onClick = { more = false; actions.addToPlaylist(picked); selection.clear() },
                     )
                     DropdownMenuItem(
-                        text = { Text("Add to crate…") },
+                        text = { Text(t("Add to crate…")) },
                         leadingIcon = { Icon(Icons.Rounded.Inventory2, null) },
                         onClick = { more = false; actions.addToCrate(CrateItem.Songs(picked)); selection.clear() },
                     )
                     DropdownMenuItem(
-                        text = { Text("Add to favourites") },
+                        text = { Text(t("Add to favourites")) },
                         leadingIcon = { Icon(Icons.Rounded.Favorite, null) },
                         onClick = { more = false; actions.setFavourite(picked, true); selection.clear() },
                     )
                     DropdownMenuItem(
-                        text = { Text("Remove from favourites") },
+                        text = { Text(t("Remove from favourites")) },
                         leadingIcon = { Icon(Icons.Rounded.FavoriteBorder, null) },
                         onClick = { more = false; actions.setFavourite(picked, false); selection.clear() },
                     )
                     if (!LocalMusicMode.current) {
                         DropdownMenuItem(
-                            text = { Text("Download") },
+                            text = { Text(t("Download")) },
                             leadingIcon = { Icon(Icons.Rounded.Download, null) },
                             onClick = { more = false; actions.download(picked); selection.clear() },
                         )
                         DropdownMenuItem(
-                            text = { Text("Remove downloads") },
+                            text = { Text(t("Remove downloads")) },
                             leadingIcon = { Icon(Icons.Rounded.Delete, null) },
                             onClick = { more = false; actions.removeDownloads(picked); selection.clear() },
                         )

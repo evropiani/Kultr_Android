@@ -5,6 +5,7 @@ import app.kultr.core.dsp.TrackAnalysis
 import app.kultr.core.dsp.camelotDistance
 import app.kultr.core.settings.CrossfadeCurve
 import app.kultr.core.settings.Settings
+import app.kultr.core.util.t
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.exp
@@ -139,8 +140,8 @@ fun gaplessPlan(durationA: Double): TransitionPlan = TransitionPlan(
     bassSwap = false,
     sweep = false,
     curve = CrossfadeCurve.LINEAR,
-    label = "Gapless",
-    reason = "Tracks run straight into each other with no silence between them.",
+    label = t("Gapless"),
+    reason = t("Tracks run straight into each other with no silence between them."),
 )
 
 /** No overlap at all: the next track begins when this one has finished. */
@@ -156,8 +157,8 @@ fun hardCutPlan(durationA: Double): TransitionPlan = TransitionPlan(
     bassSwap = false,
     sweep = false,
     curve = CrossfadeCurve.LINEAR,
-    label = "No crossfade",
-    reason = "Crossfade and gapless are both off, so tracks simply follow one another.",
+    label = t("No crossfade"),
+    reason = t("Crossfade and gapless are both off, so tracks simply follow one another."),
 )
 
 fun crossfadePlan(durationA: Double, seconds: Double, curve: CrossfadeCurve): TransitionPlan {
@@ -175,8 +176,8 @@ fun crossfadePlan(durationA: Double, seconds: Double, curve: CrossfadeCurve): Tr
         bassSwap = false,
         sweep = false,
         curve = curve,
-        label = "Crossfade · ${shown}s",
-        reason = "The outgoing track fades out over $shown seconds while the next one fades in.",
+        label = t("Crossfade · %@ s", shown),
+        reason = t("The outgoing track fades out over %@ seconds while the next one fades in.", shown),
     )
 }
 
@@ -288,22 +289,21 @@ fun planTransition(
 
     val details = mutableListOf<String>()
     if (beatMatch) {
-        val outDir = if (outgoingRate >= 1) "up" else "down"
-        val inDir = if (incomingRate >= 1) "up" else "down"
-        details += "Beat-matched at ${fmt(meetBpm)} BPM — this track $outDir ${fmt(abs(outgoingRate - 1) * 100, 1)}%, " +
-            "the next $inDir ${fmt(abs(incomingRate - 1) * 100, 1)}%"
-        if (outgoingRamp > 0) details += "current track eased into tempo over ${fmt(outgoingRamp)}s"
+        fun shift(rate: Double) = fmt(abs(rate - 1) * 100, 1) + "%"
+        fun direction(rate: Double) = if (rate >= 1) t("up %@", shift(rate)) else t("down %@", shift(rate))
+        details += t("Beat-matched at %@ BPM — this track %@, the next %@", fmt(meetBpm), direction(outgoingRate), direction(incomingRate))
+        if (outgoingRamp > 0) details += t("current track eased into tempo over %@ s", fmt(outgoingRamp))
     } else {
-        details += "${fmt(bpmA)} BPM into ${fmt(bpmB)} BPM, tempos too far apart to match"
+        details += t("%@ BPM into %@ BPM, tempos too far apart to match", fmt(bpmA), fmt(bpmB))
     }
-    details += "keys ${analysisA.camelot} → ${analysisB.camelot}"
-    if (harmonicClash) details += "keys clash, so the outgoing track is filtered out instead of blended"
-    if (inStartOffset > 1) details += "intro skipped to ${fmt(inStartOffset, 1)}s"
+    details += t("keys %@ → %@", analysisA.camelot, analysisB.camelot)
+    if (harmonicClash) details += t("keys clash, so the outgoing track is filtered out instead of blended")
+    if (inStartOffset > 1) details += t("intro skipped to %@ s", fmt(inStartOffset, 1))
 
-    val label = if (beatMatch) {
-        "InjeKt · ${fmt(bpmA)}⇄${fmt(bpmB)} @ ${fmt(meetBpm)} BPM · $bars bars"
-    } else {
-        "InjeKt · ${fmt(duration, 1)}s ${if (harmonicClash) "sweep" else "blend"}"
+    val label = when {
+        beatMatch -> t("InjeKt · %@⇄%@ @ %@ BPM · %@ bars", fmt(bpmA), fmt(bpmB), fmt(meetBpm), bars)
+        harmonicClash -> t("InjeKt · %@ s sweep", fmt(duration, 1))
+        else -> t("InjeKt · %@ s blend", fmt(duration, 1))
     }
 
     return TransitionPlan(

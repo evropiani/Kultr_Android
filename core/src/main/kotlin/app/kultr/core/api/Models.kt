@@ -1,5 +1,6 @@
 package app.kultr.core.api
 
+import app.kultr.core.util.t
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -237,7 +238,7 @@ data class Credentials(
 fun RadioStation.asSong(): Song = Song(
     id = "radio:$id",
     title = name,
-    artist = "Internet radio",
+    artist = t("Internet radio"),
     album = homePageUrl,
     kultrStreamUrl = streamUrl,
 )

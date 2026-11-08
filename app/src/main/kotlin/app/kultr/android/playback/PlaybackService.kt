@@ -17,8 +17,8 @@ import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.LibraryParams
 import androidx.media3.session.MediaSession
 import app.kultr.android.AppGraph
-import app.kultr.android.KultrApp
 import app.kultr.android.KultrActivity
+import app.kultr.android.KultrApp
 import app.kultr.android.R
 import app.kultr.android.widget.NowPlayingWidget
 import app.kultr.android.widget.WidgetActionReceiver
@@ -35,6 +35,7 @@ import app.kultr.core.injekt.planTransition
 import app.kultr.core.karousel.calmestFirst
 import app.kultr.core.karousel.calmness
 import app.kultr.core.settings.Settings
+import app.kultr.core.util.t
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
@@ -389,7 +390,7 @@ class PlaybackService : MediaLibraryService() {
             if (System.currentTimeMillis() >= ends) {
                 graph.hub.clearSleepTimer()
                 sessionPlayer.pause()
-                graph.messages.show("Sleep timer finished. Good night.")
+                graph.messages.show(t("Sleep timer finished. Good night."))
             }
         }
         if (engine.playWhenReady && now - lastSavedAt > 10_000) {
@@ -567,7 +568,7 @@ class PlaybackService : MediaLibraryService() {
             controller: MediaSession.ControllerInfo,
             isForPlayback: Boolean,
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> = scope.future {
-            val saved = savedForProfile() ?: throw UnsupportedOperationException("Nothing to resume.")
+            val saved = savedForProfile() ?: throw UnsupportedOperationException(t("Nothing to resume."))
             val client = graph.auth.client.value
             if (isForPlayback) {
                 MediaSession.MediaItemsWithStartPosition(saved.mediaItems(client), saved.index, saved.positionMs)

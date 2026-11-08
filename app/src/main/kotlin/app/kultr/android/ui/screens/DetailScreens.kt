@@ -80,13 +80,14 @@ import app.kultr.core.api.ArtistInfo
 import app.kultr.core.api.Song
 import app.kultr.core.settings.NoteAndTags
 import app.kultr.core.util.Format
+import app.kultr.core.util.t
 
 /** A back arrow that floats over the header. */
 @Composable
 fun BackBar(title: String? = null) {
     val actions = LocalActions.current
     Row(Modifier.statusBarsPadding().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = actions.back) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back") }
+        IconButton(onClick = actions.back) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = t("Back")) }
         if (title != null) Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -125,8 +126,8 @@ fun DetailHeader(
         Spacer(Modifier.height(14.dp))
         if (onPlay != null || onShuffle != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                onPlay?.let { WideButton("Play", Icons.Rounded.PlayArrow, onClick = it, modifier = Modifier.weight(1f)) }
-                onShuffle?.let { WideButton("Shuffle", Icons.Rounded.Shuffle, onClick = it, modifier = Modifier.weight(1f)) }
+                onPlay?.let { WideButton(t("Play"), Icons.Rounded.PlayArrow, onClick = it, modifier = Modifier.weight(1f)) }
+                onShuffle?.let { WideButton(t("Shuffle"), Icons.Rounded.Shuffle, onClick = it, modifier = Modifier.weight(1f)) }
             }
             Spacer(Modifier.height(10.dp))
         }
@@ -142,9 +143,9 @@ private fun DownloadPill(songs: List<Song>, label: String) {
     val missing = songs.count { !it.isRadio && it.id !in downloaded }
     if (songs.isEmpty() || LocalMusicMode.current) return
     if (missing == 0) {
-        Pill("Remove download", icon = Icons.Rounded.DownloadDone, onClick = { actions.removeDownloads(songs) })
+        Pill(t("Remove download"), icon = Icons.Rounded.DownloadDone, onClick = { actions.removeDownloads(songs) })
     } else {
-        Pill("Download", icon = Icons.Rounded.Download, badge = "$missing", onClick = { actions.download(songs, label) })
+        Pill(t("Download"), icon = Icons.Rounded.Download, badge = "$missing", onClick = { actions.download(songs, label) })
     }
 }
 
@@ -214,13 +215,13 @@ fun AlbumScreen(id: String) {
                 actions = {
                     val favourite = starredShown(shown)
                     Pill(
-                        "Favourite",
+                        t("Favourite"),
                         icon = if (favourite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                         onClick = { actions.setAlbumFavourite(shown, !favourite) },
                     )
-                    Pill("Queue", icon = Icons.AutoMirrored.Rounded.QueueMusic, onClick = { actions.enqueue(songs) })
-                    Pill("Add to playlist", icon = Icons.AutoMirrored.Rounded.PlaylistAdd, onClick = { actions.addToPlaylist(songs) })
-                    Pill("Crate", icon = Icons.Rounded.Inventory2, onClick = { actions.addToCrate(CrateItem.Album(shown.id, shown.name)) })
+                    Pill(t("Queue"), icon = Icons.AutoMirrored.Rounded.QueueMusic, onClick = { actions.enqueue(songs) })
+                    Pill(t("Add to playlist"), icon = Icons.AutoMirrored.Rounded.PlaylistAdd, onClick = { actions.addToPlaylist(songs) })
+                    Pill(t("Crate"), icon = Icons.Rounded.Inventory2, onClick = { actions.addToCrate(CrateItem.Album(shown.id, shown.name)) })
                     DownloadPill(songs, shown.name)
                 },
             )
@@ -229,7 +230,7 @@ fun AlbumScreen(id: String) {
             item(key = "empty") { SkeletonRows(count = 6, artwork = false) }
         }
         discs.forEach { (disc, discSongs) ->
-            if (discs.size > 1) item(key = "disc$disc") { SectionHeader("Disc $disc") }
+            if (discs.size > 1) item(key = "disc$disc") { SectionHeader(t("Disc %@", disc)) }
             songItems(
                 discSongs,
                 currentId = player.current?.id,
@@ -245,7 +246,7 @@ fun AlbumScreen(id: String) {
         item(key = "yours") { NotesSection(NoteAndTags.albumKey(shown.id), shown.name) }
         notes?.let { text ->
             item(key = "notes") {
-                SectionHeader("About this album")
+                SectionHeader(t("About this album"))
                 Text(
                     cleanHtml(text),
                     color = Kultr.colors.ink2,
@@ -308,20 +309,20 @@ fun ArtistScreen(id: String) {
                 actions = {
                     val favourite = starredShown(shown)
                     Pill(
-                        "Favourite",
+                        t("Favourite"),
                         icon = if (favourite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                         onClick = { actions.setArtistFavourite(shown, !favourite) },
                     )
-                    Pill("InjeKt radio", icon = Icons.Rounded.AutoAwesome, onClick = {
+                    Pill(t("InjeKt radio"), icon = Icons.Rounded.AutoAwesome, onClick = {
                         actions.launch { songs.randomOrNull()?.let { actions.startInjektSet(it) } }
                     })
-                    Pill("Crate", icon = Icons.Rounded.Inventory2, onClick = { actions.addToCrate(CrateItem.Artist(shown.id, shown.name)) })
+                    Pill(t("Crate"), icon = Icons.Rounded.Inventory2, onClick = { actions.addToCrate(CrateItem.Artist(shown.id, shown.name)) })
                     DownloadPill(songs, shown.name)
                 },
             )
         }
         if (popular.isNotEmpty()) {
-            item(key = "top-head") { SectionHeader("Popular") }
+            item(key = "top-head") { SectionHeader(t("Popular")) }
             songItems(
                 popular,
                 currentId = player.current?.id,
@@ -333,7 +334,7 @@ fun ArtistScreen(id: String) {
         }
         if (allAlbums.isNotEmpty()) {
             item(key = "albums") {
-                SectionHeader("Albums")
+                SectionHeader(t("Albums"))
                 Shelf(allAlbums, key = { it.id }) { album, modifier -> AlbumCard(album, { actions.openAlbum(album.id) }, modifier) }
             }
         }
@@ -341,7 +342,7 @@ fun ArtistScreen(id: String) {
         val similar = info?.similarArtist.orEmpty()
         if (similar.isNotEmpty()) {
             item(key = "similar") {
-                SectionHeader("Similar artists")
+                SectionHeader(t("Similar artists"))
                 Shelf(similar, key = { it.id }, cardWidth = 130.dp) { other, modifier -> ArtistCard(other, { actions.openArtist(other.id) }, modifier) }
             }
         }
@@ -349,7 +350,7 @@ fun ArtistScreen(id: String) {
             val text = cleanHtml(bio)
             if (text.isNotBlank()) {
                 item(key = "bio") {
-                    SectionHeader("About")
+                    SectionHeader(t("About"))
                     Text(
                         text,
                         color = Kultr.colors.ink2,
@@ -388,7 +389,7 @@ fun PlaylistScreen(id: String) {
     if (d == null) {
         Column {
             BackBar()
-            EmptyState(Icons.AutoMirrored.Rounded.QueueMusic, "Playlist not found", body = "It may have been deleted on the server.")
+            EmptyState(Icons.AutoMirrored.Rounded.QueueMusic, t("Playlist not found"), body = t("It may have been deleted on the server."))
         }
         return
     }
@@ -417,18 +418,18 @@ fun PlaylistScreen(id: String) {
                 onPlay = { actions.play(songs) },
                 onShuffle = { actions.shuffle(songs) },
                 actions = {
-                    Pill("Queue", icon = Icons.AutoMirrored.Rounded.QueueMusic, onClick = { actions.enqueue(songs) })
+                    Pill(t("Queue"), icon = Icons.AutoMirrored.Rounded.QueueMusic, onClick = { actions.enqueue(songs) })
                     DownloadPill(songs, d.playlist.name)
                     if (editable) {
-                        Pill("Rename", icon = Icons.Rounded.Edit, onClick = { renaming = true })
-                        Pill("Delete", icon = Icons.Rounded.Delete, onClick = { deleting = true })
+                        Pill(t("Rename"), icon = Icons.Rounded.Edit, onClick = { renaming = true })
+                        Pill(t("Delete"), icon = Icons.Rounded.Delete, onClick = { deleting = true })
                     }
                 },
             )
         }
         if (songs.isEmpty()) {
             item(key = "empty") {
-                EmptyState(Icons.AutoMirrored.Rounded.QueueMusic, "This playlist is empty", body = "Add tracks from any track's menu.")
+                EmptyState(Icons.AutoMirrored.Rounded.QueueMusic, t("This playlist is empty"), body = t("Add tracks from any track's menu."))
             }
         }
         songItems(
@@ -440,7 +441,7 @@ fun PlaylistScreen(id: String) {
             compact = settings.compactRows,
             extraActions = { index, _ ->
                 if (!editable) emptyList() else listOf(
-                    MenuAction("Remove from this playlist", Icons.Rounded.RemoveCircleOutline) {
+                    MenuAction(t("Remove from this playlist"), Icons.Rounded.RemoveCircleOutline) {
                         actions.launch {
                             graph.library.removeFromPlaylist(id, listOf(index))?.let { graph.messages.error(it) }
                         }
@@ -450,15 +451,15 @@ fun PlaylistScreen(id: String) {
         )
     }
     if (renaming) {
-        TextInputDialog("Rename playlist", d.playlist.name, "Rename", onConfirm = { name ->
+        TextInputDialog(t("Rename playlist"), d.playlist.name, t("Rename"), onConfirm = { name ->
             actions.launch { graph.library.renamePlaylist(id, name)?.let { graph.messages.error(it) } }
         }, onDismiss = { renaming = false })
     }
     if (deleting) {
         ConfirmDialog(
-            title = "Delete “${d.playlist.name}”?",
-            body = "The playlist is deleted on your server. The tracks in it are not affected.",
-            confirm = "Delete",
+            title = t("Delete “%@”?", d.playlist.name),
+            body = t("The playlist is deleted on your server. The tracks in it are not affected."),
+            confirm = t("Delete"),
             onConfirm = {
                 actions.launch {
                     val error = graph.library.deletePlaylist(id)
@@ -493,19 +494,19 @@ fun GenreScreen(name: String) {
                 onPlay = { actions.play(songs) },
                 onShuffle = { actions.shuffle(songs) },
                 actions = {
-                    Pill("InjeKt set", icon = Icons.Rounded.AutoAwesome, onClick = { songs.randomOrNull()?.let { actions.startInjektSet(it) } })
+                    Pill(t("InjeKt set"), icon = Icons.Rounded.AutoAwesome, onClick = { songs.randomOrNull()?.let { actions.startInjektSet(it) } })
                     DownloadPill(songs, name)
                 },
             )
         }
         if (albums.isNotEmpty()) {
             item(key = "albums") {
-                SectionHeader("Albums")
+                SectionHeader(t("Albums"))
                 Shelf(albums, key = { it.id }) { album, modifier -> AlbumCard(album, { actions.openAlbum(album.id) }, modifier) }
             }
         }
         if (songs.isNotEmpty()) {
-            item(key = "songs-head") { SectionHeader("Tracks") }
+            item(key = "songs-head") { SectionHeader(t("Tracks")) }
             songItems(
                 songs,
                 currentId = player.current?.id,

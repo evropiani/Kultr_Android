@@ -13,10 +13,13 @@ import coil3.disk.directory
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
+import app.kultr.android.data.Translations
 
 class KultrApp : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
+        // Before anything shows text: German when the phone or Kultr is set to it.
+        Translations.install(this)
         instance = this
         graphInstance = AppGraph(this)
         createChannels()

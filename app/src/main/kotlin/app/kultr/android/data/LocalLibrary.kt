@@ -30,6 +30,7 @@ import app.kultr.core.sync.SyncMode
 import app.kultr.core.sync.SyncPhase
 import app.kultr.core.sync.SyncProgress
 import app.kultr.core.sync.SyncSummary
+import app.kultr.core.util.t
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
@@ -108,7 +109,7 @@ class LocalLibrary(private val graph: AppGraph) {
         context.contentResolver.query(document, arrayOf(Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { c ->
             if (c.moveToFirst()) c.getString(0) else null
         }
-    }.getOrNull() ?: tree.lastPathSegment?.substringAfterLast(':')?.substringAfterLast('/')?.ifBlank { null } ?: "Music"
+    }.getOrNull() ?: tree.lastPathSegment?.substringAfterLast(':')?.substringAfterLast('/')?.ifBlank { null } ?: t("Music")
 
     /** Covers taken out of the files themselves, saved as images. */
     private fun artDirectory(): File = File(context.filesDir, "local-art").apply { mkdirs() }
@@ -134,7 +135,7 @@ class LocalLibrary(private val graph: AppGraph) {
             val startedAt = System.currentTimeMillis()
             val store = RoomLibraryStore(db)
             val dao = db.library()
-            onProgress(SyncProgress(SyncPhase.CONNECTING, "Looking through your folders…", 0, 1, 0.0))
+            onProgress(SyncProgress(SyncPhase.CONNECTING, t("Looking through your folders…"), 0, 1, 0.0))
 
             // ---------------------------------------------------------- walk --
             val files = ArrayList<Found>()
@@ -145,9 +146,9 @@ class LocalLibrary(private val graph: AppGraph) {
                 val ok = runCatching { walk(tree, DocumentsContract.getTreeDocumentId(tree), folder.name, files) }.isSuccess
                 if (!ok) {
                     unreadable++
-                    errors += "Kultr can no longer read “${folder.name}”. Add it again in Settings."
+                    errors += t("Kultr can no longer read “%@”. Add it again in Settings.", folder.name)
                 }
-                onProgress(SyncProgress(SyncPhase.ARTISTS, "Found ${files.size} tracks…", 0, 1, 0.05))
+                onProgress(SyncProgress(SyncPhase.ARTISTS, t("Found %@ tracks…", files.size), 0, 1, 0.05))
             }
 
             // ---------------------------------------------------------- tags --
@@ -195,7 +196,7 @@ class LocalLibrary(private val graph: AppGraph) {
                                 onProgress(
                                     SyncProgress(
                                         SyncPhase.SONGS,
-                                        "Reading tags… $n of ${toRead.size}",
+                                        t("Reading tags… %@ of %@", n, toRead.size),
                                         n,
                                         toRead.size,
                                         0.1 + 0.75 * n / max(1, toRead.size),
@@ -213,7 +214,7 @@ class LocalLibrary(private val graph: AppGraph) {
             val catalog = LocalCatalogBuilder.build(tracks.filterNotNull(), folderCovers) { id -> known[id]?.toSong() }
 
             // Albums without a cover image in their folder use the picture in their first track, if any.
-            onProgress(SyncProgress(SyncPhase.ALBUMS, "Finding covers…", 0, 1, 0.88))
+            onProgress(SyncProgress(SyncPhase.ALBUMS, t("Finding covers…"), 0, 1, 0.88))
             val embedded = HashMap<String, String>()
             for (album in catalog.albums) {
                 if (album.coverArt != null) continue
@@ -240,7 +241,7 @@ class LocalLibrary(private val graph: AppGraph) {
             }
 
             // --------------------------------------------------------- store --
-            onProgress(SyncProgress(SyncPhase.CLEANUP, "Saving your library…", 1, 1, 0.95))
+            onProgress(SyncProgress(SyncPhase.CLEANUP, t("Saving your library…"), 1, 1, 0.95))
             store.putArtists(artists)
             store.putAlbums(albums)
             store.replaceAlbumSongs(songs.groupBy { it.albumId.orEmpty() })
@@ -267,7 +268,7 @@ class LocalLibrary(private val graph: AppGraph) {
                     newestAlbumCreated = albums.mapNotNull { it.created }.maxOrNull(),
                 ),
             )
-            onProgress(SyncProgress(SyncPhase.DONE, "Library up to date", 1, 1, 1.0))
+            onProgress(SyncProgress(SyncPhase.DONE, t("Library up to date"), 1, 1, 1.0))
 
             val added = albums.count { it.id !in previousAlbums }
             val changedAlbums = toRead.mapNotNull { tracks[it] }.map { LocalCatalogBuilder.songId(it.uri) }

@@ -81,6 +81,7 @@ import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.Album
 import app.kultr.core.api.Song
 import app.kultr.core.util.Format
+import app.kultr.core.util.t
 
 /** Everything about offline copies: what is coming down now, and what is already here. */
 @Composable
@@ -93,7 +94,7 @@ fun DownloadsScreen(initialPage: DownloadsPage) {
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            BackBar("Downloads")
+            BackBar(t("Downloads"))
             Row(
                 Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -155,7 +156,7 @@ private fun DownloadQueue() {
                         is DownloadStatus.Running -> {
                             val p = s.progress
                             Text(
-                                if (p != null && p.total > 0) "Downloading ${p.done + p.failed + 1} of ${p.total}" else "Downloading…",
+                                if (p != null && p.total > 0) t("Downloading %@ of %@", p.done + p.failed + 1, p.total) else t("Downloading…"),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = colors.ink,
                             )
@@ -166,9 +167,9 @@ private fun DownloadQueue() {
                                 )
                                 Text(
                                     buildString {
-                                        append("${p.done} done · ${Format.bytes(p.bytes)}")
-                                        if (p.failed > 0) append(" · ${p.failed} failed")
-                                        if (s.queued > 0) append(" · ${s.queued} to go")
+                                        append(t("%@ done · %@", p.done, Format.bytes(p.bytes)))
+                                        if (p.failed > 0) append(t(" · %@ failed", p.failed))
+                                        if (s.queued > 0) append(t(" · %@ to go", s.queued))
                                     },
                                     color = colors.ink3,
                                     style = MaterialTheme.typography.bodySmall,
@@ -177,57 +178,57 @@ private fun DownloadQueue() {
                                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Pill("Stop", icon = Icons.Rounded.Stop, onClick = { confirmStop = true })
+                                Pill(t("Stop"), icon = Icons.Rounded.Stop, onClick = { confirmStop = true })
                             }
                         }
                         is DownloadStatus.Waiting -> {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Icon(if (s.forWifi) Icons.Rounded.Wifi else Icons.Rounded.CloudOff, contentDescription = null, tint = colors.warning)
                                 Text(
-                                    if (s.forWifi) "${Format.count(s.queued, "track")} waiting for Wi-Fi" else "${Format.count(s.queued, "track")} waiting for a connection",
+                                    if (s.forWifi) t("%@ waiting for Wi-Fi", Format.count(s.queued, "track")) else t("%@ waiting for a connection", Format.count(s.queued, "track")),
                                     style = MaterialTheme.typography.titleMedium,
                                     color = colors.ink,
                                 )
                             }
                             Text(
                                 if (s.forWifi) {
-                                    "“Download on Wi-Fi only” is on, and this phone is on mobile data. Downloads start by themselves once you are on Wi-Fi."
+                                    t("“Download on Wi-Fi only” is on, and this phone is on mobile data. Downloads start by themselves once you are on Wi-Fi.")
                                 } else {
-                                    "Downloads start by themselves once the phone is online."
+                                    t("Downloads start by themselves once the phone is online.")
                                 },
                                 color = colors.ink2,
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 if (s.forWifi || settings.offlineWifiOnly) {
-                                    Pill("Use mobile data too", icon = Icons.Rounded.SignalCellularAlt, accent = true, onClick = {
+                                    Pill(t("Use mobile data too"), icon = Icons.Rounded.SignalCellularAlt, accent = true, onClick = {
                                         graph.settings.update { it.copy(offlineWifiOnly = false) }
                                     })
                                 } else {
-                                    Pill("Try now", icon = Icons.Rounded.Refresh, accent = true, onClick = { graph.offline.startWorker(force = true) })
+                                    Pill(t("Try now"), icon = Icons.Rounded.Refresh, accent = true, onClick = { graph.offline.startWorker(force = true) })
                                 }
-                                Pill("Clear queue", icon = Icons.Rounded.Close, onClick = { confirmStop = true })
+                                Pill(t("Clear queue"), icon = Icons.Rounded.Close, onClick = { confirmStop = true })
                             }
                         }
                         DownloadStatus.Idle -> {
-                            Text("Nothing is downloading", style = MaterialTheme.typography.titleMedium, color = colors.ink)
+                            Text(t("Nothing is downloading"), style = MaterialTheme.typography.titleMedium, color = colors.ink)
                             Text(
-                                "Use Sync offline on an album, artist or playlist — or drag anything onto “Sync offline” — to keep it on this phone.",
+                                t("Use Sync offline on an album, artist or playlist — or drag anything onto “Sync offline” — to keep it on this phone."),
                                 color = colors.ink2,
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Pill("Download favourites", icon = Icons.Rounded.Download, onClick = {
-                                    actions.launch { graph.offline.download(graph.library.starredSongsNow(), "Your favourites") }
+                                Pill(t("Download favourites"), icon = Icons.Rounded.Download, onClick = {
+                                    actions.launch { graph.offline.download(graph.library.starredSongsNow(), t("Your favourites")) }
                                 })
-                                Pill("Download everything", icon = Icons.Rounded.Download, onClick = {
-                                    actions.launch { graph.offline.download(graph.library.allSongs(), "Your library") }
+                                Pill(t("Download everything"), icon = Icons.Rounded.Download, onClick = {
+                                    actions.launch { graph.offline.download(graph.library.allSongs(), t("Your library")) }
                                 })
                             }
                         }
                     }
                     Text(
-                        if (settings.offlineWifiOnly) "Downloads use Wi-Fi only. Change it in Settings → Offline." else "Downloads use Wi-Fi and mobile data.",
+                        if (settings.offlineWifiOnly) t("Downloads use Wi-Fi only. Change it in Settings → Offline.") else t("Downloads use Wi-Fi and mobile data."),
                         color = colors.ink3,
                         style = MaterialTheme.typography.labelSmall,
                     )
@@ -236,13 +237,13 @@ private fun DownloadQueue() {
         }
 
         if (active.isNotEmpty()) {
-            item(key = "now-head") { SectionHeader("Now", icon = Icons.Rounded.Download) }
+            item(key = "now-head") { SectionHeader(t("Now"), icon = Icons.Rounded.Download) }
             items(active.values.toList(), key = { "active:${it.song.id}" }) { item -> ActiveRow(item) }
         }
 
         if (waiting.isNotEmpty()) {
             item(key = "queue-head") {
-                SectionHeader("Up next") {
+                SectionHeader(t("Up next")) {
                     Text(
                         Format.count((queuedCount - active.size).coerceAtLeast(waiting.size), "track"),
                         color = colors.ink3,
@@ -270,19 +271,19 @@ private fun DownloadQueue() {
 
         if (failed.isNotEmpty()) {
             item(key = "failed-head") {
-                SectionHeader("Failed", icon = Icons.Rounded.ErrorOutline) {
-                    Pill("Retry all", icon = Icons.Rounded.Refresh, onClick = {
+                SectionHeader(t("Failed"), icon = Icons.Rounded.ErrorOutline) {
+                    Pill(t("Retry all"), icon = Icons.Rounded.Refresh, onClick = {
                         actions.launch {
                             val count = graph.offline.retryFailed()
-                            graph.messages.show("Trying ${Format.count(count, "track")} again.")
+                            graph.messages.show(t("Trying %@ again.", Format.count(count, "track")))
                         }
                     })
                     Spacer(Modifier.width(6.dp))
-                    Pill("Clear", onClick = { actions.launch { graph.offline.clearFailed() } })
+                    Pill(t("Clear"), onClick = { actions.launch { graph.offline.clearFailed() } })
                 }
             }
             items(failed, key = { "failed:${it.songId}" }) { row ->
-                QueuedRow(failedSongs[row.songId], row.songId, error = row.error ?: "Failed") {
+                QueuedRow(failedSongs[row.songId], row.songId, error = row.error ?: t("Failed")) {
                     actions.launch { graph.offline.dequeue(listOf(row.songId)) }
                 }
             }
@@ -291,9 +292,9 @@ private fun DownloadQueue() {
 
     if (confirmStop) {
         ConfirmDialog(
-            title = "Stop downloading?",
-            body = "Everything still waiting is taken out of the queue. Tracks already downloaded stay on this phone.",
-            confirm = "Stop",
+            title = t("Stop downloading?"),
+            body = t("Everything still waiting is taken out of the queue. Tracks already downloaded stay on this phone."),
+            confirm = t("Stop"),
             onConfirm = { graph.offline.cancel() },
             onDismiss = { confirmStop = false },
         )
@@ -352,7 +353,7 @@ private fun QueuedRow(song: Song?, songId: String, error: String?, onRemove: () 
             )
         }
         IconButton(onClick = onRemove) {
-            Icon(Icons.Rounded.Close, contentDescription = "Remove from the queue", tint = colors.ink3)
+            Icon(Icons.Rounded.Close, contentDescription = t("Remove from the queue"), tint = colors.ink3)
         }
     }
 }
@@ -389,15 +390,15 @@ fun OfflineContent() {
             item(key = "summary") {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "${Format.count(usage.count, "track")} on this phone · ${Format.bytes(usage.bytes)}",
+                        t("%@ on this phone · %@", Format.count(usage.count, "track"), Format.bytes(usage.bytes)),
                         style = MaterialTheme.typography.titleMedium,
                         color = Kultr.colors.ink,
                     )
                     DownloadIndicator(onOpen = { actions.navigate(Routes.downloads(DownloadsPage.NOW)) }, inline = true)
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Pill("Play", icon = Icons.Rounded.PlayArrow, accent = true, enabled = songs.isNotEmpty(), onClick = { actions.play(songs) })
-                        Pill("Shuffle", icon = Icons.Rounded.Shuffle, enabled = songs.isNotEmpty(), onClick = { actions.shuffle(songs) })
-                        Pill("Remove all", icon = Icons.Rounded.Delete, enabled = usage.count > 0, onClick = { confirmClear = true })
+                        Pill(t("Play"), icon = Icons.Rounded.PlayArrow, accent = true, enabled = songs.isNotEmpty(), onClick = { actions.play(songs) })
+                        Pill(t("Shuffle"), icon = Icons.Rounded.Shuffle, enabled = songs.isNotEmpty(), onClick = { actions.shuffle(songs) })
+                        Pill(t("Remove all"), icon = Icons.Rounded.Delete, enabled = usage.count > 0, onClick = { confirmClear = true })
                     }
                 }
             }
@@ -405,14 +406,14 @@ fun OfflineContent() {
                 item(key = "empty") {
                     EmptyState(
                         Icons.Rounded.CloudDone,
-                        "Nothing on this phone yet",
-                        body = "Use Sync offline on any album, artist, playlist or track — or drag it onto “Sync offline” — to keep it here for when you have no connection.",
+                        t("Nothing on this phone yet"),
+                        body = t("Use Sync offline on any album, artist, playlist or track — or drag it onto “Sync offline” — to keep it here for when you have no connection."),
                     )
                 }
             } else {
                 if (albums.isNotEmpty()) {
                     item(key = "albums") {
-                        SectionHeader("Albums") {
+                        SectionHeader(t("Albums")) {
                             Text(Format.count(albums.size, "album"), color = Kultr.colors.ink3, style = MaterialTheme.typography.bodySmall)
                         }
                         Shelf(albums, key = { it.id }) { album, modifier ->
@@ -420,7 +421,7 @@ fun OfflineContent() {
                         }
                     }
                 }
-                item(key = "tracks") { SectionHeader("Tracks") }
+                item(key = "tracks") { SectionHeader(t("Tracks")) }
                 songItems(
                     songs,
                     currentId = player.current?.id,
@@ -434,10 +435,10 @@ fun OfflineContent() {
     }
     if (confirmClear) {
         ConfirmDialog(
-            title = "Remove every download?",
-            body = "The files are deleted from this phone. Your library and playlists are not touched.",
-            confirm = "Remove all",
-            onConfirm = { actions.launch { graph.messages.show("Removed ${graph.offline.removeAll()} downloads.") } },
+            title = t("Remove every download?"),
+            body = t("The files are deleted from this phone. Your library and playlists are not touched."),
+            confirm = t("Remove all"),
+            onConfirm = { actions.launch { graph.messages.show(t("Removed %@ downloads.", graph.offline.removeAll())) } },
             onDismiss = { confirmClear = false },
         )
     }
@@ -491,11 +492,11 @@ fun DownloadIndicator(onOpen: () -> Unit, modifier: Modifier = Modifier, inline:
                             val current = active.values.firstOrNull()?.song?.title
                             when {
                                 p != null && p.total > 0 && current != null -> "${p.done + p.failed + 1}/${p.total} · $current"
-                                p != null && p.total > 0 -> "Downloading ${p.done + p.failed}/${p.total}"
-                                else -> "Downloading…"
+                                p != null && p.total > 0 -> t("Downloading %@/%@", p.done + p.failed, p.total)
+                                else -> t("Downloading…")
                             }
                         }
-                        is DownloadStatus.Waiting -> if (s.forWifi) "${Format.count(s.queued, "download")} waiting for Wi-Fi" else "${Format.count(s.queued, "download")} waiting for a connection"
+                        is DownloadStatus.Waiting -> if (s.forWifi) t("%@ waiting for Wi-Fi", Format.count(s.queued, "download")) else t("%@ waiting for a connection", Format.count(s.queued, "download"))
                         DownloadStatus.Idle -> ""
                     },
                     color = colors.ink,
@@ -504,7 +505,7 @@ fun DownloadIndicator(onOpen: () -> Unit, modifier: Modifier = Modifier, inline:
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Open downloads", tint = colors.ink3, modifier = Modifier.size(18.dp))
+                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = t("Open downloads"), tint = colors.ink3, modifier = Modifier.size(18.dp))
             }
             val s = status
             if (s is DownloadStatus.Running) {

@@ -8,6 +8,7 @@ import app.kultr.core.engine.PlaybackEngine
 import app.kultr.core.engine.RepeatMode
 import app.kultr.core.karousel.Station
 import app.kultr.core.karousel.stationPicks
+import app.kultr.core.util.t
 
 /**
  * A station in the playback service: a track that fits, then an endless mix
@@ -40,7 +41,7 @@ class StationPlayer(private val graph: AppGraph, private val engine: PlaybackEng
         engine.setQueue(engine.newItems(listOf(first.first) + picks, karousel = true), 0, 0)
         graph.hub.setStation(station)
         start()
-        graph.messages.show("Station: ${station.name}")
+        graph.messages.show(t("Station: %@", station.title))
     }
 
     /** Turn to [station] while one plays: what the old one lined up goes, the new one's picks come next, mixed into right away. */
@@ -62,7 +63,7 @@ class StationPlayer(private val graph: AppGraph, private val engine: PlaybackEng
         }
         engine.addItems(engine.index + 1, engine.newItems(picks, karousel = true))
         engine.mixNow()
-        graph.messages.show("Station: ${station.name}")
+        graph.messages.show(t("Station: %@", station.title))
     }
 
     /** End the station; the music plays on to the end of the queue as usual. */

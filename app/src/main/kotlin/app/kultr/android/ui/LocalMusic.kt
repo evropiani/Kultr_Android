@@ -30,6 +30,7 @@ import app.kultr.android.KultrApp
 import app.kultr.android.data.LocalFolder
 import app.kultr.android.ui.components.Pill
 import app.kultr.android.ui.theme.Kultr
+import app.kultr.core.util.t
 
 /**
  * True while the library in use is the music on the phone rather than a
@@ -48,11 +49,11 @@ fun rememberFolderPicker(onAdded: (LocalFolder) -> Unit = {}): () -> Unit {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         val folder = graph.local.addFolder(uri)
-        if (folder == null) graph.messages.error("Kultr was not given access to that folder.") else onAdded(folder)
+        if (folder == null) graph.messages.error(t("Kultr was not given access to that folder.")) else onAdded(folder)
     }
     return {
         runCatching { launcher.launch(null) }
-            .onFailure { graph.messages.error("This phone has no folder picker Kultr can use.") }
+            .onFailure { graph.messages.error(t("This phone has no folder picker Kultr can use.")) }
     }
 }
 
@@ -80,12 +81,12 @@ fun MusicFolders(modifier: Modifier = Modifier, onChanged: () -> Unit = {}) {
                     graph.local.removeFolder(folder)
                     onChanged()
                 }) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Stop using ${folder.name}", tint = colors.ink3)
+                    Icon(Icons.Rounded.Close, contentDescription = t("Stop using %@", folder.name), tint = colors.ink3)
                 }
             }
         }
         Pill(
-            if (folders.isEmpty()) "Choose a folder" else "Add another folder",
+            if (folders.isEmpty()) t("Choose a folder") else t("Add another folder"),
             icon = Icons.Rounded.CreateNewFolder,
             accent = folders.isEmpty(),
             onClick = pick,

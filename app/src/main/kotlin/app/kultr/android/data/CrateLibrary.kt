@@ -5,6 +5,7 @@ import app.kultr.core.api.Song
 import app.kultr.core.settings.Crate
 import app.kultr.core.settings.NoteAndTags
 import app.kultr.core.util.Format
+import app.kultr.core.util.t
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -61,7 +62,7 @@ class CrateLibrary(private val graph: AppGraph) {
             is CrateItem.Songs -> item.songs.filter { (it.id in crate.songs) == wasIn }.fold(crate) { c, song -> c.toggleSong(song.id) }
         }
         save(changed)
-        graph.messages.show(if (wasIn) "Taken out of “${crate.name}”" else "Added to “${crate.name}”")
+        graph.messages.show(if (wasIn) t("Taken out of “%@”", crate.name) else t("Added to “%@”", crate.name))
     }
 
     /** Every track in [crate]: its albums, its artists' tracks and its own tracks, or what fits its rules. */
@@ -99,7 +100,7 @@ class CrateLibrary(private val graph: AppGraph) {
         if (id != null && id != crate.playlistId) {
             graph.settings.update { s -> s.copy(crates = s.crates.map { if (it.id == crateId) it.copy(playlistId = id) else it }) }
         }
-        if (error != null) graph.messages.error("“${crate.name}” could not be synced as a playlist: $error")
+        if (error != null) graph.messages.error(t("“%@” could not be synced as a playlist: %@", crate.name, error))
         return error
     }
 

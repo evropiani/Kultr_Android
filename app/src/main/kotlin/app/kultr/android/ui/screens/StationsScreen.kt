@@ -128,6 +128,7 @@ import app.kultr.core.karousel.Bounds
 import app.kultr.core.karousel.Station
 import app.kultr.core.settings.tagCounts
 import app.kultr.core.util.Format
+import app.kultr.core.util.t
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Year
@@ -176,9 +177,9 @@ private val CAMELOT_KEYS: List<String> = (1..12).flatMap { listOf("${it}A", "${i
 
 /** A track count, or what is missing while there is none. */
 private fun countLine(count: Int?): String = when {
-    count == null -> "Counting tracks…"
+    count == null -> t("Counting tracks…")
     count > 0 -> "${Format.count(count, "track")} fit"
-    else -> "No tracks fit yet"
+    else -> t("No tracks fit yet")
 }
 
 // --------------------------------------------------------------- screen --
@@ -221,13 +222,13 @@ fun StationsScreen() {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = chromePadding(16.dp))) {
         item {
             Row(Modifier.statusBarsPadding().padding(4.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = actions.back) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back") }
+                IconButton(onClick = actions.back) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = t("Back")) }
                 Spacer(Modifier.weight(1f))
                 Box {
-                    IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreHoriz, contentDescription = "More", tint = colors.accent) }
+                    IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreHoriz, contentDescription = t("More"), tint = colors.accent) }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         DropdownMenuItem(
-                            text = { Text("Energy planner") },
+                            text = { Text(t("Energy planner")) },
                             leadingIcon = { Icon(Icons.Rounded.ShowChart, contentDescription = null) },
                             onClick = {
                                 menu = false
@@ -235,7 +236,7 @@ fun StationsScreen() {
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text("Back to the starting stations") },
+                            text = { Text(t("Back to the starting stations")) },
                             leadingIcon = { Icon(Icons.Rounded.Restore, contentDescription = null) },
                             onClick = {
                                 menu = false
@@ -245,7 +246,7 @@ fun StationsScreen() {
                     }
                 }
             }
-            Text("Stations", style = MaterialTheme.typography.headlineMedium, color = colors.ink, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
+            Text(t("Stations"), style = MaterialTheme.typography.headlineMedium, color = colors.ink, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
         }
         if (stations.isNotEmpty()) {
             item {
@@ -264,16 +265,16 @@ fun StationsScreen() {
                 Box(Modifier.padding(horizontal = 16.dp)) {
                     when {
                         playing?.id == current.id -> WideButton(
-                            "End ${current.name}",
+                            t("End %@", current.title),
                             Icons.Rounded.Stop,
                             onClick = {
                                 graph.player.station(StationRequest.End)
-                                graph.messages.show("Station ended")
+                                graph.messages.show(t("Station ended"))
                             },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         else -> WideButton(
-                            if (playing == null) "Play ${current.name}" else "Switch to ${current.name}",
+                            if (playing == null) t("Play %@", current.title) else t("Switch to %@", current.title),
                             if (playing == null) Icons.Rounded.PlayArrow else Icons.AutoMirrored.Rounded.CallMerge,
                             onClick = {
                                 settledId = current.id
@@ -288,7 +289,7 @@ fun StationsScreen() {
                 if (current.needsTempo) AnalysisNote(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp))
             }
         }
-        item { SectionHeader("Your stations", modifier = Modifier.padding(top = 16.dp)) }
+        item { SectionHeader(t("Your stations"), modifier = Modifier.padding(top = 16.dp)) }
         items(settings.stations, key = { "mine:" + it.id }) { station ->
             StationRow(
                 station = station,
@@ -303,14 +304,14 @@ fun StationsScreen() {
         }
         item {
             Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                Pill("New station", icon = Icons.Rounded.Add, accent = true, onClick = {
-                    editing = StationDraft(Station(name = "New station", bpm = Bounds(100.0, 120.0)), isNew = true)
+                Pill(t("New station"), icon = Icons.Rounded.Add, accent = true, onClick = {
+                    editing = StationDraft(Station(name = t("New station"), bpm = Bounds(100.0, 120.0)), isNew = true)
                 })
             }
         }
         val decades = tally?.decades.orEmpty()
         if (decades.isNotEmpty()) {
-            item { SectionHeader("Decades") }
+            item { SectionHeader(t("Decades")) }
             items(decades, key = { "decade:" + it.id }) { station ->
                 StationRow(
                     station = station,
@@ -325,7 +326,7 @@ fun StationsScreen() {
             }
             item {
                 Text(
-                    "A station for every decade with at least 20 tracks, from the years in your tags.",
+                    t("A station for every decade with at least 20 tracks, from the years in your tags."),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.ink3,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -348,9 +349,9 @@ fun StationsScreen() {
     }
     if (resetting) {
         ConfirmDialog(
-            title = "Back to the starting stations?",
-            body = "Your own stations and changes go; Warm Up, Night Drive, Peak Hour, Deep Focus, Wind Down, Unplayed gems and Favourites come back.",
-            confirm = "Reset",
+            title = t("Back to the starting stations?"),
+            body = t("Your own stations and changes go; Warm Up, Night Drive, Peak Hour, Deep Focus, Wind Down, Unplayed gems and Favourites come back."),
+            confirm = t("Reset"),
             onConfirm = { graph.stations.resetToPresets() },
             onDismiss = { resetting = false },
         )
@@ -375,16 +376,19 @@ fun AnalysisNote(modifier: Modifier = Modifier) {
         Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = colors.accent)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                "Tempo, energy and key come from InjeKt's analysis, which has covered ${Format.count(analysed, "track")} so far, " +
-                    "with ${Format.count(missing, "track")} to go. This station grows as more are analysed.",
+                t(
+                    "Tempo, energy and key come from InjeKt's analysis, which has covered %@ so far, with %@ to go. This station grows as more are analysed.",
+                    Format.count(analysed, "track"),
+                    Format.count(missing, "track"),
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.ink2,
             )
             val bulk = progress
             if (bulk != null) {
-                Text("Analysing ${bulk.done + 1} of ${bulk.total}…", style = MaterialTheme.typography.bodySmall, color = colors.ink3)
+                Text(t("Analysing %@ of %@…", bulk.done + 1, bulk.total), style = MaterialTheme.typography.bodySmall, color = colors.ink3)
             } else {
-                Pill("Analyse the rest", icon = Icons.Rounded.AutoAwesome, onClick = { graph.analysis.startBulk() })
+                Pill(t("Analyse the rest"), icon = Icons.Rounded.AutoAwesome, onClick = { graph.analysis.startBulk() })
             }
         }
     }
@@ -434,7 +438,7 @@ private fun StationDial(stations: List<Station>, selected: Int, onSelect: (Int) 
             .fillMaxWidth()
             .aspectRatio(1f)
             .semantics {
-                contentDescription = "Station dial"
+                contentDescription = t("Station dial")
                 stateDescription = stations.getOrNull(selected)?.name.orEmpty()
             },
     ) {
@@ -516,7 +520,7 @@ private fun StationDial(stations: List<Station>, selected: Int, onSelect: (Int) 
                 Icon(stationIcon(station.icon), contentDescription = null, tint = colors.accent, modifier = Modifier.size(side * 0.09f))
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    station.name,
+                    station.title,
                     style = MaterialTheme.typography.titleLarge,
                     color = colors.ink,
                     textAlign = TextAlign.Center,
@@ -554,7 +558,7 @@ private fun StationRow(
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                station.name,
+                station.title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                 color = colors.ink,
@@ -570,10 +574,10 @@ private fun StationRow(
             )
         }
         Box {
-            IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreHoriz, contentDescription = "More for ${station.name}", tint = colors.accent) }
+            IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreHoriz, contentDescription = t("More for %@", station.title), tint = colors.accent) }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 if (onEdit != null) {
-                    DropdownMenuItem(text = { Text("Edit…") }, leadingIcon = { Icon(Icons.Rounded.Tune, null) }, onClick = {
+                    DropdownMenuItem(text = { Text(t("Edit…")) }, leadingIcon = { Icon(Icons.Rounded.Tune, null) }, onClick = {
                         menu = false
                         onEdit()
                     })
@@ -588,7 +592,7 @@ private fun StationRow(
                 )
                 if (onDelete != null) {
                     DropdownMenuItem(
-                        text = { Text("Delete", color = colors.danger) },
+                        text = { Text(t("Delete"), color = colors.danger) },
                         leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = colors.danger) },
                         onClick = {
                             menu = false
@@ -618,13 +622,13 @@ fun MixStationCard(station: Station, count: Int?, modifier: Modifier = Modifier)
     ) {
         Icon(if (playing) Icons.Rounded.GraphicEq else stationIcon(station.icon), contentDescription = null, tint = colors.accent, modifier = Modifier.size(28.dp))
         Spacer(Modifier.weight(1f))
-        Text(station.name, style = MaterialTheme.typography.titleMedium, color = colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(station.title, style = MaterialTheme.typography.titleMedium, color = colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(
             when {
                 count == null -> station.summary
                 count > 0 -> Format.count(count, "track")
-                station.needsTempo -> "Needs InjeKt analysis"
-                else -> "No tracks yet"
+                station.needsTempo -> t("Needs InjeKt analysis")
+                else -> t("No tracks yet")
             },
             style = MaterialTheme.typography.bodySmall,
             color = colors.ink3,
@@ -658,20 +662,20 @@ fun StationEditor(draft: StationDraft, onSave: (Station) -> Unit, onCancel: () -
     Dialog(onDismissRequest = onCancel, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(Modifier.fillMaxSize().background(colors.background)) {
             Row(Modifier.statusBarsPadding().fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onCancel) { Text("Cancel") }
+                TextButton(onClick = onCancel) { Text(t("Cancel")) }
                 Text(
-                    if (draft.isNew) "New ${draft.noun}" else "Edit ${draft.noun}",
+                    t((if (draft.isNew) "New " else "Edit ") + draft.noun),
                     style = MaterialTheme.typography.titleMedium,
                     color = colors.ink,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(enabled = station.name.isNotBlank(), onClick = { onSave(station.copy(name = station.name.trim())) }) {
-                    Text("Save", fontWeight = FontWeight.Bold)
+                    Text(t("Save"), fontWeight = FontWeight.Bold)
                 }
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
-                OutlinedTextField(station.name, { station = station.copy(name = it) }, label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(station.name, { station = station.copy(name = it) }, label = { Text(t("Name")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(12.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(STATION_ICONS.keys.toList()) { name ->
@@ -683,19 +687,19 @@ fun StationEditor(draft: StationDraft, onSave: (Station) -> Unit, onCancel: () -
                     }
                 }
 
-                EditorSection("Tempo", "From InjeKt's analysis, or the tempo in the track's tags.") {
+                EditorSection(t("Tempo"), t("From InjeKt's analysis, or the tempo in the track's tags.")) {
                     BoundsEditor("tempo", station.bpm, 50.0..200.0, 2.0, Bounds(100.0, 120.0), { "${it.roundToInt()} BPM" }) { station = station.copy(bpm = it) }
                 }
-                EditorSection("Energy", "1 is a quiet acoustic track, 10 a loud club track. Needs InjeKt's analysis.") {
+                EditorSection(t("Energy"), t("1 is a quiet acoustic track, 10 a loud club track. Needs InjeKt's analysis.")) {
                     // 0 to 1 inside, 1 to 10 on screen.
                     val shown = station.energy?.let { Bounds(it.min?.times(10)?.roundToInt()?.toDouble(), it.max?.times(10)?.roundToInt()?.toDouble()) }
                     BoundsEditor("energy", shown, 1.0..10.0, 1.0, Bounds(3.0, 7.0), { "${it.roundToInt()}" }) { picked ->
                         station = station.copy(energy = picked?.let { Bounds(it.min?.div(10), it.max?.div(10)) })
                     }
                 }
-                EditorSection("Key", "Camelot keys: neighbours on the wheel mix well. Needs InjeKt's analysis.") {
+                EditorSection(t("Key"), t("Camelot keys: neighbours on the wheel mix well. Needs InjeKt's analysis.")) {
                     val keys = station.keys.orEmpty()
-                    SwitchLine("Any key", keys.isEmpty()) { station = station.copy(keys = if (it) null else listOf("8A")) }
+                    SwitchLine(t("Any key"), keys.isEmpty()) { station = station.copy(keys = if (it) null else listOf("8A")) }
                     if (keys.isNotEmpty()) {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp), maxItemsInEachRow = 6) {
                             CAMELOT_KEYS.forEach { key ->
@@ -713,32 +717,32 @@ fun StationEditor(draft: StationDraft, onSave: (Station) -> Unit, onCancel: () -
                         }
                     }
                 }
-                EditorSection("Genres and tags", "Tags are the ones you give albums and artists on their pages.") {
-                    ChoiceLine("Genres", station.genres.orEmpty()) { choosing = "genres" }
-                    ChoiceLine("Tags", station.tags.orEmpty()) { choosing = "tags" }
+                EditorSection(t("Genres and tags"), t("Tags are the ones you give albums and artists on their pages.")) {
+                    ChoiceLine(t("Genres"), station.genres.orEmpty()) { choosing = "genres" }
+                    ChoiceLine(t("Tags"), station.tags.orEmpty()) { choosing = "tags" }
                     Spacer(Modifier.height(8.dp))
-                    Text("Added", style = MaterialTheme.typography.bodyLarge, color = colors.ink)
+                    Text(t("Added"), style = MaterialTheme.typography.bodyLarge, color = colors.ink)
                     Spacer(Modifier.height(6.dp))
                     Segmented(
-                        listOf(0 to "Any time", 30 to "30 days", 90 to "90 days", 365 to "This year"),
+                        listOf(0 to t("Any time"), 30 to t("30 days"), 90 to t("90 days"), 365 to t("This year")),
                         station.addedDays ?: 0,
                         { station = station.copy(addedDays = it.takeIf { days -> days > 0 }) },
                         Modifier.horizontalScroll(rememberScrollState()),
                     )
                 }
-                EditorSection("Years", null) {
+                EditorSection(t("Years"), null) {
                     BoundsEditor("years", station.years, 1950.0..Year.now().value.toDouble(), 1.0, Bounds(2000.0, 2009.0), { "${it.toInt()}" }) {
                         station = station.copy(years = it)
                     }
                 }
-                EditorSection("Plays and ratings", null) {
-                    SwitchLine("Only tracks never played", station.unplayed) { station = station.copy(unplayed = it) }
-                    SwitchLine("Only favourites", station.favourites) { station = station.copy(favourites = it) }
+                EditorSection(t("Plays and ratings"), null) {
+                    SwitchLine(t("Only tracks never played"), station.unplayed) { station = station.copy(unplayed = it) }
+                    SwitchLine(t("Only favourites"), station.favourites) { station = station.copy(favourites = it) }
                     Spacer(Modifier.height(8.dp))
-                    Text("Rating", style = MaterialTheme.typography.bodyLarge, color = colors.ink)
+                    Text(t("Rating"), style = MaterialTheme.typography.bodyLarge, color = colors.ink)
                     Spacer(Modifier.height(6.dp))
                     Segmented(
-                        listOf(0 to "Any") + (1..5).map { it to "$it★+" },
+                        listOf(0 to t("Any")) + (1..5).map { it to "$it★+" },
                         station.minRating ?: 0,
                         { station = station.copy(minRating = it.takeIf { stars -> stars > 0 }) },
                         Modifier.horizontalScroll(rememberScrollState()),
@@ -747,9 +751,9 @@ fun StationEditor(draft: StationDraft, onSave: (Station) -> Unit, onCancel: () -
                 Spacer(Modifier.height(16.dp))
                 Text(
                     when (val n = count) {
-                        null -> "Counting…"
-                        0 -> "No tracks fit these rules yet."
-                        else -> "${Format.count(n, "track")} fit these rules."
+                        null -> t("Counting…")
+                        0 -> t("No tracks fit these rules yet.")
+                        else -> t("%@ fit these rules.", Format.count(n, "track"))
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
@@ -761,13 +765,13 @@ fun StationEditor(draft: StationDraft, onSave: (Station) -> Unit, onCancel: () -
     }
 
     when (choosing) {
-        "genres" -> ChoicePicker("Genres", "No genres in your library yet.", genres.map { it.value }.sorted(), station.genres.orEmpty(), onDone = {
+        "genres" -> ChoicePicker(t("Genres"), t("No genres in your library yet."), genres.map { it.value }.sorted(), station.genres.orEmpty(), onDone = {
             station = station.copy(genres = it.ifEmpty { null })
             choosing = null
         })
         "tags" -> ChoicePicker(
-            "Tags",
-            "No tags yet. Give an album or an artist a tag on its page.",
+            t("Tags"),
+            t("No tags yet. Give an album or an artist a tag on its page."),
             tagCounts(settings.annotations).map { it.first },
             station.tags.orEmpty(),
             onDone = {
@@ -807,7 +811,7 @@ private fun ChoiceLine(label: String, chosen: List<String>, onClick: () -> Unit)
         Text(label, style = MaterialTheme.typography.bodyLarge, color = Kultr.colors.ink)
         Spacer(Modifier.width(16.dp))
         Text(
-            chosen.ifEmpty { listOf("Any") }.joinToString(", "),
+            chosen.ifEmpty { listOf(t("Any")) }.joinToString(", "),
             style = MaterialTheme.typography.bodyMedium,
             color = Kultr.colors.ink3,
             textAlign = TextAlign.End,
@@ -830,15 +834,15 @@ private fun BoundsEditor(
     onChange: (Bounds?) -> Unit,
 ) {
     val open = bounds?.isOpen ?: true
-    SwitchLine("Any $noun", open) { onChange(if (it) null else initial) }
+    SwitchLine(t("Any $noun"), open) { onChange(if (it) null else initial) }
     if (open) return
     val low = bounds?.min ?: range.start
     val high = bounds?.max ?: range.endInclusive
-    Stepper("From ${text(low)}", onMinus = { onChange(Bounds((low - step).coerceIn(range), high)) }, onPlus = {
+    Stepper(t("From %@", text(low)), onMinus = { onChange(Bounds((low - step).coerceIn(range), high)) }, onPlus = {
         val next = (low + step).coerceIn(range)
         onChange(Bounds(next, maxOf(next, high)))
     })
-    Stepper("To ${text(high)}", onMinus = {
+    Stepper(t("To %@", text(high)), onMinus = {
         val next = (high - step).coerceIn(range)
         onChange(Bounds(minOf(next, low), next))
     }, onPlus = { onChange(Bounds(low, (high + step).coerceIn(range))) })
@@ -850,8 +854,8 @@ private fun Stepper(label: String, onMinus: () -> Unit, onPlus: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodyLarge, color = colors.ink, modifier = Modifier.weight(1f))
         Row(Modifier.clip(RoundedCornerShape(50)).background(colors.sand)) {
-            IconButton(onClick = onMinus) { Icon(Icons.Rounded.Remove, contentDescription = "Less", tint = colors.accent) }
-            IconButton(onClick = onPlus) { Icon(Icons.Rounded.Add, contentDescription = "More", tint = colors.accent) }
+            IconButton(onClick = onMinus) { Icon(Icons.Rounded.Remove, contentDescription = t("Less"), tint = colors.accent) }
+            IconButton(onClick = onPlus) { Icon(Icons.Rounded.Add, contentDescription = t("More"), tint = colors.accent) }
         }
     }
 }
@@ -871,7 +875,7 @@ private fun ChoicePicker(title: String, empty: String, all: List<String>, initia
                 if (all.isEmpty()) {
                     Text(empty, color = colors.ink3)
                 } else {
-                    OutlinedTextField(filter, { filter = it }, placeholder = { Text("Filter ${title.lowercase()}") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(filter, { filter = it }, placeholder = { Text(t("Filter %@", title.lowercase())) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(8.dp))
                     LazyColumn(Modifier.heightIn(max = 360.dp)) {
                         items(shown, key = { it }) { name ->
@@ -881,14 +885,14 @@ private fun ChoicePicker(title: String, empty: String, all: List<String>, initia
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(name, color = colors.ink, modifier = Modifier.weight(1f))
-                                if (on) Icon(Icons.Rounded.Check, contentDescription = "Chosen", tint = colors.accent)
+                                if (on) Icon(Icons.Rounded.Check, contentDescription = t("Chosen"), tint = colors.accent)
                             }
                         }
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onDone(chosen) }) { Text("Done") } },
-        dismissButton = { if (chosen.isNotEmpty()) TextButton(onClick = { chosen = emptyList() }) { Text("Clear") } },
+        confirmButton = { TextButton(onClick = { onDone(chosen) }) { Text(t("Done")) } },
+        dismissButton = { if (chosen.isNotEmpty()) TextButton(onClick = { chosen = emptyList() }) { Text(t("Clear")) } },
     )
 }

@@ -9,6 +9,7 @@ import app.kultr.core.api.SubsonicClient
 import app.kultr.core.api.describeError
 import app.kultr.core.api.md5Hex
 import app.kultr.core.api.normalizeServerUrl
+import app.kultr.core.util.t
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -136,7 +137,7 @@ class AuthRepository(
         _client.value = client
         saveActive(profile.id)
         if (client == null) {
-            _connection.value = Connection.Offline("Sign in again: the saved password could not be read.")
+            _connection.value = Connection.Offline(t("Sign in again: the saved password could not be read."))
             return
         }
         if (ping) refreshConnection()
@@ -169,9 +170,9 @@ class AuthRepository(
     /** Check the credentials against the server and, if they work, sign in. Returns an error message on failure. */
     suspend fun login(input: LoginInput): String? {
         val url = normalizeServerUrl(input.serverUrl)
-        if (url.isEmpty()) return "Enter your server’s address."
-        if (url.toHttpUrlOrNull() == null) return "“${input.serverUrl}” is not a valid address."
-        if (input.username.isBlank()) return "Enter your username."
+        if (url.isEmpty()) return t("Enter your server’s address.")
+        if (url.toHttpUrlOrNull() == null) return t("“%@” is not a valid address.", input.serverUrl)
+        if (input.username.isBlank()) return t("Enter your username.")
         val creds = Credentials(url, input.username.trim(), input.password, input.authMode)
         val client = SubsonicClient(creds, http, stableSalt = stableSaltFor(profileId(url, creds.username)))
         _connection.value = Connection.Connecting
@@ -208,7 +209,7 @@ class AuthRepository(
     /** The library on the phone, added to the list if it is not there yet (without switching to it). */
     fun ensureLocalLibrary(): ServerProfile {
         _profiles.value.firstOrNull { it.local }?.let { return it }
-        val profile = ServerProfile(id = LocalLibrary.PROFILE_ID, label = "Music on this phone", serverUrl = "", username = "", local = true)
+        val profile = ServerProfile(id = LocalLibrary.PROFILE_ID, label = t("Music on this phone"), serverUrl = "", username = "", local = true)
         saveProfiles(_profiles.value + profile)
         return profile
     }

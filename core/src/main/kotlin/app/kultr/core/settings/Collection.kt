@@ -1,6 +1,8 @@
 package app.kultr.core.settings
 
 import app.kultr.core.karousel.Station
+import app.kultr.core.util.Format
+import app.kultr.core.util.t
 import kotlinx.serialization.Serializable
 import java.util.UUID
 
@@ -75,10 +77,10 @@ data class Crate(
     /** "3 albums · 12 tracks", for a crate filled by hand. */
     val contents: String
         get() = listOfNotNull(
-            albums.size.takeIf { it > 0 }?.let { count(it, "album") },
-            artists.size.takeIf { it > 0 }?.let { count(it, "artist") },
-            songs.size.takeIf { it > 0 }?.let { count(it, "track") },
-        ).joinToString(" · ").ifEmpty { "Empty" }
+            albums.size.takeIf { it > 0 }?.let { Format.count(it, "album") },
+            artists.size.takeIf { it > 0 }?.let { Format.count(it, "artist") },
+            songs.size.takeIf { it > 0 }?.let { Format.count(it, "track") },
+        ).joinToString(" · ").ifEmpty { t("Empty") }
 
     /** In if it was out, out if it was in. */
     fun toggleAlbum(id: String) = copy(albums = albums.toggle(id))
@@ -86,6 +88,4 @@ data class Crate(
     fun toggleSong(id: String) = copy(songs = songs.toggle(id))
 
     private fun List<String>.toggle(id: String) = if (id in this) this - id else this + id
-
-    private fun count(n: Int, word: String) = "$n $word${if (n == 1) "" else "s"}"
 }

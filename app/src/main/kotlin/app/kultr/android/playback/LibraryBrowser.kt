@@ -6,6 +6,7 @@ import androidx.media3.common.MediaMetadata
 import app.kultr.android.AppGraph
 import app.kultr.android.data.LocalLibrary
 import app.kultr.core.api.Song
+import app.kultr.core.util.t
 import kotlinx.coroutines.flow.first
 
 /**
@@ -24,7 +25,7 @@ class LibraryBrowser(private val graph: AppGraph) {
         private const val PLAYLIST = "playlist:"
     }
 
-    fun root(): MediaItem = folder(ROOT, "Kultr", MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
+    fun root(): MediaItem = folder(ROOT, t("Kultr"), MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
 
     private fun folder(id: String, title: String, type: Int, artwork: Uri? = null, playable: Boolean = false): MediaItem =
         MediaItem.Builder()
@@ -44,11 +45,11 @@ class LibraryBrowser(private val graph: AppGraph) {
 
     suspend fun children(parentId: String): List<MediaItem> = when {
         parentId == ROOT -> listOf(
-            folder(MIX, "Shuffle my library", MediaMetadata.MEDIA_TYPE_PLAYLIST, playable = true),
-            folder(RECENT, "Recently added", MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS),
-            folder(FAVOURITES, "Favourites", MediaMetadata.MEDIA_TYPE_FOLDER_MIXED),
-            folder(MOST_PLAYED, "Played the most", MediaMetadata.MEDIA_TYPE_FOLDER_MIXED),
-            folder(PLAYLISTS, "Playlists", MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS),
+            folder(MIX, t("Shuffle my library"), MediaMetadata.MEDIA_TYPE_PLAYLIST, playable = true),
+            folder(RECENT, t("Recently added"), MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS),
+            folder(FAVOURITES, t("Favourites"), MediaMetadata.MEDIA_TYPE_FOLDER_MIXED),
+            folder(MOST_PLAYED, t("Played the most"), MediaMetadata.MEDIA_TYPE_FOLDER_MIXED),
+            folder(PLAYLISTS, t("Playlists"), MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS),
         )
         parentId == RECENT -> graph.library.recentlyAdded(40).first().map { album ->
             folder(

@@ -49,6 +49,7 @@ import app.kultr.android.ui.components.SongRow
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.Song
 import app.kultr.core.util.Format
+import app.kultr.core.util.t
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -81,12 +82,12 @@ fun StatsScreen() {
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            BackBar("Listening")
+            BackBar(t("Listening"))
             if (total == 0L && history.isEmpty() && recent.isEmpty()) {
                 EmptyState(
                     Icons.Rounded.BarChart,
-                    "Nothing played yet",
-                    body = "Play something and it shows up here — along with what you play on your server from other devices.",
+                    t("Nothing played yet"),
+                    body = t("Play something and it shows up here — along with what you play on your server from other devices."),
                 )
                 return@Column
             }
@@ -94,22 +95,22 @@ fun StatsScreen() {
                 item(key = "head") {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            "${Format.count(total.toInt(), "play")} on your server",
+                            t("%@ on your server", Format.count(total.toInt(), "play")),
                             style = MaterialTheme.typography.titleLarge,
                             color = colors.ink,
                         )
                         Text(
                             if (pending > 0) {
-                                "${Format.count(pending, "play")} from this phone waiting to be sent."
+                                t("%@ from this phone waiting to be sent.", Format.count(pending, "play"))
                             } else {
-                                "Counted on your server, so every device sees the same."
+                                t("Counted on your server, so every device sees the same.")
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = if (pending > 0) colors.warning else colors.ink3,
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Pill(
-                                if (refreshing) "Refreshing…" else "Refresh",
+                                if (refreshing) t("Refreshing…") else t("Refresh"),
                                 icon = Icons.Rounded.Refresh,
                                 onClick = { if (!refreshing) graph.sync.refreshListening(force = true) },
                             )
@@ -118,13 +119,13 @@ fun StatsScreen() {
                 }
                 item(key = "recap") { RecapLink(history) }
                 if (recent.isNotEmpty()) {
-                    item(key = "recent-head") { SectionHeader("Played recently", icon = Icons.Rounded.History) }
+                    item(key = "recent-head") { SectionHeader(t("Played recently"), icon = Icons.Rounded.History) }
                     items(recent, key = { "recent-${it.id}" }) { song ->
                         SongRow(song, onClick = { actions.play(recent, recent.indexOfFirst { it.id == song.id }) })
                     }
                 }
                 if (mostPlayed.isNotEmpty()) {
-                    item(key = "most-head") { SectionHeader("Played the most", icon = Icons.Rounded.PlayArrow) }
+                    item(key = "most-head") { SectionHeader(t("Played the most"), icon = Icons.Rounded.PlayArrow) }
                     items(mostPlayed, key = { "most-${it.id}" }) { song ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.weight(1f)) {
@@ -136,24 +137,24 @@ fun StatsScreen() {
                 }
                 if (artists.isNotEmpty()) {
                     item(key = "artists") {
-                        SectionHeader("Top artists")
+                        SectionHeader(t("Top artists"))
                         PlayBars(artists)
                     }
                 }
                 item(key = "chart") {
-                    SectionHeader("The last two weeks on this phone", icon = Icons.Rounded.BarChart)
+                    SectionHeader(t("The last two weeks on this phone"), icon = Icons.Rounded.BarChart)
                     GlassPanel(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             DayChart(days)
                             Text(
-                                "Your server counts plays per track, not each play, so this chart comes from this phone's own history.",
+                                t("Your server counts plays per track, not each play, so this chart comes from this phone's own history."),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = colors.ink3,
                             )
                         }
                     }
                     Row(Modifier.padding(16.dp)) {
-                        Pill("Clear this phone's history", icon = Icons.Rounded.Delete, onClick = { confirm = true })
+                        Pill(t("Clear this phone's history"), icon = Icons.Rounded.Delete, onClick = { confirm = true })
                     }
                 }
             }
@@ -161,9 +162,9 @@ fun StatsScreen() {
     }
     if (confirm) {
         ConfirmDialog(
-            title = "Clear this phone's history?",
-            body = "The chart starts again from nothing. Play counts on your server are not touched, and plays not sent yet are kept until they are.",
-            confirm = "Clear",
+            title = t("Clear this phone's history?"),
+            body = t("The chart starts again from nothing. Play counts on your server are not touched, and plays not sent yet are kept until they are."),
+            confirm = t("Clear"),
             onConfirm = { actions.launch { graph.library.clearHistory() } },
             onDismiss = { confirm = false },
         )

@@ -53,6 +53,7 @@ import app.kultr.android.ui.components.GlassPanel
 import app.kultr.android.ui.components.Pill
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.AuthMode
+import app.kultr.core.util.t
 import kotlinx.coroutines.launch
 
 /**
@@ -112,9 +113,9 @@ fun LoginScreen(
             Spacer(Modifier.height(24.dp))
             Image(painterResource(R.drawable.kultr_logo), contentDescription = null, modifier = Modifier.size(96.dp))
             Spacer(Modifier.height(12.dp))
-            Text("Kultr", style = MaterialTheme.typography.headlineLarge, color = colors.ink)
+            Text(t("Kultr"), style = MaterialTheme.typography.headlineLarge, color = colors.ink)
             Text(
-                "Connect to your Navidrome server. Kultr mirrors your library on this phone, crossfades properly and mixes like a DJ.",
+                t("Connect to your Navidrome server. Kultr mirrors your library on this phone, crossfades properly and mixes like a DJ."),
                 color = colors.ink2,
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodyMedium,
@@ -125,7 +126,7 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = url,
                         onValueChange = { url = it },
-                        label = { Text("Server address") },
+                        label = { Text(t("Server address")) },
                         placeholder = { Text("https://music.example.com") },
                         leadingIcon = { Icon(Icons.Rounded.Dns, contentDescription = null) },
                         singleLine = true,
@@ -135,7 +136,7 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = user,
                         onValueChange = { user = it },
-                        label = { Text("Username") },
+                        label = { Text(t("Username")) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         modifier = Modifier.fillMaxWidth(),
@@ -143,14 +144,14 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("Password") },
+                        label = { Text(t("Password")) },
                         singleLine = true,
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
                             IconButton(onClick = { showPassword = !showPassword }) {
                                 Icon(
                                     if (showPassword) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                                    contentDescription = if (showPassword) "Hide password" else "Show password",
+                                    contentDescription = if (showPassword) t("Hide password") else t("Show password"),
                                 )
                             }
                         },
@@ -165,15 +166,15 @@ fun LoginScreen(
                         OutlinedTextField(
                             value = label,
                             onValueChange = { label = it },
-                            label = { Text("Name for this server (optional)") },
+                            label = { Text(t("Name for this server (optional)")) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text("Plain password", color = colors.ink)
+                                Text(t("Plain password"), color = colors.ink)
                                 Text(
-                                    "Only for servers or proxies that reject token authentication. Use HTTPS.",
+                                    t("Only for servers or proxies that reject token authentication. Use HTTPS."),
                                     color = colors.ink3,
                                     style = MaterialTheme.typography.bodySmall,
                                 )
@@ -184,20 +185,20 @@ fun LoginScreen(
                     error?.let { Text(it, color = colors.danger, style = MaterialTheme.typography.bodyMedium) }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Pill(
-                            if (busy) "Connecting…" else "Connect",
+                            if (busy) t("Connecting…") else t("Connect"),
                             onClick = { submit() },
                             modifier = Modifier.weight(1f),
                             accent = true,
                             enabled = !busy && url.isNotBlank() && user.isNotBlank(),
                         )
-                        if (onCancel != null) Pill("Cancel", onClick = onCancel)
+                        if (onCancel != null) Pill(t("Cancel"), onClick = onCancel)
                     }
                 }
             }
             val saved = profiles.filter { it.hasCredentials && it.enabled }
             if (saved.isNotEmpty() && onCancel == null) {
                 Spacer(Modifier.height(24.dp))
-                Text("Or pick a saved server", color = colors.ink3, style = MaterialTheme.typography.labelLarge)
+                Text(t("Or pick a saved server"), color = colors.ink3, style = MaterialTheme.typography.labelLarge)
                 Spacer(Modifier.height(8.dp))
                 saved.forEach { profile ->
                     Pill(
@@ -209,7 +210,7 @@ fun LoginScreen(
             }
             Spacer(Modifier.height(32.dp))
             Text(
-                "Your password stays on this phone, sealed by the Android keystore, and is only ever sent to your own server.",
+                t("Your password stays on this phone, sealed by the Android keystore, and is only ever sent to your own server."),
                 color = colors.ink3,
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodySmall,

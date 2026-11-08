@@ -10,6 +10,7 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import app.kultr.android.AppGraph
 import app.kultr.core.api.Song
+import app.kultr.core.util.t
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -157,7 +158,7 @@ class PlayerConnection(private val graph: AppGraph) {
                 c.addMediaItems(c.currentMediaItemIndex + 1, items(songs))
             }
         }
-        graph.messages.show(if (songs.size == 1) "“${songs[0].title}” plays next" else "${songs.size} tracks play next")
+        graph.messages.show(if (songs.size == 1) t("“%@” plays next", songs[0].title) else t("%@ tracks play next", songs.size))
     }
 
     fun enqueue(songs: List<Song>) {
@@ -171,7 +172,7 @@ class PlayerConnection(private val graph: AppGraph) {
                 c.addMediaItems(items(songs))
             }
         }
-        graph.messages.show(if (songs.size == 1) "Added “${songs[0].title}” to the queue" else "Added ${songs.size} tracks to the queue")
+        graph.messages.show(if (songs.size == 1) t("Added “%@” to the queue", songs[0].title) else t("Added %@ tracks to the queue", songs.size))
     }
 
     fun toggle() = withController { c ->

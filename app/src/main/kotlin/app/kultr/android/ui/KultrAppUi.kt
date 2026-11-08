@@ -89,26 +89,27 @@ import app.kultr.android.ui.screens.LoginScreen
 import app.kultr.android.ui.screens.PlannerScreen
 import app.kultr.android.ui.screens.PlaylistScreen
 import app.kultr.android.ui.screens.RecapScreen
-import app.kultr.android.ui.screens.StudioScreen
-import app.kultr.android.ui.screens.UpdateLogScreen
-import app.kultr.android.ui.screens.WhatsNewDialog
-import app.kultr.android.ui.screens.StylePreviewDialog
 import app.kultr.android.ui.screens.SearchScreen
 import app.kultr.android.ui.screens.SettingsScreen
 import app.kultr.android.ui.screens.ShelfScreen
 import app.kultr.android.ui.screens.StationsScreen
 import app.kultr.android.ui.screens.StatsScreen
+import app.kultr.android.ui.screens.StudioScreen
+import app.kultr.android.ui.screens.StylePreviewDialog
 import app.kultr.android.ui.screens.SyncScreen
 import app.kultr.android.ui.screens.TagScreen
 import app.kultr.android.ui.screens.UpdateBanner
+import app.kultr.android.ui.screens.UpdateLogScreen
 import app.kultr.android.ui.screens.UpdateScreen
 import app.kultr.android.ui.screens.WelcomeFlow
+import app.kultr.android.ui.screens.WhatsNewDialog
 import app.kultr.android.ui.theme.DEFAULT_ACCENT
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.settings.AccentMode
 import app.kultr.core.settings.Settings
 import app.kultr.core.util.ArtworkColor
 import app.kultr.core.util.KultrCommand
+import app.kultr.core.util.t
 import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
@@ -117,16 +118,19 @@ import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
+private enum class Tab(val route: String, private val english: String, val icon: ImageVector) {
     HOME(Routes.HOME, "Home", Icons.Rounded.Home),
     LIBRARY(Routes.LIBRARY, "Library", Icons.Rounded.LibraryMusic),
     SEARCH(Routes.SEARCH, "Search", Icons.Rounded.Search),
     SETTINGS(Routes.SETTINGS, "Settings", Icons.Rounded.Settings),
+    ;
+
+    val label: String get() = t(english)
 }
 
 /** The tabs in the floating bar; Search has its own round button beside it. */
 private val BAR_TABS = listOf(Tab.HOME, Tab.LIBRARY, Tab.SETTINGS)
-private val GLASS_TABS = BAR_TABS.map { GlassTab(it.label, it.icon) }
+private val GLASS_TABS: List<GlassTab> get() = BAR_TABS.map { GlassTab(it.label, it.icon) }
 
 /** A [UiMessage][app.kultr.android.data.UiMessage] on its way to the snackbar. */
 private class Message(override val message: String, val kind: MessageKind, long: Boolean) : SnackbarVisuals {

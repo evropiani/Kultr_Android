@@ -2,6 +2,7 @@ package app.kultr.android.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -88,6 +89,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.kultr.android.BuildConfig
 import app.kultr.android.data.MessageKind
 import app.kultr.android.data.ServerProfile
+import app.kultr.android.data.Translations
 import app.kultr.android.data.UpdateCheck
 import app.kultr.android.ui.AppIcon
 import app.kultr.android.ui.LocalActions
@@ -119,12 +121,13 @@ import app.kultr.core.settings.availableHomeTiles
 import app.kultr.core.settings.resolveHomeTiles
 import app.kultr.core.sync.SyncMode
 import app.kultr.core.util.ArtworkColor
+import app.kultr.core.util.t
 import java.time.Instant
 import kotlin.math.roundToInt
 
 private val ACCENTS = listOf("#ff7a3d", "#7c8cff", "#ff6b9a", "#ffd166", "#45d67a", "#2ec4b6", "#4cc9f0", "#b388ff", "#8a7e70")
 
-private val BITRATES = listOf(0 to "Original", 320 to "320 kbps", 256 to "256 kbps", 192 to "192 kbps", 128 to "128 kbps", 96 to "96 kbps")
+private val BITRATES: List<Pair<Int, String>> get() = listOf(0 to t("Original"), 320 to t("320 kbps"), 256 to t("256 kbps"), 192 to t("192 kbps"), 128 to t("128 kbps"), 96 to t("96 kbps"))
 
 @Composable
 fun SettingsScreen(onAddServer: () -> Unit, onSignIn: (ServerProfile) -> Unit) {
@@ -137,7 +140,7 @@ fun SettingsScreen(onAddServer: () -> Unit, onSignIn: (ServerProfile) -> Unit) {
     LazyColumn(Modifier.fillMaxSize().statusBarsPadding(), contentPadding = PaddingValues(bottom = chromePadding(32.dp))) {
         item {
             Text(
-                "Settings",
+                t("Settings"),
                 style = MaterialTheme.typography.headlineMedium,
                 color = Kultr.colors.ink,
                 modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 8.dp),
@@ -148,17 +151,17 @@ fun SettingsScreen(onAddServer: () -> Unit, onSignIn: (ServerProfile) -> Unit) {
                 Section(title, icon, expanded = title in open, onToggle = { open = if (title in open) open - title else open + title }, content = content)
             }
         }
-        section("Appearance", Icons.Rounded.Palette) { AppearanceSettings(settings, ::update) }
-        section("Home page", Icons.Rounded.Home) { HomeSettings(settings, ::update) }
-        section("Playback", Icons.Rounded.PlayCircle) { PlaybackSettings(settings, ::update) }
+        section(t("Appearance"), Icons.Rounded.Palette) { AppearanceSettings(settings, ::update) }
+        section(t("Home page"), Icons.Rounded.Home) { HomeSettings(settings, ::update) }
+        section(t("Playback"), Icons.Rounded.PlayCircle) { PlaybackSettings(settings, ::update) }
         section("InjeKt", Icons.Rounded.AutoAwesome) { InjektSettings(settings, ::update) }
-        section("Audio", Icons.Rounded.GraphicEq) { AudioSettings(settings, ::update) }
-        section("Equaliser", Icons.Rounded.Equalizer) { EqualiserSettings(settings, ::update) }
-        section("Offline and cache", Icons.Rounded.DownloadForOffline) { OfflineSettings(settings, ::update) }
-        section("Music on this phone", Icons.Rounded.PhoneAndroid) { LocalMusicSettings() }
-        section("Servers", Icons.Rounded.Dns) { ServerSettings(onAddServer, onSignIn) }
-        section("Backup and reset", Icons.Rounded.Backup) { BackupSettings(settings) }
-        section("About", Icons.Rounded.Info) { AboutSection() }
+        section(t("Audio"), Icons.Rounded.GraphicEq) { AudioSettings(settings, ::update) }
+        section(t("Equaliser"), Icons.Rounded.Equalizer) { EqualiserSettings(settings, ::update) }
+        section(t("Offline and cache"), Icons.Rounded.DownloadForOffline) { OfflineSettings(settings, ::update) }
+        section(t("Music on this phone"), Icons.Rounded.PhoneAndroid) { LocalMusicSettings() }
+        section(t("Servers"), Icons.Rounded.Dns) { ServerSettings(onAddServer, onSignIn) }
+        section(t("Backup and reset"), Icons.Rounded.Backup) { BackupSettings(settings) }
+        section(t("About"), Icons.Rounded.Info) { AboutSection() }
     }
 }
 
@@ -233,22 +236,22 @@ private fun SettingSlider(
 private fun AppearanceSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) {
     val actions = LocalActions.current
     SettingRow(
-        "Kultr Studio",
-        hint = "Ready-made styles, the player's layout and its info line; share your look as a link.",
+        t("Kultr Studio"),
+        hint = t("Ready-made styles, the player's layout and its info line; share your look as a link."),
         onClick = { actions.navigate(Routes.STUDIO) },
     ) { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = Kultr.colors.ink3) }
-    Choice("Theme", listOf(ThemeMode.SYSTEM to "System", ThemeMode.LIGHT to "Light", ThemeMode.DARK to "Dark"), s.theme) { v -> update { it.copy(theme = v) } }
+    LanguageRow()
+    Choice(t("Theme"), listOf(ThemeMode.SYSTEM to t("System"), ThemeMode.LIGHT to t("Light"), ThemeMode.DARK to t("Dark")), s.theme) { v -> update { it.copy(theme = v) } }
     Toggle(
-        "Night mode",
+        t("Night mode"),
         s.nightMode,
-        hint = "Pure black instead of dark grey, for OLED screens: easier on the eyes in the dark, and lighter on the battery. " +
-            "Used whenever Kultr is dark, so with System it comes on with your phone's dark mode.",
+        hint = t("Pure black instead of dark grey, for OLED screens: easier on the eyes in the dark, and lighter on the battery. Used whenever Kultr is dark, so with System it comes on with your phone's dark mode."),
     ) { v ->
         // Asking for black while the theme is Light means dark is wanted.
         update { it.copy(nightMode = v, theme = if (v && it.theme == ThemeMode.LIGHT) ThemeMode.DARK else it.theme) }
     }
     AppIconChoice()
-    Toggle("Colour from artwork", s.accentMode == AccentMode.ARTWORK, hint = "The interface takes its colour from whatever is playing.") { v ->
+    Toggle(t("Colour from artwork"), s.accentMode == AccentMode.ARTWORK, hint = t("The interface takes its colour from whatever is playing.")) { v ->
         update { it.copy(accentMode = if (v) AccentMode.ARTWORK else AccentMode.FIXED) }
     }
     Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -266,34 +269,56 @@ private fun AppearanceSettings(s: Settings, update: ((Settings) -> Settings) -> 
                         .clickable { update { it.copy(accent = hex) } },
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (selected) Icon(Icons.Rounded.Check, contentDescription = "Selected", tint = Color.Black.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+                    if (selected) Icon(Icons.Rounded.Check, contentDescription = t("Selected"), tint = Color.Black.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
                 }
             }
         }
     }
     if (s.accentMode == AccentMode.ARTWORK) {
         SettingSlider(
-            "How much of your colour",
+            t("How much of your colour"),
             s.accentBlend.toFloat(),
             0f..100f,
             { "${it.roundToInt()}%" },
-            hint = "0% is pure artwork colour; 100% ignores the artwork.",
+            hint = t("0% is pure artwork colour; 100% ignores the artwork."),
         ) { v -> update { it.copy(accentBlend = v.roundToInt()) } }
     }
-    Toggle("Blurred artwork background", s.backdropArtwork) { v -> update { it.copy(backdropArtwork = v) } }
-    Toggle("Clear glass", s.clearGlass, hint = "The floating bar and buttons show more of the page through them.") { v -> update { it.copy(clearGlass = v) } }
-    Choice("Corners", listOf(CornerStyle.SHARP to "Sharp", CornerStyle.SOFT to "Soft", CornerStyle.ROUND to "Round"), s.corners) { v -> update { it.copy(corners = v) } }
-    Choice("Panel borders", listOf(SurfaceBorder.NEUTRAL to "Neutral", SurfaceBorder.ACCENT to "Accent"), s.surfaceBorder) { v -> update { it.copy(surfaceBorder = v) } }
-    SettingSlider("Border opacity", s.borderOpacity.toFloat(), 0f..100f, { "${it.roundToInt()}%" }) { v -> update { it.copy(borderOpacity = v.roundToInt()) } }
-    SettingSlider("Panel opacity", s.surfaceOpacity.toFloat(), 0f..200f, { "${it.roundToInt()}%" }) { v -> update { it.copy(surfaceOpacity = v.roundToInt()) } }
-    Choice("Grid size", listOf(GridSize.SMALL to "Small", GridSize.MEDIUM to "Medium", GridSize.LARGE to "Large"), s.gridSize) { v -> update { it.copy(gridSize = v) } }
-    Toggle("Compact track rows", s.compactRows) { v -> update { it.copy(compactRows = v) } }
-    Choice("Playhead", PlayheadStyle.entries.map { it to it.label }, s.playhead, hint = s.playhead.note) { v -> update { it.copy(playhead = v) } }
-    Toggle("Count time down", s.timeRemaining, hint = "Show how much of the track is left. Tapping the time in the player switches it too.") { v ->
+    Toggle(t("Blurred artwork background"), s.backdropArtwork) { v -> update { it.copy(backdropArtwork = v) } }
+    Toggle(t("Clear glass"), s.clearGlass, hint = t("The floating bar and buttons show more of the page through them.")) { v -> update { it.copy(clearGlass = v) } }
+    Choice(t("Corners"), listOf(CornerStyle.SHARP to t("Sharp"), CornerStyle.SOFT to t("Soft"), CornerStyle.ROUND to t("Round")), s.corners) { v -> update { it.copy(corners = v) } }
+    Choice(t("Panel borders"), listOf(SurfaceBorder.NEUTRAL to t("Neutral"), SurfaceBorder.ACCENT to t("Accent")), s.surfaceBorder) { v -> update { it.copy(surfaceBorder = v) } }
+    SettingSlider(t("Border opacity"), s.borderOpacity.toFloat(), 0f..100f, { "${it.roundToInt()}%" }) { v -> update { it.copy(borderOpacity = v.roundToInt()) } }
+    SettingSlider(t("Panel opacity"), s.surfaceOpacity.toFloat(), 0f..200f, { "${it.roundToInt()}%" }) { v -> update { it.copy(surfaceOpacity = v.roundToInt()) } }
+    Choice(t("Grid size"), listOf(GridSize.SMALL to t("Small"), GridSize.MEDIUM to t("Medium"), GridSize.LARGE to t("Large")), s.gridSize) { v -> update { it.copy(gridSize = v) } }
+    Toggle(t("Compact track rows"), s.compactRows) { v -> update { it.copy(compactRows = v) } }
+    Choice(t("Playhead"), PlayheadStyle.entries.map { it to it.label }, s.playhead, hint = s.playhead.note) { v -> update { it.copy(playhead = v) } }
+    Toggle(t("Count time down"), s.timeRemaining, hint = t("Show how much of the track is left. Tapping the time in the player switches it too.")) { v ->
         update { it.copy(timeRemaining = v) }
     }
-    Toggle("Show the lyrics tab", s.showLyrics) { v -> update { it.copy(showLyrics = v) } }
-    Toggle("Reduce motion", s.reduceMotion, hint = "Stops animated colour changes and playhead effects.") { v -> update { it.copy(reduceMotion = v) } }
+    Toggle(t("Show the lyrics tab"), s.showLyrics) { v -> update { it.copy(showLyrics = v) } }
+    Toggle(t("Reduce motion"), s.reduceMotion, hint = t("Stops animated colour changes and playhead effects.")) { v -> update { it.copy(reduceMotion = v) } }
+}
+
+/**
+ * The language Kultr shows, which Android keeps per app (Settings → Apps →
+ * Kultr → Language, from Android 13); before that, Kultr follows the phone.
+ */
+@Composable
+private fun LanguageRow() {
+    val context = LocalContext.current
+    SettingRow(
+        t("Language"),
+        hint = t("Kultr speaks English and German. Android keeps the choice for each app; Kultr follows your phone until you choose."),
+        onClick = {
+            val perApp = Build.VERSION.SDK_INT >= 33
+            val intent = if (perApp) {
+                Intent(android.provider.Settings.ACTION_APP_LOCALE_SETTINGS, Uri.fromParts("package", context.packageName, null))
+            } else {
+                Intent(android.provider.Settings.ACTION_LOCALE_SETTINGS)
+            }
+            runCatching { context.startActivity(intent) }.onFailure { runCatching { context.startActivity(Intent(android.provider.Settings.ACTION_LOCALE_SETTINGS)) } }
+        },
+    ) { Text(Translations.currentName(), color = Kultr.colors.accent, style = MaterialTheme.typography.bodyMedium) }
 }
 
 /** The icon on the home screen: Cream, or one of three others. */
@@ -304,7 +329,7 @@ private fun AppIconChoice() {
     val colors = Kultr.colors
     var chosen by remember { mutableStateOf(AppIcon.current(context)) }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Text("App icon", style = MaterialTheme.typography.bodyLarge, color = colors.ink)
+        Text(t("App icon"), style = MaterialTheme.typography.bodyLarge, color = colors.ink)
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             AppIcon.entries.forEach { icon ->
@@ -317,7 +342,7 @@ private fun AppIconChoice() {
                             if (icon != chosen) {
                                 AppIcon.use(context, icon)
                                 chosen = icon
-                                messages.show("App icon: ${icon.label}. The home screen shows it in a moment.")
+                                messages.show(t("App icon: %@. The home screen shows it in a moment.", icon.label))
                             }
                         }
                         .padding(4.dp),
@@ -352,7 +377,7 @@ private fun HomeSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) 
     HomeWidgetSettings()
     Spacer(Modifier.height(8.dp))
     Text(
-        "Shelves are shown in this order. One with nothing in it is skipped.",
+        t("Shelves are shown in this order. One with nothing in it is skipped."),
         color = Kultr.colors.ink3,
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(horizontal = 16.dp),
@@ -367,19 +392,19 @@ private fun HomeSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) 
                 }
                 IconButton(enabled = index > 0, onClick = {
                     update { st -> st.copy(homeTiles = on.map { it.id }.toMutableList().apply { add(index - 1, removeAt(index)) }) }
-                }) { Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Move up") }
+                }) { Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = t("Move up")) }
                 IconButton(enabled = index < on.size - 1, onClick = {
                     update { st -> st.copy(homeTiles = on.map { it.id }.toMutableList().apply { add(index + 1, removeAt(index)) }) }
-                }) { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Move down") }
+                }) { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = t("Move down")) }
                 IconButton(onClick = { update { st -> st.copy(homeTiles = on.map { it.id } - tile.id) } }) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Remove from the home page")
+                    Icon(Icons.Rounded.Close, contentDescription = t("Remove from the home page"))
                 }
             }
         }
     }
     if (off.isNotEmpty()) {
         Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Pill("Add a shelf", icon = Icons.Rounded.Add, onClick = { adding = true })
+            Pill(t("Add a shelf"), icon = Icons.Rounded.Add, onClick = { adding = true })
             DropdownMenu(expanded = adding, onDismissRequest = { adding = false }) {
                 off.forEach { tile ->
                     DropdownMenuItem(
@@ -399,29 +424,28 @@ private fun HomeSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) 
 
 @Composable
 private fun PlaybackSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) {
-    Toggle("Crossfade between tracks", s.crossfadeEnabled, hint = "Two decks play at once for the length of the fade.") { v -> update { it.copy(crossfadeEnabled = v) } }
-    SettingSlider("Crossfade length", s.crossfadeSeconds.toFloat(), 1f..20f, { "%.0f s".format(it) }, steps = 18, enabled = s.crossfadeEnabled) { v ->
+    Toggle(t("Crossfade between tracks"), s.crossfadeEnabled, hint = t("Two decks play at once for the length of the fade.")) { v -> update { it.copy(crossfadeEnabled = v) } }
+    SettingSlider(t("Crossfade length"), s.crossfadeSeconds.toFloat(), 1f..20f, { "%.0f s".format(it) }, steps = 18, enabled = s.crossfadeEnabled) { v ->
         update { it.copy(crossfadeSeconds = v.roundToInt().toDouble()) }
     }
-    Choice("Fade shape", CrossfadeCurve.entries.map { it to it.label }, s.crossfadeCurve) { v -> update { it.copy(crossfadeCurve = v) } }
-    Toggle("Also fade when you skip", s.crossfadeOnSkip, hint = "A short fade instead of a hard cut on next and previous.") { v -> update { it.copy(crossfadeOnSkip = v) } }
-    Toggle("Gapless playback", s.gapless, hint = "With crossfade off, the next track starts the instant this one ends.") { v -> update { it.copy(gapless = v) } }
+    Choice(t("Fade shape"), CrossfadeCurve.entries.map { it to it.label }, s.crossfadeCurve) { v -> update { it.copy(crossfadeCurve = v) } }
+    Toggle(t("Also fade when you skip"), s.crossfadeOnSkip, hint = t("A short fade instead of a hard cut on next and previous.")) { v -> update { it.copy(crossfadeOnSkip = v) } }
+    Toggle(t("Gapless playback"), s.gapless, hint = t("With crossfade off, the next track starts the instant this one ends.")) { v -> update { it.copy(gapless = v) } }
     Toggle(
-        "Karousel",
+        t("Karousel"),
         s.karousel,
-        hint = "When the queue runs out, music like what's been playing keeps coming: similar songs, artists like these and your own favourites. " +
-            "Its songs show under their own heading in Up next. Tapping the shuffle button twice turns it on too.",
+        hint = t("When the queue runs out, music like what's been playing keeps coming: similar songs, artists like these and your own favourites. Its songs show under their own heading in Up next. Tapping the shuffle button twice turns it on too."),
     ) { v -> update { it.copy(karousel = v) } }
     Toggle(
-        "Wind down before the sleep timer",
+        t("Wind down before the sleep timer"),
         s.sleepWindDown,
-        hint = "In a sleep timer's last 15 minutes, Karousel plays its calmest picks first.",
+        hint = t("In a sleep timer's last 15 minutes, Karousel plays its calmest picks first."),
     ) { v -> update { it.copy(sleepWindDown = v) } }
-    Toggle("Resume where you left off", s.resumeOnStart, hint = "Restores the queue and position when Kultr opens.") { v -> update { it.copy(resumeOnStart = v) } }
+    Toggle(t("Resume where you left off"), s.resumeOnStart, hint = t("Restores the queue and position when Kultr opens.")) { v -> update { it.copy(resumeOnStart = v) } }
     Toggle(
-        "Send plays to Navidrome",
+        t("Send plays to Navidrome"),
         s.scrobble,
-        hint = "Counts each play on your server, so recently and most played are the same on every device and survive reinstalling. Plays made offline are sent, with their real time, once you are back.",
+        hint = t("Counts each play on your server, so recently and most played are the same on every device and survive reinstalling. Plays made offline are sent, with their real time, once you are back."),
     ) { v -> update { it.copy(scrobble = v) } }
 }
 
@@ -429,48 +453,48 @@ private fun PlaybackSettings(s: Settings, update: ((Settings) -> Settings) -> Un
 
 @Composable
 private fun InjektSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) {
-    Toggle("Enable InjeKt", s.injektEnabled, hint = "Beat-matched, key-aware transitions planned from each track's tempo, key and structure.") { v ->
+    Toggle(t("Enable InjeKt"), s.injektEnabled, hint = t("Beat-matched, key-aware transitions planned from each track's tempo, key and structure.")) { v ->
         update { it.copy(injektEnabled = v) }
     }
     val on = s.injektEnabled
-    Toggle("Beat-match", s.injektBeatMatch, enabled = on, hint = "Bring both tracks to a shared tempo and line up their bars.") { v -> update { it.copy(injektBeatMatch = v) } }
-    Toggle("Meet in the middle", s.injektTempoRamp, enabled = on, hint = "Ease the current track toward the next one's tempo before the blend.") { v -> update { it.copy(injektTempoRamp = v) } }
-    SettingSlider("Tempo share", s.injektTempoBlend.toFloat(), 0f..100f, { "${it.roundToInt()}%" }, enabled = on && s.injektTempoRamp, hint = "How much of the tempo change the outgoing track makes.") { v ->
+    Toggle("Beat-match", s.injektBeatMatch, enabled = on, hint = t("Bring both tracks to a shared tempo and line up their bars.")) { v -> update { it.copy(injektBeatMatch = v) } }
+    Toggle(t("Meet in the middle"), s.injektTempoRamp, enabled = on, hint = t("Ease the current track toward the next one's tempo before the blend.")) { v -> update { it.copy(injektTempoRamp = v) } }
+    SettingSlider(t("Tempo share"), s.injektTempoBlend.toFloat(), 0f..100f, { "${it.roundToInt()}%" }, enabled = on && s.injektTempoRamp, hint = t("How much of the tempo change the outgoing track makes.")) { v ->
         update { it.copy(injektTempoBlend = v.roundToInt().toDouble()) }
     }
-    SettingSlider("Maximum tempo shift", s.injektMaxTempoShift.toFloat(), 2f..16f, { "${it.roundToInt()}%" }, steps = 13, enabled = on, hint = "Per track. Further apart than this, tracks are crossfaded instead.") { v ->
+    SettingSlider(t("Maximum tempo shift"), s.injektMaxTempoShift.toFloat(), 2f..16f, { "${it.roundToInt()}%" }, steps = 13, enabled = on, hint = t("Per track. Further apart than this, tracks are crossfaded instead.")) { v ->
         update { it.copy(injektMaxTempoShift = v.roundToInt().toDouble()) }
     }
-    Choice("Transition length", listOf(4 to "4 bars", 8 to "8 bars", 16 to "16 bars", 32 to "32 bars"), s.injektBars, hint = "Shortened automatically when two tracks clash.") { v ->
+    Choice(t("Transition length"), listOf(4 to t("4 bars"), 8 to t("8 bars"), 16 to t("16 bars"), 32 to t("32 bars")), s.injektBars, hint = t("Shortened automatically when two tracks clash.")) { v ->
         update { it.copy(injektBars = v) }
     }
-    Toggle("Bass swap", s.injektBassSwap, enabled = on, hint = "Roll the outgoing bass off before the incoming bass comes up.") { v -> update { it.copy(injektBassSwap = v) } }
-    Toggle("Harmonic mixing", s.injektHarmonic, enabled = on, hint = "When keys clash, filter out of the old track instead of blending.") { v -> update { it.copy(injektHarmonic = v) } }
-    Toggle("Skip long intros", s.injektSkipIntro, enabled = on, hint = "Bring the next track in at its first real downbeat.") { v -> update { it.copy(injektSkipIntro = v) } }
+    Toggle(t("Bass swap"), s.injektBassSwap, enabled = on, hint = t("Roll the outgoing bass off before the incoming bass comes up.")) { v -> update { it.copy(injektBassSwap = v) } }
+    Toggle(t("Harmonic mixing"), s.injektHarmonic, enabled = on, hint = t("When keys clash, filter out of the old track instead of blending.")) { v -> update { it.copy(injektHarmonic = v) } }
+    Toggle(t("Skip long intros"), s.injektSkipIntro, enabled = on, hint = t("Bring the next track in at its first real downbeat.")) { v -> update { it.copy(injektSkipIntro = v) } }
     Toggle(
-        "Analyse ahead",
+        t("Analyse ahead"),
         s.injektAnalyseAhead,
         enabled = on,
-        hint = "The current and next track are always analysed when a track starts. This also measures the one after, so skipping ahead lands on a transition that is ready too.",
+        hint = t("The current and next track are always analysed when a track starts. This also measures the one after, so skipping ahead lands on a transition that is ready too."),
     ) { v -> update { it.copy(injektAnalyseAhead = v) } }
-    Toggle("Analyse on Wi-Fi only", s.injektAnalyseOnWifiOnly, enabled = on, hint = "Never spend mobile data on analysis.") { v -> update { it.copy(injektAnalyseOnWifiOnly = v) } }
+    Toggle(t("Analyse on Wi-Fi only"), s.injektAnalyseOnWifiOnly, enabled = on, hint = t("Never spend mobile data on analysis.")) { v -> update { it.copy(injektAnalyseOnWifiOnly = v) } }
 }
 
 // ---------------------------------------------------------------- audio --
 
 @Composable
 private fun AudioSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) {
-    Choice("Volume levelling (ReplayGain)", ReplayGainMode.entries.map { it to it.label }, s.replayGainMode) { v -> update { it.copy(replayGainMode = v) } }
-    SettingSlider("ReplayGain pre-amp", s.replayGainPreamp.toFloat(), -12f..12f, { "%+.0f dB".format(it) }, steps = 23, enabled = s.replayGainMode != ReplayGainMode.OFF) { v ->
+    Choice(t("Volume levelling (ReplayGain)"), ReplayGainMode.entries.map { it to it.label }, s.replayGainMode) { v -> update { it.copy(replayGainMode = v) } }
+    SettingSlider(t("ReplayGain pre-amp"), s.replayGainPreamp.toFloat(), -12f..12f, { "%+.0f dB".format(it) }, steps = 23, enabled = s.replayGainMode != ReplayGainMode.OFF) { v ->
         update { it.copy(replayGainPreamp = v.roundToInt().toDouble()) }
     }
-    Choice("Streaming quality on Wi-Fi", BITRATES, s.preferredBitrate, hint = "Lower bitrates are transcoded by your server.") { v -> update { it.copy(preferredBitrate = v) } }
-    Choice("Streaming quality on mobile data", listOf(-1 to "Same as Wi-Fi") + BITRATES, s.preferredBitrateMobile) { v -> update { it.copy(preferredBitrateMobile = v) } }
+    Choice(t("Streaming quality on Wi-Fi"), BITRATES, s.preferredBitrate, hint = t("Lower bitrates are transcoded by your server.")) { v -> update { it.copy(preferredBitrate = v) } }
+    Choice(t("Streaming quality on mobile data"), listOf(-1 to t("Same as Wi-Fi")) + BITRATES, s.preferredBitrateMobile) { v -> update { it.copy(preferredBitrateMobile = v) } }
     Choice(
-        "Transcode format",
-        listOf("" to "Server default", "mp3" to "MP3", "opus" to "Opus", "aac" to "AAC", "ogg" to "Vorbis"),
+        t("Transcode format"),
+        listOf("" to t("Server default"), "mp3" to "MP3", "opus" to t("Opus"), "aac" to "AAC", "ogg" to t("Vorbis")),
         s.preferredFormat,
-        hint = "Used when a lower bitrate is chosen.",
+        hint = t("Used when a lower bitrate is chosen."),
     ) { v -> update { it.copy(preferredFormat = v) } }
 }
 
@@ -478,16 +502,16 @@ private fun AudioSettings(s: Settings, update: ((Settings) -> Settings) -> Unit)
 
 @Composable
 private fun EqualiserSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) {
-    Toggle("Enable the equaliser", s.eqEnabled) { v -> update { it.copy(eqEnabled = v) } }
-    Choice("Preset", EQ_PRESETS.keys.map { it to it }, s.eqPreset) { name -> update { it.withEqPreset(name) } }
+    Toggle(t("Enable the equaliser"), s.eqEnabled) { v -> update { it.copy(eqEnabled = v) } }
+    Choice(t("Preset"), EQ_PRESETS.keys.map { it to t(it) }, s.eqPreset) { name -> update { it.withEqPreset(name) } }
     val gains = s.eqBandGains
     EQ_BANDS.forEachIndexed { index, hz ->
-        val label = if (hz >= 1000) "${hz / 1000} kHz" else "$hz Hz"
+        val label = if (hz >= 1000) "${hz / 1000} kHz" else t("%@ Hz", hz)
         SettingSlider(label, gains[index].toFloat(), -12f..12f, { "%+.0f dB".format(it) }, steps = 23, enabled = s.eqEnabled) { v ->
             update { st -> st.copy(eqPreset = "Custom", eqGains = st.eqBandGains.toMutableList().also { it[index] = v.roundToInt().toDouble() }) }
         }
     }
-    SettingSlider("Pre-amp", s.eqPreamp.toFloat(), -12f..6f, { "%+.0f dB".format(it) }, steps = 17, enabled = s.eqEnabled, hint = "Pull this down if the equaliser makes things clip.") { v ->
+    SettingSlider(t("Pre-amp"), s.eqPreamp.toFloat(), -12f..6f, { "%+.0f dB".format(it) }, steps = 17, enabled = s.eqEnabled, hint = t("Pull this down if the equaliser makes things clip.")) { v ->
         update { it.copy(eqPreamp = v.roundToInt().toDouble()) }
     }
 }
@@ -497,22 +521,22 @@ private fun EqualiserSettings(s: Settings, update: ((Settings) -> Settings) -> U
 @Composable
 private fun OfflineSettings(s: Settings, update: ((Settings) -> Settings) -> Unit) {
     val graph = LocalActions.current.graph
-    SettingSlider("Parallel downloads", s.offlineConcurrency.toFloat(), 1f..8f, { "${it.roundToInt()}" }, steps = 6) { v ->
+    SettingSlider(t("Parallel downloads"), s.offlineConcurrency.toFloat(), 1f..8f, { "${it.roundToInt()}" }, steps = 6) { v ->
         update { it.copy(offlineConcurrency = v.roundToInt()) }
     }
-    Choice("Download quality", BITRATES, s.offlineBitrate, hint = "Original keeps the file exactly as it is on the server.") { v -> update { it.copy(offlineBitrate = v) } }
-    Toggle("Download on Wi-Fi only", s.offlineWifiOnly) { v -> update { it.copy(offlineWifiOnly = v) } }
-    Toggle("Prefer offline copies", s.offlineFirst, hint = "Play a downloaded file instead of streaming when one exists.") { v -> update { it.copy(offlineFirst = v) } }
+    Choice(t("Download quality"), BITRATES, s.offlineBitrate, hint = t("Original keeps the file exactly as it is on the server.")) { v -> update { it.copy(offlineBitrate = v) } }
+    Toggle(t("Download on Wi-Fi only"), s.offlineWifiOnly) { v -> update { it.copy(offlineWifiOnly = v) } }
+    Toggle(t("Prefer offline copies"), s.offlineFirst, hint = t("Play a downloaded file instead of streaming when one exists.")) { v -> update { it.copy(offlineFirst = v) } }
     Choice(
-        "Stream cache",
-        listOf(256 to "256 MB", 1024 to "1 GB", 2048 to "2 GB", 4096 to "4 GB", 8192 to "8 GB"),
+        t("Stream cache"),
+        listOf(256 to t("256 MB"), 1024 to t("1 GB"), 2048 to t("2 GB"), 4096 to t("4 GB"), 8192 to t("8 GB")),
         s.streamCacheMb,
-        hint = "Recently streamed audio is kept so replays do not refetch. Takes effect after a restart.",
+        hint = t("Recently streamed audio is kept so replays do not refetch. Takes effect after a restart."),
     ) { v -> update { it.copy(streamCacheMb = v) } }
     Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Pill("Clear stream cache", onClick = {
+        Pill(t("Clear stream cache"), onClick = {
             graph.clearMediaCache()
-            graph.messages.show("Stream cache cleared.")
+            graph.messages.show(t("Stream cache cleared."))
         })
     }
 }
@@ -531,20 +555,20 @@ private fun ServerSettings(onAddServer: () -> Unit, onSignIn: (ServerProfile) ->
         val isActive = profile.id == active?.id
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(profile.label + if (isActive) " · in use" else "", color = if (isActive) Kultr.colors.accent else Kultr.colors.ink, fontWeight = FontWeight.SemiBold)
+                Text(profile.label + if (isActive) t(" · in use") else "", color = if (isActive) Kultr.colors.accent else Kultr.colors.ink, fontWeight = FontWeight.SemiBold)
                 Text(
                     if (profile.local) {
-                        "Folders on this phone, no server"
+                        t("Folders on this phone, no server")
                     } else {
-                        listOf(profile.username.ifBlank { "not signed in" }, profile.serverUrl).joinToString(" · ")
+                        listOf(profile.username.ifBlank { t("not signed in") }, profile.serverUrl).joinToString(" · ")
                     },
                     color = Kultr.colors.ink3,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
             when {
-                !profile.usable -> TextButton(onClick = { onSignIn(profile) }) { Text("Sign in") }
-                !isActive && profile.enabled -> TextButton(onClick = { graph.auth.switchTo(profile.id) }) { Text("Use") }
+                !profile.usable -> TextButton(onClick = { onSignIn(profile) }) { Text(t("Sign in")) }
+                !isActive && profile.enabled -> TextButton(onClick = { graph.auth.switchTo(profile.id) }) { Text(t("Use")) }
             }
             Switch(checked = profile.enabled, onCheckedChange = { graph.auth.setEnabled(profile.id, it) })
             ServerMenu(
@@ -557,23 +581,23 @@ private fun ServerSettings(onAddServer: () -> Unit, onSignIn: (ServerProfile) ->
         }
     }
     Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Pill("Add a server", icon = Icons.Rounded.Add, onClick = onAddServer)
-        if (active != null) Pill("Sign out", icon = Icons.AutoMirrored.Rounded.Logout, onClick = { graph.player.stop(); graph.auth.signOut() })
+        Pill(t("Add a server"), icon = Icons.Rounded.Add, onClick = onAddServer)
+        if (active != null) Pill(t("Sign out"), icon = Icons.AutoMirrored.Rounded.Logout, onClick = { graph.player.stop(); graph.auth.signOut() })
     }
     renaming?.let { profile ->
         TextInputDialog(
-            title = "Name this server",
+            title = t("Name this server"),
             initial = profile.label,
-            confirm = "Rename",
+            confirm = t("Rename"),
             onConfirm = { graph.auth.rename(profile.id, it) },
             onDismiss = { renaming = null },
         )
     }
     forget?.let { profile ->
         ConfirmDialog(
-            title = "Forget ${profile.label}?",
-            body = "Its saved password, synced library, downloads and listening history on this phone are deleted. Nothing changes on the server.",
-            confirm = "Forget",
+            title = t("Forget %@?", profile.label),
+            body = t("Its saved password, synced library, downloads and listening history on this phone are deleted. Nothing changes on the server."),
+            confirm = t("Forget"),
             onConfirm = {
                 if (profile.id == active?.id) graph.player.stop()
                 graph.auth.remove(profile.id)
@@ -589,23 +613,23 @@ private fun ServerMenu(profile: ServerProfile, onRename: () -> Unit, onChangePas
     var open by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }) {
-            Icon(Icons.Rounded.MoreVert, contentDescription = "More for ${profile.label}", tint = Kultr.colors.ink3)
+            Icon(Icons.Rounded.MoreVert, contentDescription = t("More for %@", profile.label), tint = Kultr.colors.ink3)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
-                text = { Text("Rename…") },
+                text = { Text(t("Rename…")) },
                 leadingIcon = { Icon(Icons.Rounded.Edit, null) },
                 onClick = { open = false; onRename() },
             )
             if (profile.hasCredentials) {
                 DropdownMenuItem(
-                    text = { Text("Change password…") },
+                    text = { Text(t("Change password…")) },
                     leadingIcon = { Icon(Icons.Rounded.Key, null) },
                     onClick = { open = false; onChangePassword() },
                 )
             }
             DropdownMenuItem(
-                text = { Text("Forget", color = Kultr.colors.danger) },
+                text = { Text(t("Forget"), color = Kultr.colors.danger) },
                 leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = Kultr.colors.danger) },
                 onClick = { open = false; onForget() },
             )
@@ -632,9 +656,9 @@ private fun LocalMusicSettings() {
     Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
             if (localProfile == null) {
-                "Play the music stored on this phone, without a server. Choose the folders it is in; Kultr gets access to those and nothing else."
+                t("Play the music stored on this phone, without a server. Choose the folders it is in; Kultr gets access to those and nothing else.")
             } else {
-                "Kultr reads these folders. New and changed files are picked up when it starts, or when you scan."
+                t("Kultr reads these folders. New and changed files are picked up when it starts, or when you scan.")
             },
             color = colors.ink3,
             style = MaterialTheme.typography.bodySmall,
@@ -647,10 +671,10 @@ private fun LocalMusicSettings() {
         if (localProfile != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (inUse) {
-                    Pill(if (scanning) "Scanning…" else "Scan now", icon = Icons.Rounded.Sync, enabled = !scanning, onClick = { graph.sync.start(SyncMode.CHECK) })
-                    Pill("Read all tags again", enabled = !scanning, onClick = { graph.sync.start(SyncMode.FULL) })
+                    Pill(if (scanning) t("Scanning…") else t("Scan now"), icon = Icons.Rounded.Sync, enabled = !scanning, onClick = { graph.sync.start(SyncMode.CHECK) })
+                    Pill(t("Read all tags again"), enabled = !scanning, onClick = { graph.sync.start(SyncMode.FULL) })
                 } else {
-                    Pill("Play music on this phone", icon = Icons.Rounded.PhoneAndroid, accent = true, onClick = {
+                    Pill(t("Play music on this phone"), icon = Icons.Rounded.PhoneAndroid, accent = true, onClick = {
                         graph.player.stop()
                         graph.auth.switchTo(localProfile.id)
                         graph.sync.startFirstSyncIfNeeded()
@@ -682,8 +706,8 @@ private fun BackupSettings(s: Settings) {
         }
         val text = SettingsFile.export(graph.settings.current, BuildConfig.VERSION_NAME, Instant.now().toString(), servers)
         runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) } }
-            .onSuccess { graph.messages.success("Settings exported.") }
-            .onFailure { graph.messages.error("Could not write the file: ${it.message}") }
+            .onSuccess { graph.messages.success(t("Settings exported.")) }
+            .onFailure { graph.messages.error(t("Could not write the file: %@", it.message)) }
     }
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -693,8 +717,8 @@ private fun BackupSettings(s: Settings) {
             graph.settings.replace(result.settings)
             val added = graph.auth.importServers(result.servers.map { Triple(it.label, it.serverUrl, it.authMode) })
             report = buildString {
-                append("Applied ${result.applied.size} settings")
-                if (added > 0) append(" and added $added server${if (added == 1) "" else "s"} (sign in to them in Servers)")
+                append(t("Applied %@ settings", result.applied.size))
+                if (added > 0) append(t(if (added == 1) " and added %@ server (sign in to it in Servers)" else " and added %@ servers (sign in to them in Servers)", added))
                 append(".")
                 if (result.skipped.isNotEmpty()) {
                     append("\n\nSkipped:\n")
@@ -702,42 +726,42 @@ private fun BackupSettings(s: Settings) {
                 }
             }
         } catch (err: Exception) {
-            graph.messages.error(err.message ?: "That file could not be read.")
+            graph.messages.error(err.message ?: t("That file could not be read."))
         }
     }
 
     Text(
-        "Export every preference to a small file and import it on another phone, or in Kultr on the web. Passwords and usernames are never in it.",
+        t("Export every preference to a small file and import it on another phone, or in Kultr on the web. Passwords and usernames are never in it."),
         color = Kultr.colors.ink3,
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(horizontal = 16.dp),
     )
-    Toggle("Include the list of servers", includeServers, hint = "Addresses only — never usernames or passwords.") { includeServers = it }
+    Toggle(t("Include the list of servers"), includeServers, hint = t("Addresses only — never usernames or passwords.")) { includeServers = it }
     Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Pill("Export settings", onClick = { exporter.launch("kultr-settings-${Instant.now().toString().take(10)}.json") })
-        Pill("Import settings", onClick = { importer.launch(arrayOf("application/json", "text/plain", "*/*")) })
+        Pill(t("Export settings"), onClick = { exporter.launch("kultr-settings-${Instant.now().toString().take(10)}.json") })
+        Pill(t("Import settings"), onClick = { importer.launch(arrayOf("application/json", "text/plain", "*/*")) })
     }
     Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Pill("Reset settings", onClick = { confirmReset = true })
-        Pill("Clear library data", onClick = { confirmWipe = true })
+        Pill(t("Reset settings"), onClick = { confirmReset = true })
+        Pill(t("Clear library data"), onClick = { confirmWipe = true })
     }
     report?.let { text ->
         AlertDialog(
             onDismissRequest = { report = null },
-            title = { Text("Settings imported") },
+            title = { Text(t("Settings imported")) },
             text = { Text(text) },
             confirmButton = { TextButton(onClick = { report = null }) { Text("OK") } },
         )
     }
     if (confirmReset) {
-        ConfirmDialog("Reset every setting?", "Appearance, playback, InjeKt and everything else go back to their defaults. Servers are kept.", "Reset",
+        ConfirmDialog(t("Reset every setting?"), t("Appearance, playback, InjeKt and everything else go back to their defaults. Servers are kept."), t("Reset"),
             onConfirm = { graph.settings.reset() }, onDismiss = { confirmReset = false })
     }
     if (confirmWipe) {
         ConfirmDialog(
-            "Clear library data?",
-            "The synced library, InjeKt analysis and listening history for this server are deleted from this phone. Downloads are kept. Sync again to rebuild the library.",
-            "Clear",
+            t("Clear library data?"),
+            t("The synced library, InjeKt analysis and listening history for this server are deleted from this phone. Downloads are kept. Sync again to rebuild the library."),
+            t("Clear"),
             onConfirm = {
                 actions.launch {
                     val db = graph.database.value ?: return@launch
@@ -747,7 +771,7 @@ private fun BackupSettings(s: Settings) {
                         db.history().clear()
                         db.meta().put(app.kultr.android.data.db.MetaEntity("syncState", "{}"))
                     }
-                    graph.messages.show("Library data cleared.")
+                    graph.messages.show(t("Library data cleared."))
                 }
             },
             onDismiss = { confirmWipe = false },
@@ -766,33 +790,33 @@ private fun AboutSection() {
     val available by graph.updates.available.collectAsStateWithLifecycle()
     val open = { url: String -> runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) } }
     SettingRow(
-        "Version",
+        t("Version"),
         hint = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" +
-            (available?.let { " · ${it.version} is available" } ?: ""),
+            (available?.let { t(" · %@ is available", it.version) } ?: ""),
     ) {
         if (check is UpdateCheck.Checking) {
             CircularProgressIndicator(color = Kultr.colors.accent, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
         } else {
-            Pill("Check for updates", icon = Icons.Rounded.SystemUpdate, accent = available != null, onClick = {
+            Pill(t("Check for updates"), icon = Icons.Rounded.SystemUpdate, accent = available != null, onClick = {
                 actions.launch {
                     when (val result = graph.updates.checkNow()) {
                         is UpdateCheck.Available -> actions.openUpdate()
-                        is UpdateCheck.UpToDate -> graph.messages.show("You have the latest version.", MessageKind.SUCCESS)
-                        is UpdateCheck.Failed -> graph.messages.error("Could not check for updates. ${result.message}")
+                        is UpdateCheck.UpToDate -> graph.messages.show(t("You have the latest version."), MessageKind.SUCCESS)
+                        is UpdateCheck.Failed -> graph.messages.error(t("Could not check for updates. %@", result.message))
                         else -> Unit
                     }
                 }
             })
         }
     }
-    SettingRow("Update log", hint = "What changed in every version, from 1.0.0 to now.", onClick = { actions.navigate(Routes.UPDATE_LOG) }) {
+    SettingRow(t("Update log"), hint = t("What changed in every version, from 1.0.0 to now."), onClick = { actions.navigate(Routes.UPDATE_LOG) }) {
         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = Kultr.colors.ink3)
     }
-    SettingRow("Source", hint = "github.com/evropiani/Kultr_Android — issues and pull requests welcome.", onClick = {
+    SettingRow(t("Source"), hint = "github.com/evropiani/Kultr_Android — issues and pull requests welcome.", onClick = {
         open("https://github.com/evropiani/Kultr_Android")
     })
-    SettingRow("Website", hint = "kultr.cc", onClick = { open(WEBSITE) })
-    SettingRow("Get in touch", hint = "Questions, ideas, or something broken.", onClick = { open(DISCORD) }) {
+    SettingRow(t("Website"), hint = "kultr.cc", onClick = { open(WEBSITE) })
+    SettingRow(t("Get in touch"), hint = t("Questions, ideas, or something broken."), onClick = { open(DISCORD) }) {
         Pill("@evropiani", icon = BrandIcons.Discord, onClick = { open(DISCORD) })
     }
 }

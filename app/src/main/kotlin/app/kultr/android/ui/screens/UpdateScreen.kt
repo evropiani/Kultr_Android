@@ -62,6 +62,7 @@ import app.kultr.android.ui.components.Pill
 import app.kultr.android.ui.components.glass
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.util.ReleaseNotes
+import app.kultr.core.util.t
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -80,7 +81,7 @@ fun UpdateScreen() {
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            BackBar("Update")
+            BackBar(t("Update"))
             val r = release
             if (r == null) {
                 // Nothing newer: say so, and offer to look again.
@@ -94,10 +95,10 @@ fun UpdateScreen() {
                         val failed = check as? UpdateCheck.Failed
                         EmptyState(
                             Icons.Rounded.Verified,
-                            if (failed != null) "Could not check for updates" else "Kultr is up to date",
-                            body = failed?.message ?: "You have ${BuildConfig.VERSION_NAME}, the latest version.",
+                            if (failed != null) t("Could not check for updates") else t("Kultr is up to date"),
+                            body = failed?.message ?: t("You have %@, the latest version.", BuildConfig.VERSION_NAME),
                             action = {
-                                Pill("Check again", icon = Icons.Rounded.Refresh, onClick = { actions.launch { graph.updates.checkNow() } })
+                                Pill(t("Check again"), icon = Icons.Rounded.Refresh, onClick = { actions.launch { graph.updates.checkNow() } })
                             },
                         )
                     }
@@ -110,10 +111,10 @@ fun UpdateScreen() {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Eyebrow("New version")
+                    Eyebrow(t("New version"))
                     Text(r.title, style = MaterialTheme.typography.headlineMedium, color = colors.ink)
                     Text(
-                        listOfNotNull("You have ${BuildConfig.VERSION_NAME}", releasedOn(r.publishedAt)).joinToString(" · "),
+                        listOfNotNull(t("You have %@", BuildConfig.VERSION_NAME), releasedOn(r.publishedAt)).joinToString(" · "),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.ink3,
                     )
@@ -129,15 +130,15 @@ fun UpdateScreen() {
                                 LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), color = colors.accent)
                             }
                             Text(
-                                if (fraction == null) "Downloading…" else "Downloading… ${(fraction * 100).roundToInt()}%",
+                                if (fraction == null) t("Downloading…") else "Downloading… ${(fraction * 100).roundToInt()}%",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = colors.ink2,
                             )
                         }
-                        UpdateDownload.Installing -> Text("Opening Android's installer…", color = colors.ink2)
+                        UpdateDownload.Installing -> Text(t("Opening Android's installer…"), color = colors.ink2)
                         else -> {
                             Pill(
-                                "Update to ${r.version}",
+                                t("Update to %@", r.version),
                                 icon = Icons.Rounded.SystemUpdate,
                                 accent = true,
                                 onClick = { graph.updates.install(r) },
@@ -149,7 +150,7 @@ fun UpdateScreen() {
                         }
                     }
                     Text(
-                        "Android asks you to confirm. Your servers, music folders, library and downloads stay as they are.",
+                        t("Android asks you to confirm. Your servers, music folders, library and downloads stay as they are."),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.ink3,
                     )
@@ -158,7 +159,7 @@ fun UpdateScreen() {
                 GlassPanel(Modifier.fillMaxWidth()) { Notes(r.notes) }
 
                 Pill(
-                    "Release page",
+                    t("Release page"),
                     icon = Icons.AutoMirrored.Rounded.OpenInNew,
                     onClick = { graph.updates.openPage(r) },
                 )
@@ -192,14 +193,14 @@ fun UpdateBanner(release: AppRelease, onOpen: () -> Unit, onDismiss: () -> Unit,
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                "Kultr ${release.version} is available",
+                t("Kultr %@ is available", release.version),
                 style = MaterialTheme.typography.titleSmall,
                 color = colors.ink,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                "See what's new and update",
+                t("See what's new and update"),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.ink2,
                 maxLines = 1,
@@ -207,7 +208,7 @@ fun UpdateBanner(release: AppRelease, onOpen: () -> Unit, onDismiss: () -> Unit,
             )
         }
         IconButton(onClick = onDismiss) {
-            Icon(Icons.Rounded.Close, contentDescription = "Dismiss", tint = colors.ink3)
+            Icon(Icons.Rounded.Close, contentDescription = t("Dismiss"), tint = colors.ink3)
         }
     }
 }
@@ -219,7 +220,7 @@ fun Notes(markdown: String) {
     val blocks = remember(markdown) { ReleaseNotes.parse(markdown) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (blocks.isEmpty()) {
-            Text("No notes came with this version.", color = colors.ink3)
+            Text(t("No notes came with this version."), color = colors.ink3)
         }
         blocks.forEachIndexed { index, block ->
             when (block) {

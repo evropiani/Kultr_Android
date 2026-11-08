@@ -18,13 +18,15 @@ import app.kultr.core.api.Song
 import app.kultr.core.util.CommandPlace
 import app.kultr.core.util.KultrCommand
 import app.kultr.core.util.parseCommand
+import app.kultr.core.util.t
 
 /** The command bar in Search: words Kultr can do, rather than look for. */
 object Commands {
     fun parse(text: String, actions: AppActions): KultrCommand? {
         val settings = actions.graph.settings.current
         val stations = settings.stations + actions.graph.stations.tally.value?.decades.orEmpty()
-        return parseCommand(text, stations.map { it.name }, settings.crates.map { it.name })
+        // Each station answers to its own name, and a starting one to its name in the phone's language too.
+        return parseCommand(text, stations.flatMap { listOf(it.name, it.title) }.distinctBy { it.lowercase() }, settings.crates.map { it.name })
     }
 
     /** What a command names, to show search results for it under its row. */
@@ -37,34 +39,34 @@ object Commands {
 
     /** What the command will do, for the row above the search results. */
     fun describe(command: KultrCommand): Pair<ImageVector, String> = when (command) {
-        is KultrCommand.Play -> Icons.Rounded.PlayArrow to "Play “${command.what}”"
-        is KultrCommand.Shuffle -> Icons.Rounded.Shuffle to "Shuffle “${command.what}”"
-        KultrCommand.ShuffleAll -> Icons.Rounded.Shuffle to "Shuffle your whole library"
-        is KultrCommand.Station -> Icons.Rounded.Tune to "Play the station ${command.name}"
-        is KultrCommand.Sleep -> Icons.Rounded.Bedtime to "Sleep timer: ${command.minutes} min"
-        KultrCommand.SleepAfterTrack -> Icons.Rounded.Bedtime to "Stop after this track"
-        KultrCommand.Pause -> Icons.Rounded.Pause to "Pause"
-        KultrCommand.Resume -> Icons.Rounded.PlayArrow to "Play"
-        KultrCommand.Next -> Icons.Rounded.SkipNext to "Next track"
-        KultrCommand.Previous -> Icons.Rounded.SkipPrevious to "Previous track"
-        KultrCommand.MixNow -> Icons.AutoMirrored.Rounded.CallMerge to "Mix into the next track"
-        is KultrCommand.Plan -> Icons.Rounded.ShowChart to (command.minutes?.let { "Plan a set of $it min" } ?: "Plan a set")
-        is KultrCommand.Open -> Icons.AutoMirrored.Rounded.OpenInNew to "Open ${label(command.place)}"
-        is KultrCommand.Crate -> Icons.Rounded.Inventory2 to "Open the crate ${command.name}"
-        is KultrCommand.PlayCrate -> Icons.Rounded.Inventory2 to "Play the crate ${command.name}"
+        is KultrCommand.Play -> Icons.Rounded.PlayArrow to t("Play “%@”", command.what)
+        is KultrCommand.Shuffle -> Icons.Rounded.Shuffle to t("Shuffle “%@”", command.what)
+        KultrCommand.ShuffleAll -> Icons.Rounded.Shuffle to t("Shuffle your whole library")
+        is KultrCommand.Station -> Icons.Rounded.Tune to t("Play the station %@", t(command.name))
+        is KultrCommand.Sleep -> Icons.Rounded.Bedtime to t("Sleep timer: %@ min", command.minutes)
+        KultrCommand.SleepAfterTrack -> Icons.Rounded.Bedtime to t("Stop after this track")
+        KultrCommand.Pause -> Icons.Rounded.Pause to t("Pause")
+        KultrCommand.Resume -> Icons.Rounded.PlayArrow to t("Play")
+        KultrCommand.Next -> Icons.Rounded.SkipNext to t("Next track")
+        KultrCommand.Previous -> Icons.Rounded.SkipPrevious to t("Previous track")
+        KultrCommand.MixNow -> Icons.AutoMirrored.Rounded.CallMerge to t("Mix into the next track")
+        is KultrCommand.Plan -> Icons.Rounded.ShowChart to (command.minutes?.let { t("Plan a set of %@ min", it) } ?: t("Plan a set"))
+        is KultrCommand.Open -> Icons.AutoMirrored.Rounded.OpenInNew to t("Open %@", label(command.place))
+        is KultrCommand.Crate -> Icons.Rounded.Inventory2 to t("Open the crate %@", command.name)
+        is KultrCommand.PlayCrate -> Icons.Rounded.Inventory2 to t("Play the crate %@", command.name)
     }
 
     private fun label(place: CommandPlace) = when (place) {
-        CommandPlace.HOME -> "Home"
-        CommandPlace.LIBRARY -> "Library"
-        CommandPlace.SETTINGS -> "Settings"
-        CommandPlace.LISTENING -> "Listening"
-        CommandPlace.RECAP -> "the monthly recap"
-        CommandPlace.STATIONS -> "Stations"
-        CommandPlace.CRATES -> "Crates"
-        CommandPlace.DOWNLOADS -> "Downloads"
-        CommandPlace.PLANNER -> "the energy planner"
-        CommandPlace.SEARCH -> "Search"
+        CommandPlace.HOME -> t("Home")
+        CommandPlace.LIBRARY -> t("Library")
+        CommandPlace.SETTINGS -> t("Settings")
+        CommandPlace.LISTENING -> t("Listening")
+        CommandPlace.RECAP -> t("the monthly recap")
+        CommandPlace.STATIONS -> t("Stations")
+        CommandPlace.CRATES -> t("Crates")
+        CommandPlace.DOWNLOADS -> t("Downloads")
+        CommandPlace.PLANNER -> t("the energy planner")
+        CommandPlace.SEARCH -> t("Search")
     }
 
     /** Do it. [openTab] opens one of the tabs by its route. */
@@ -76,7 +78,7 @@ object Commands {
                 val what = subject(command).orEmpty()
                 val songs = music(what, actions)
                 when {
-                    songs.isEmpty() -> graph.messages.show("Nothing in your library matches “$what”.")
+                    songs.isEmpty() -> graph.messages.show(t("Nothing in your library matches “%@”.", what))
                     command is KultrCommand.Shuffle -> actions.shuffle(songs)
                     else -> actions.play(songs)
                 }
@@ -84,20 +86,20 @@ object Commands {
             KultrCommand.ShuffleAll -> actions.launch { actions.shuffle(graph.library.randomSongs(200)) }
             is KultrCommand.Station -> {
                 val station = (graph.settings.current.stations + graph.stations.tally.value?.decades.orEmpty())
-                    .firstOrNull { it.name.equals(command.name, ignoreCase = true) }
+                    .firstOrNull { it.name.equals(command.name, ignoreCase = true) || it.title.equals(command.name, ignoreCase = true) }
                 if (station == null) {
-                    graph.messages.show("There's no station called “${command.name}”. Stations has the list.")
+                    graph.messages.show(t("There's no station called “%@”. Stations has the list.", command.name))
                 } else {
                     player.station(StationRequest.Play(station))
                 }
             }
             is KultrCommand.Sleep -> {
                 graph.hub.setSleepTimer(command.minutes)
-                graph.messages.show("Sleep timer: ${command.minutes} minutes.")
+                graph.messages.show(t("Sleep timer: %@ minutes.", command.minutes))
             }
             KultrCommand.SleepAfterTrack -> {
                 graph.hub.sleepAtEndOfTrack()
-                graph.messages.show("Stopping after this track.")
+                graph.messages.show(t("Stopping after this track."))
             }
             KultrCommand.Pause -> if (player.state.value.playWhenReady) player.toggle()
             KultrCommand.Resume -> if (!player.state.value.playWhenReady) player.toggle()
@@ -122,7 +124,7 @@ object Commands {
                 val crate = crate(command.name, actions) ?: return
                 actions.launch {
                     val songs = graph.crates.songs(crate)
-                    if (songs.isEmpty()) graph.messages.show("“${crate.name}” is empty.") else actions.play(songs)
+                    if (songs.isEmpty()) graph.messages.show(t("“%@” is empty.", crate.name)) else actions.play(songs)
                 }
             }
         }

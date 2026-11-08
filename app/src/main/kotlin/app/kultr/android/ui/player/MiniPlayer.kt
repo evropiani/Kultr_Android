@@ -47,6 +47,7 @@ import app.kultr.android.ui.components.Artwork
 import app.kultr.android.ui.components.glass
 import app.kultr.android.ui.starredShown
 import app.kultr.android.ui.theme.Kultr
+import app.kultr.core.util.t
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -134,23 +135,23 @@ fun MiniPlayer(state: PlayerUiState, modifier: Modifier = Modifier) {
                 IconButton(onClick = { actions.setFavourite(live ?: song, !starred) }, modifier = Modifier.size(40.dp)) {
                     Icon(
                         if (starred) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                        contentDescription = if (starred) "Remove from favourites" else "Add to favourites",
+                        contentDescription = if (starred) t("Remove from favourites") else t("Add to favourites"),
                         tint = if (starred) colors.accent else colors.ink2,
                     )
                 }
             }
             IconButton(onClick = { player.previous() }, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Rounded.SkipPrevious, contentDescription = "Previous", tint = colors.ink)
+                Icon(Icons.Rounded.SkipPrevious, contentDescription = t("Previous"), tint = colors.ink)
             }
             IconButton(onClick = { player.toggle() }, modifier = Modifier.size(44.dp)) {
                 Icon(
                     if (state.playWhenReady && !state.ended) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = if (state.playWhenReady) "Pause" else "Play",
+                    contentDescription = if (state.playWhenReady) t("Pause") else t("Play"),
                     tint = colors.ink,
                 )
             }
             IconButton(onClick = { player.next() }, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Rounded.SkipNext, contentDescription = "Next", tint = colors.ink)
+                Icon(Icons.Rounded.SkipNext, contentDescription = t("Next"), tint = colors.ink)
             }
         }
         val fraction = if (state.durationMs > 0) (position.toFloat() / state.durationMs).coerceIn(0f, 1f) else 0f

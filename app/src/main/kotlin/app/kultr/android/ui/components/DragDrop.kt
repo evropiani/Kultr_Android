@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import app.kultr.android.ui.LocalMusicMode
 import app.kultr.android.ui.theme.Kultr
 import app.kultr.core.api.Song
+import app.kultr.core.util.t
 import kotlin.math.roundToInt
 
 /**
@@ -83,12 +84,16 @@ class DragPayload(
  * Where a drag can end, ordered the way the web client orders them:
  * queueing is the common case, deleting is furthest from the finger's path.
  */
-enum class DropAction(val label: String, val hint: String, val icon: ImageVector) {
+enum class DropAction(private val english: String, private val englishHint: String, val icon: ImageVector) {
     PLAY_NEXT("Play next", "Jump the queue", Icons.Rounded.PlayArrow),
     QUEUE("Add to queue", "Play after everything else", Icons.AutoMirrored.Rounded.QueueMusic),
     FAVOURITE("Favourite", "Star on your server", Icons.Rounded.Favorite),
     DOWNLOAD("Sync offline", "Download for offline play", Icons.Rounded.Download),
     REMOVE("Delete downloads", "Remove the local copies", Icons.Rounded.Delete),
+    ;
+
+    val label: String get() = t(english)
+    val hint: String get() = t(englishHint)
 }
 
 /** The drag in progress, shared by every drag source and the drop zone. */
@@ -226,7 +231,7 @@ fun DropZoneOverlay(state: DragDropState, modifier: Modifier = Modifier) {
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    "Drop “${state.payload?.label.orEmpty()}” on…",
+                    t("Drop “%@” on…", state.payload?.label.orEmpty()),
                     color = colors.ink,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,

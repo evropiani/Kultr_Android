@@ -59,12 +59,14 @@ import app.kultr.core.util.MonthRecap
 import app.kultr.core.util.Play
 import app.kultr.core.util.monthRecap
 import app.kultr.core.util.recapMonths
+import app.kultr.core.util.t
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
-private val MONTH_TITLE = DateTimeFormatter.ofPattern("MMMM yyyy")
-private val MONTH_NAME = DateTimeFormatter.ofPattern("MMMM")
-private val DAY_TITLE = DateTimeFormatter.ofPattern("EEEE d MMMM")
+// Made on use, so month and day names follow the language Kultr is in.
+private val MONTH_TITLE: DateTimeFormatter get() = DateTimeFormatter.ofPattern("LLLL yyyy")
+private val MONTH_NAME: DateTimeFormatter get() = DateTimeFormatter.ofPattern("LLLL")
+private val DAY_TITLE: DateTimeFormatter get() = DateTimeFormatter.ofPattern(t("EEEE d MMMM"))
 
 private fun List<HistoryEntity>.plays() = map { Play(it.songId, it.playedAt, it.seconds) }
 
@@ -96,7 +98,7 @@ fun RecapScreen() {
                 Box(Modifier.weight(1f)) { BackBar() }
                 if (months.size > 1) {
                     Box {
-                        IconButton(onClick = { choosing = true }) { Icon(Icons.Rounded.CalendarMonth, contentDescription = "Choose a month", tint = colors.accent) }
+                        IconButton(onClick = { choosing = true }) { Icon(Icons.Rounded.CalendarMonth, contentDescription = t("Choose a month"), tint = colors.accent) }
                         DropdownMenu(expanded = choosing, onDismissRequest = { choosing = false }) {
                             months.forEach { m ->
                                 DropdownMenuItem(text = { Text(m.format(MONTH_TITLE)) }, onClick = {
@@ -109,7 +111,7 @@ fun RecapScreen() {
                 }
             }
             Text(
-                month?.format(MONTH_TITLE) ?: "Monthly recap",
+                month?.format(MONTH_TITLE) ?: t("Monthly recap"),
                 style = MaterialTheme.typography.headlineMedium,
                 color = colors.ink,
                 modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
@@ -120,8 +122,8 @@ fun RecapScreen() {
             recap == null || recap.isEmpty -> item {
                 EmptyState(
                     Icons.Rounded.CalendarMonth,
-                    "No months to look back on yet",
-                    body = "Kultr makes a recap from what you play on this phone. Play a few tracks and this month's shows up here.",
+                    t("No months to look back on yet"),
+                    body = t("Kultr makes a recap from what you play on this phone. Play a few tracks and this month's shows up here."),
                 )
             }
             else -> recapItems(recap)
@@ -144,9 +146,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.recapItems(recap: Mon
             val before = recap.month.minusMonths(1).format(MONTH_NAME)
             Text(
                 when {
-                    recap.previousSeconds <= 0 -> if (thisMonth) "So far this month." else "Nothing played the month before."
-                    thisMonth -> "So far this month. $before was ${Format.duration(recap.previousSeconds)}."
-                    else -> "$before was ${Format.duration(recap.previousSeconds)}."
+                    recap.previousSeconds <= 0 -> if (thisMonth) t("So far this month.") else t("Nothing played the month before.")
+                    thisMonth -> t("So far this month. %@ was %@.", before, Format.duration(recap.previousSeconds))
+                    else -> t("%@ was %@.", before, Format.duration(recap.previousSeconds))
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.ink3,
@@ -156,8 +158,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.recapItems(recap: Mon
     if (top.isNotEmpty()) {
         item {
             val actions = LocalActions.current
-            WideButton("Play this month's top tracks", Icons.Rounded.PlayArrow, onClick = { actions.play(top) }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), accent = true)
-            SectionHeader("Top tracks", modifier = Modifier.padding(top = 8.dp))
+            WideButton(t("Play this month's top tracks"), Icons.Rounded.PlayArrow, onClick = { actions.play(top) }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), accent = true)
+            SectionHeader(t("Top tracks"), modifier = Modifier.padding(top = 8.dp))
         }
         itemsIndexed(recap.topSongs, key = { _, entry -> "top:" + entry.item.id }) { index, entry ->
             val actions = LocalActions.current
@@ -173,29 +175,29 @@ private fun androidx.compose.foundation.lazy.LazyListScope.recapItems(recap: Mon
     if (albums.isNotEmpty()) {
         item {
             val actions = LocalActions.current
-            SectionHeader("Top albums")
+            SectionHeader(t("Top albums"))
             Shelf(albums, key = { it.id }) { album, modifier -> AlbumCard(album, { actions.openAlbum(album.id) }, modifier) }
         }
     }
     if (recap.topArtists.isNotEmpty()) {
         item {
-            SectionHeader("Top artists")
+            SectionHeader(t("Top artists"))
             PlayBars(recap.topArtists.map { ArtistPlays(it.item.name, it.item.id, it.plays.toLong()) })
         }
     }
     item {
         val colors = Kultr.colors
-        SectionHeader("The month in numbers")
+        SectionHeader(t("The month in numbers"))
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            recap.busiestDay?.let { (day, seconds) -> Fact("Your longest day", "${day.format(DAY_TITLE)} · ${Format.duration(seconds)}") }
+            recap.busiestDay?.let { (day, seconds) -> Fact(t("Your longest day"), "${day.format(DAY_TITLE)} · ${Format.duration(seconds)}") }
             Fact(
-                "First listens",
-                if (recap.firstListens == 0) "Only tracks you had played before" else "${Format.count(recap.firstListens, "track")} you had never played on this phone",
+                t("First listens"),
+                if (recap.firstListens == 0) t("Only tracks you had played before") else t("%@ you had never played on this phone", Format.count(recap.firstListens, "track")),
             )
-            Fact("On average", "${Format.duration(recap.seconds / recap.plays)} a play")
+            Fact(t("On average"), t("%@ a play", Format.duration(recap.seconds / recap.plays)))
         }
         Text(
-            "Made from what you played on this phone. Plays on other devices count on your server, but not here.",
+            t("Made from what you played on this phone. Plays on other devices count on your server, but not here."),
             style = MaterialTheme.typography.bodySmall,
             color = colors.ink3,
             modifier = Modifier.padding(16.dp),
@@ -221,7 +223,7 @@ fun PlayBars(rows: List<ArtistPlays>) {
         rows.forEach { row ->
             Column(Modifier.fillMaxWidth().clickable(enabled = row.artistId != null) { actions.openArtist(row.artistId) }) {
                 Row {
-                    Text(row.name ?: "Unknown artist", color = colors.ink, maxLines = 1, modifier = Modifier.weight(1f))
+                    Text(row.name ?: t("Unknown artist"), color = colors.ink, maxLines = 1, modifier = Modifier.weight(1f))
                     Text(Format.count(row.plays.toInt(), "play"), style = MaterialTheme.typography.bodySmall, color = colors.ink3)
                 }
                 Spacer(Modifier.height(5.dp))
@@ -256,9 +258,9 @@ fun RecapLink(history: List<HistoryEntity>) {
         Icon(Icons.Rounded.CalendarMonth, contentDescription = null, tint = colors.accent)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text("Monthly recap", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = colors.ink)
+            Text(t("Monthly recap"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = colors.ink)
             Text(
-                if (now.isEmpty) "Nothing played this month yet" else "${now.month.format(MONTH_TITLE)} so far: ${Format.duration(now.seconds)}, ${Format.count(now.plays, "play")}",
+                if (now.isEmpty) t("Nothing played this month yet") else t("%@ so far: %@, %@", now.month.format(MONTH_TITLE), Format.duration(now.seconds), Format.count(now.plays, "play")),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.ink3,
             )

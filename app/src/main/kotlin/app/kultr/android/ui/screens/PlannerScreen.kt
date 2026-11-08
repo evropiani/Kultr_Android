@@ -67,6 +67,7 @@ import app.kultr.core.injekt.PlannedTrack
 import app.kultr.core.injekt.planSet
 import app.kultr.core.karousel.Station
 import app.kultr.core.util.Format
+import app.kultr.core.util.t
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -101,13 +102,13 @@ fun PlannerScreen(initialMinutes: Int? = null) {
 
     fun build() = scope.launch {
         building = true
-        val pool = graph.stations.pool(source ?: Station(name = "All")).mapNotNull { (song, analysis) -> analysis?.let { song to it } }
+        val pool = graph.stations.pool(source ?: Station(name = t("All"))).mapNotNull { (song, analysis) -> analysis?.let { song to it } }
         if (pool.size < 5) {
-            graph.messages.show("Not enough analysed tracks for a set yet. InjeKt has to analyse a few more first.")
+            graph.messages.show(t("Not enough analysed tracks for a set yet. InjeKt has to analyse a few more first."))
         } else {
             val result = withContext(Dispatchers.Default) { planSet(curve, minutes, pool) }
             plan = result
-            if (result.isEmpty()) graph.messages.show("Nothing fits that shape yet.")
+            if (result.isEmpty()) graph.messages.show(t("Nothing fits that shape yet."))
         }
         building = false
     }
@@ -117,9 +118,9 @@ fun PlannerScreen(initialMinutes: Int? = null) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = chromePadding(24.dp))) {
         item {
             BackBar()
-            Text("Energy planner", style = MaterialTheme.typography.headlineMedium, color = colors.ink, modifier = Modifier.padding(start = 16.dp, bottom = 4.dp))
+            Text(t("Energy planner"), style = MaterialTheme.typography.headlineMedium, color = colors.ink, modifier = Modifier.padding(start = 16.dp, bottom = 4.dp))
             Text(
-                "Draw the shape of the set with your finger: low is calm, high is peak.",
+                t("Draw the shape of the set with your finger: low is calm, high is peak."),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.ink2,
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -127,10 +128,10 @@ fun PlannerScreen(initialMinutes: Int? = null) {
             EnergyCanvas(curve, minutes, plan, onChange = { curve = it }, modifier = Modifier.padding(16.dp).fillMaxWidth().height(220.dp))
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(
-                    "Warm up and peak" to EnergyCurve.WARM_UP_AND_PEAK,
-                    "Steady" to EnergyCurve.STEADY,
-                    "Build" to EnergyCurve.BUILD,
-                    "Wind down" to EnergyCurve.WIND_DOWN,
+                    t("Warm up and peak") to EnergyCurve.WARM_UP_AND_PEAK,
+                    t("Steady") to EnergyCurve.STEADY,
+                    t("Build") to EnergyCurve.BUILD,
+                    t("Wind down") to EnergyCurve.WIND_DOWN,
                 ).forEach { (label, shape) ->
                     Pill(label, onClick = {
                         curve = shape.resampled(POINTS)
@@ -139,22 +140,22 @@ fun PlannerScreen(initialMinutes: Int? = null) {
                 }
             }
             Segmented(
-                LENGTHS.map { it to if (it < 60) "$it min" else if (it == 60) "1 hour" else if (it % 60 == 0) "${it / 60} hours" else "$it min" },
+                LENGTHS.map { it to if (it < 60) "$it min" else if (it == 60) t("1 hour") else if (it % 60 == 0) "${it / 60} hours" else "$it min" },
                 minutes,
                 { minutes = it },
                 Modifier.padding(16.dp),
             )
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("From", style = MaterialTheme.typography.bodyLarge, color = colors.ink, modifier = Modifier.weight(1f))
+                Text(t("From"), style = MaterialTheme.typography.bodyLarge, color = colors.ink, modifier = Modifier.weight(1f))
                 Box {
-                    Pill(source?.name ?: "Your whole library", icon = Icons.Rounded.UnfoldMore, onClick = { choosing = true })
+                    Pill(source?.title ?: t("Your whole library"), icon = Icons.Rounded.UnfoldMore, onClick = { choosing = true })
                     DropdownMenu(expanded = choosing, onDismissRequest = { choosing = false }) {
-                        DropdownMenuItem(text = { Text("Your whole library") }, onClick = {
+                        DropdownMenuItem(text = { Text(t("Your whole library")) }, onClick = {
                             source = null
                             choosing = false
                         })
                         (settings.stations + tally?.decades.orEmpty()).forEach { station ->
-                            DropdownMenuItem(text = { Text(station.name) }, onClick = {
+                            DropdownMenuItem(text = { Text(station.title) }, onClick = {
                                 source = station
                                 choosing = false
                             })
@@ -164,9 +165,9 @@ fun PlannerScreen(initialMinutes: Int? = null) {
             }
             WideButton(
                 when {
-                    building -> "Building…"
-                    plan.isEmpty() -> "Build the set"
-                    else -> "Build it again"
+                    building -> t("Building…")
+                    plan.isEmpty() -> t("Build the set")
+                    else -> t("Build it again")
                 },
                 Icons.Rounded.ShowChart,
                 onClick = { build() },
@@ -179,11 +180,11 @@ fun PlannerScreen(initialMinutes: Int? = null) {
         if (plan.isNotEmpty()) {
             item {
                 Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    WideButton("Play the set", Icons.Rounded.PlayArrow, onClick = {
+                    WideButton(t("Play the set"), Icons.Rounded.PlayArrow, onClick = {
                         actions.play(songs)
-                        graph.messages.show("Playing your set: ${Format.count(songs.size, "track")}")
+                        graph.messages.show(t("Playing your set: %@", Format.count(songs.size, "track")))
                     }, modifier = Modifier.weight(1f), accent = true)
-                    WideButton("Save", Icons.AutoMirrored.Rounded.PlaylistAdd, onClick = { saving = true }, modifier = Modifier.weight(1f))
+                    WideButton(t("Save"), Icons.AutoMirrored.Rounded.PlaylistAdd, onClick = { saving = true }, modifier = Modifier.weight(1f))
                 }
                 SectionHeader("${Format.count(plan.size, "track")} · ${Format.duration(length)}", modifier = Modifier.padding(top = 8.dp))
             }
@@ -205,10 +206,10 @@ fun PlannerScreen(initialMinutes: Int? = null) {
         }
     }
     if (saving) {
-        TextInputDialog("Save the set", "Set, ${Format.duration(length)}", "Save", onConfirm = { name ->
+        TextInputDialog(t("Save the set"), t("Set, %@", Format.duration(length)), t("Save"), onConfirm = { name ->
             actions.launch {
                 val error = graph.library.createPlaylist(name.trim(), songs)
-                if (error != null) graph.messages.error(error) else graph.messages.show("Saved “${name.trim()}”")
+                if (error != null) graph.messages.error(error) else graph.messages.show(t("Saved “%@”", name.trim()))
             }
         }, onDismiss = { saving = false })
     }
@@ -225,9 +226,13 @@ private fun EnergyCanvas(curve: EnergyCurve, minutes: Int, plan: List<PlannedTra
             .clip(RoundedCornerShape(16.dp))
             .background(colors.sand.copy(alpha = colors.sand.alpha * 0.5f))
             .semantics {
-                contentDescription = "Energy over the set"
-                stateDescription = "Starts at ${(curve.points.first() * 10).roundToInt()}, peaks at ${(curve.points.max() * 10).roundToInt()}, " +
-                    "ends at ${(curve.points.last() * 10).roundToInt()}, out of 10"
+                contentDescription = t("Energy over the set")
+                stateDescription = t(
+                    "Starts at %@, peaks at %@, ends at %@, out of 10",
+                    (curve.points.first() * 10).roundToInt(),
+                    (curve.points.max() * 10).roundToInt(),
+                    (curve.points.last() * 10).roundToInt(),
+                )
             },
     ) {
         Canvas(
@@ -296,8 +301,8 @@ private fun EnergyCanvas(curve: EnergyCurve, minutes: Int, plan: List<PlannedTra
                 drawCircle(colors.ink, radius = 4.5.dp.toPx(), center = Offset((size.width * track.startsAt / total).toFloat(), size.height * (1 - track.energy.toFloat())))
             }
         }
-        Text("Peak", style = MaterialTheme.typography.labelSmall, color = colors.ink3, modifier = Modifier.align(Alignment.TopStart).padding(8.dp))
-        Text("Calm", style = MaterialTheme.typography.labelSmall, color = colors.ink3, modifier = Modifier.align(Alignment.BottomStart).padding(8.dp))
+        Text(t("Peak"), style = MaterialTheme.typography.labelSmall, color = colors.ink3, modifier = Modifier.align(Alignment.TopStart).padding(8.dp))
+        Text(t("Calm"), style = MaterialTheme.typography.labelSmall, color = colors.ink3, modifier = Modifier.align(Alignment.BottomStart).padding(8.dp))
         Text(
             if (minutes >= 60) "${minutes / 60} h" + (if (minutes % 60 == 0) "" else " ${minutes % 60} min") else "$minutes min",
             style = MaterialTheme.typography.labelSmall,
@@ -313,7 +318,7 @@ private fun EnergyBadge(energy: Double) {
     val colors = Kultr.colors
     val value = (energy * 10).roundToInt().coerceAtLeast(1)
     Box(
-        Modifier.size(28.dp).clip(CircleShape).background(colors.accentSoft).semantics { contentDescription = "Energy $value of 10" },
+        Modifier.size(28.dp).clip(CircleShape).background(colors.accentSoft).semantics { contentDescription = t("Energy %@ of 10", value) },
         contentAlignment = Alignment.Center,
     ) { Text("$value", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = colors.accent) }
 }

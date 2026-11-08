@@ -23,6 +23,7 @@ import app.kultr.core.dsp.ANALYSIS_VERSION
 import app.kultr.core.dsp.MonoAccumulator
 import app.kultr.core.dsp.TrackAnalysis
 import app.kultr.core.dsp.analysePcm
+import app.kultr.core.util.t
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -182,7 +183,7 @@ class AnalysisManager(private val graph: AppGraph) {
             .build()
         val request = OneTimeWorkRequestBuilder<AnalysisWorker>().setConstraints(constraints).build()
         WorkManager.getInstance(graph.app).enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.KEEP, request)
-        graph.messages.show("Analysing tracks in the background.")
+        graph.messages.show(t("Analysing tracks in the background."))
     }
 
     fun cancelBulk() {
@@ -225,7 +226,7 @@ class AnalysisWorker(context: Context, params: WorkerParameters) : CoroutineWork
         } finally {
             graph.analysis.reportBulk(null)
         }
-        if (done > 0) graph.messages.success("InjeKt analysis finished ($done tracks).")
+        if (done > 0) graph.messages.success(t("InjeKt analysis finished (%@ tracks).", done))
         return Result.success()
     }
 }
@@ -244,7 +245,7 @@ object AudioDecoder {
         try {
             val track = (0 until extractor.trackCount).firstOrNull {
                 extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
-            } ?: throw IOException("No audio in this file.")
+            } ?: throw IOException(t("No audio in this file."))
             extractor.selectTrack(track)
             val format = extractor.getTrackFormat(track)
             val mime = format.getString(MediaFormat.KEY_MIME) ?: throw IOException("Unknown audio format.")
@@ -266,7 +267,7 @@ object AudioDecoder {
                     if (!inputDone) {
                         val inIndex = codec.dequeueInputBuffer(TIMEOUT_US)
                         if (inIndex >= 0) {
-                            val buffer = codec.getInputBuffer(inIndex) ?: throw IOException("Decoder input unavailable.")
+                            val buffer = codec.getInputBuffer(inIndex) ?: throw IOException(t("Decoder input unavailable."))
                             val size = extractor.readSampleData(buffer, 0)
                             if (size < 0) {
                                 codec.queueInputBuffer(inIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)

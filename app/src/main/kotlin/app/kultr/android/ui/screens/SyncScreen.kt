@@ -42,6 +42,7 @@ import app.kultr.core.sync.SyncMode
 import app.kultr.core.sync.SyncPhase
 import app.kultr.core.sync.SyncState
 import app.kultr.core.util.Format
+import app.kultr.core.util.t
 
 @Composable
 fun SyncScreen() {
@@ -66,7 +67,7 @@ fun SyncScreen() {
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            BackBar("Sync")
+            BackBar(t("Sync"))
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState())
                     .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = chromePadding(16.dp)),
@@ -74,7 +75,7 @@ fun SyncScreen() {
             ) {
                 GlassPanel(Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Eyebrow("Your library on this phone")
+                        Eyebrow(t("Your library on this phone"))
                         Text(
                             "${Format.count(counts.artists, "artist")} · ${Format.count(counts.albums, "album")} · ${Format.count(counts.songs, "track")}",
                             style = MaterialTheme.typography.titleMedium,
@@ -85,19 +86,19 @@ fun SyncScreen() {
                             color = colors.ink2,
                         )
                         Text(
-                            "Last checked ${Format.relative(state.lastCheck)} · last full sync ${Format.relative(state.lastFullSync)}",
+                            t("Last checked %@ · last full sync %@", Format.relative(state.lastCheck), Format.relative(state.lastFullSync)),
                             color = colors.ink3,
                             style = MaterialTheme.typography.bodySmall,
                         )
                         Text(
                             if (local) {
-                                "Read from ${Format.count(folders.size, "folder")} on this phone: ${folders.joinToString { it.name }}"
+                                t("Read from %@ on this phone: %@", Format.count(folders.size, "folder"), folders.joinToString { it.name })
                             } else {
                                 when (val c = connection) {
-                                    is Connection.Online -> "Connected to ${c.info.description}"
-                                    is Connection.Offline -> "Server unreachable: ${c.message}"
-                                    Connection.Connecting -> "Connecting…"
-                                    Connection.Idle -> "Not connected"
+                                    is Connection.Online -> t("Connected to %@", c.info.description)
+                                    is Connection.Offline -> t("Server unreachable: %@", c.message)
+                                    Connection.Connecting -> t("Connecting…")
+                                    Connection.Idle -> t("Not connected")
                                 }
                             },
                             color = if (connection is Connection.Offline && !local) colors.warning else colors.ink3,
@@ -110,14 +111,14 @@ fun SyncScreen() {
                         } else if (!running && p?.phase == SyncPhase.DONE) {
                             summary?.let { s ->
                                 Text(
-                                    if (s.upToDate) "Everything was already up to date." else
-                                        "${s.albumsAdded} albums added, ${s.albumsUpdated} changed, ${s.albumsRemoved} removed.",
+                                    if (s.upToDate) t("Everything was already up to date.") else
+                                        t("%@ albums added, %@ changed, %@ removed.", s.albumsAdded, s.albumsUpdated, s.albumsRemoved),
                                     color = colors.success,
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                                 if (s.errors.isNotEmpty()) {
                                     Text(
-                                        if (local) s.errors.take(3).joinToString(" ") else "${s.errors.size} albums could not be read: ${s.errors.take(3).joinToString("; ")}",
+                                        if (local) s.errors.take(3).joinToString(" ") else t("%@ albums could not be read: %@", s.errors.size, s.errors.take(3).joinToString("; ")),
                                         color = colors.warning,
                                         style = MaterialTheme.typography.bodySmall,
                                     )
@@ -127,14 +128,14 @@ fun SyncScreen() {
                         error?.let { Text(it, color = colors.danger, style = MaterialTheme.typography.bodySmall) }
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             if (running) {
-                                Pill("Stop", icon = Icons.Rounded.Stop, onClick = { graph.sync.cancel() })
+                                Pill(t("Stop"), icon = Icons.Rounded.Stop, onClick = { graph.sync.cancel() })
                             } else {
                                 Pill(
                                     when {
-                                        local && counts.albums == 0 -> "Scan my folders"
-                                        local -> "Scan for changes"
-                                        counts.albums == 0 -> "Sync my library"
-                                        else -> "Check for updates"
+                                        local && counts.albums == 0 -> t("Scan my folders")
+                                        local -> t("Scan for changes")
+                                        counts.albums == 0 -> t("Sync my library")
+                                        else -> t("Check for updates")
                                     },
                                     icon = Icons.Rounded.Sync,
                                     accent = true,
@@ -142,7 +143,7 @@ fun SyncScreen() {
                                 )
                                 if (counts.albums > 0) {
                                     Pill(
-                                        if (local) "Read all tags again" else "Full resync",
+                                        if (local) t("Read all tags again") else t("Full resync"),
                                         icon = Icons.Rounded.CloudSync,
                                         onClick = { graph.sync.start(SyncMode.FULL) },
                                     )
@@ -154,17 +155,17 @@ fun SyncScreen() {
 
                 GlassPanel(Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Eyebrow("Keeping it fresh")
-                        SettingRow("Check when Kultr starts", hint = "Pulls in only what changed.", modifier = Modifier.padding(0.dp)) {
+                        Eyebrow(t("Keeping it fresh"))
+                        SettingRow(t("Check when Kultr starts"), hint = t("Pulls in only what changed."), modifier = Modifier.padding(0.dp)) {
                             Switch(checked = settings.autoSyncOnStart, onCheckedChange = { v -> graph.settings.update { it.copy(autoSyncOnStart = v) } })
                         }
-                        SettingRow("Check in the background", hint = if (settings.autoSyncMinutes > 0) "Every ${settings.autoSyncMinutes} minutes." else "Off.") {
+                        SettingRow(t("Check in the background"), hint = if (settings.autoSyncMinutes > 0) t("Every %@ minutes.", settings.autoSyncMinutes) else t("Off.")) {
                             Switch(checked = settings.autoSyncMinutes > 0, onCheckedChange = { v ->
                                 graph.settings.update { it.copy(autoSyncMinutes = if (v) 60 else 0) }
                                 graph.sync.schedulePeriodic(graph.app)
                             })
                         }
-                        SettingRow("Sync playlist contents", hint = "Reads every playlist's tracks, so they open instantly and offline.") {
+                        SettingRow(t("Sync playlist contents"), hint = t("Reads every playlist's tracks, so they open instantly and offline.")) {
                             Switch(checked = settings.syncPlaylistContents, onCheckedChange = { v -> graph.settings.update { it.copy(syncPlaylistContents = v) } })
                         }
                     }
@@ -172,21 +173,21 @@ fun SyncScreen() {
 
                 GlassPanel(Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Eyebrow("InjeKt analysis")
-                        Text("$analysed tracks analysed · $missing to go", style = MaterialTheme.typography.titleMedium, color = colors.ink)
+                        Eyebrow(t("InjeKt analysis"))
+                        Text(t("%@ tracks analysed · %@ to go", analysed, missing), style = MaterialTheme.typography.titleMedium, color = colors.ink)
                         Text(
-                            "InjeKt measures tempo, key, energy and structure to plan beat-matched transitions. It analyses tracks just before they are needed anyway; doing it up front means every transition is planned from the first play. Each track is streamed once at a low bitrate.",
+                            t("InjeKt measures tempo, key, energy and structure to plan beat-matched transitions. It analyses tracks just before they are needed anyway; doing it up front means every transition is planned from the first play. Each track is streamed once at a low bitrate."),
                             color = colors.ink2,
                             style = MaterialTheme.typography.bodySmall,
                         )
                         val b = bulk
                         if (b != null) {
                             LinearProgressIndicator(progress = { if (b.total > 0) b.done.toFloat() / b.total else 0f }, modifier = Modifier.fillMaxWidth())
-                            Text("Analysing “${b.current}”", color = colors.ink3, style = MaterialTheme.typography.bodySmall)
-                            Pill("Stop", icon = Icons.Rounded.Stop, onClick = { graph.analysis.cancelBulk() })
+                            Text(t("Analysing “%@”", b.current), color = colors.ink3, style = MaterialTheme.typography.bodySmall)
+                            Pill(t("Stop"), icon = Icons.Rounded.Stop, onClick = { graph.analysis.cancelBulk() })
                         } else {
                             Pill(
-                                "Analyse missing",
+                                t("Analyse missing"),
                                 icon = Icons.Rounded.AutoAwesome,
                                 accent = missing > 0,
                                 enabled = missing > 0,
@@ -199,9 +200,9 @@ fun SyncScreen() {
                 // Music on the phone is there already: nothing to download.
                 if (!local) GlassPanel(Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Eyebrow("Offline")
+                        Eyebrow(t("Offline"))
                         Text(
-                            "${Format.count(usage.count, "track")} downloaded · ${Format.bytes(usage.bytes)}",
+                            t("%@ downloaded · %@", Format.count(usage.count, "track"), Format.bytes(usage.bytes)),
                             style = MaterialTheme.typography.titleMedium,
                             color = colors.ink,
                         )
@@ -211,13 +212,13 @@ fun SyncScreen() {
                             Text("${d.done} of ${d.total}", color = colors.ink3, style = MaterialTheme.typography.bodySmall)
                         }
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Pill("Download favourites", icon = Icons.Rounded.Download, onClick = {
-                                actions.launch { graph.offline.download(graph.library.starredSongsNow(), "Your favourites") }
+                            Pill(t("Download favourites"), icon = Icons.Rounded.Download, onClick = {
+                                actions.launch { graph.offline.download(graph.library.starredSongsNow(), t("Your favourites")) }
                             })
-                            Pill("Download everything", icon = Icons.Rounded.Download, onClick = {
-                                actions.launch { graph.offline.download(graph.library.allSongs(), "Your library") }
+                            Pill(t("Download everything"), icon = Icons.Rounded.Download, onClick = {
+                                actions.launch { graph.offline.download(graph.library.allSongs(), t("Your library")) }
                             })
-                            Pill("Open downloads", onClick = { actions.openDownloads() })
+                            Pill(t("Open downloads"), onClick = { actions.openDownloads() })
                         }
                     }
                 }

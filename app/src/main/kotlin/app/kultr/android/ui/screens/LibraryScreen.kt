@@ -84,10 +84,21 @@ import app.kultr.core.api.Song
 import app.kultr.core.api.asSong
 import app.kultr.core.api.describeError
 import app.kultr.core.util.Format
+import app.kultr.core.util.t
 import kotlinx.coroutines.launch
 
-private enum class AlbumSort(val label: String) { NAME("Name"), ARTIST("Artist"), YEAR("Year"), ADDED("Recently added"), PLAYS("Most played") }
-private enum class SongSort(val label: String) { TITLE("Title"), ARTIST("Artist"), ALBUM("Album"), ADDED("Recently added"), PLAYS("Most played"), RATING("Rating") }
+private enum class AlbumSort(private val english: String) {
+    NAME("Name"), ARTIST("Artist"), YEAR("Year"), ADDED("Recently added"), PLAYS("Most played"),
+    ;
+
+    val label: String get() = t(english)
+}
+private enum class SongSort(private val english: String) {
+    TITLE("Title"), ARTIST("Artist"), ALBUM("Album"), ADDED("Recently added"), PLAYS("Most played"), RATING("Rating"),
+    ;
+
+    val label: String get() = t(english)
+}
 
 /** Tabs whose lists can be filtered by typing. */
 private val FILTERABLE = setOf(
@@ -109,7 +120,7 @@ fun LibraryScreen() {
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Text(
-                "Library",
+                t("Library"),
                 style = MaterialTheme.typography.headlineMedium,
                 color = colors.ink,
                 modifier = Modifier.padding(start = 6.dp, top = 12.dp, bottom = 8.dp),
@@ -138,7 +149,7 @@ fun LibraryScreen() {
         if (recent.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
-                    "Recently added",
+                    t("Recently added"),
                     style = MaterialTheme.typography.titleLarge,
                     color = colors.ink,
                     modifier = Modifier.padding(start = 6.dp, top = 24.dp, bottom = 8.dp),
@@ -161,7 +172,7 @@ fun LibrarySectionScreen(tab: LibraryTab) {
             color = Kultr.colors.ink,
             modifier = Modifier.padding(start = 16.dp, bottom = 4.dp),
         )
-        if (tab in FILTERABLE) FilterField(query, onChange = { query = it }, placeholder = "Filter ${tab.label.lowercase()}")
+        if (tab in FILTERABLE) FilterField(query, onChange = { query = it }, placeholder = t("Filter %@", tab.label.lowercase()))
         Box(Modifier.weight(1f)) {
             when (tab) {
                 LibraryTab.ALBUMS -> AlbumsTab(query)
@@ -188,7 +199,7 @@ fun FilterField(value: String, onChange: (String) -> Unit, placeholder: String, 
         leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
         trailingIcon = {
             if (value.isNotEmpty()) {
-                IconButton(onClick = { onChange("") }) { Icon(Icons.Rounded.Clear, contentDescription = "Clear") }
+                IconButton(onClick = { onChange("") }) { Icon(Icons.Rounded.Clear, contentDescription = t("Clear")) }
             }
         },
         singleLine = true,
@@ -253,22 +264,22 @@ fun EmptyLibrary(tab: LibraryTab) {
     val actions = LocalActions.current
     val local = LocalMusicMode.current
     val fill = if (local) {
-        "Choose the folders your music is in, and Kultr reads them."
+        t("Choose the folders your music is in, and Kultr reads them.")
     } else {
-        "Kultr keeps a copy of your library on this phone. Sync it once, and after that only changes are fetched."
+        t("Kultr keeps a copy of your library on this phone. Sync it once, and after that only changes are fetched.")
     }
     val (title, body) = when (tab) {
-        LibraryTab.ALBUMS -> "No albums yet" to fill
-        LibraryTab.ARTISTS -> "No artists yet" to fill
-        LibraryTab.SONGS -> "No tracks yet" to fill
-        LibraryTab.GENRES -> "No genres yet" to "Genres come from the tags in your music. $fill"
-        else -> "Nothing here yet" to fill
+        LibraryTab.ALBUMS -> t("No albums yet") to fill
+        LibraryTab.ARTISTS -> t("No artists yet") to fill
+        LibraryTab.SONGS -> t("No tracks yet") to fill
+        LibraryTab.GENRES -> t("No genres yet") to t("Genres come from the tags in your music. %@", fill)
+        else -> t("Nothing here yet") to fill
     }
     EmptyState(
         icon = tab.icon,
         title = title,
         body = body,
-        action = { Pill(if (local) "Open Sync" else "Sync my library", icon = Icons.Rounded.Refresh, accent = true, onClick = { actions.navigate(app.kultr.android.ui.Routes.SYNC) }) },
+        action = { Pill(if (local) t("Open Sync") else t("Sync my library"), icon = Icons.Rounded.Refresh, accent = true, onClick = { actions.navigate(app.kultr.android.ui.Routes.SYNC) }) },
     )
 }
 
@@ -335,8 +346,8 @@ private fun SongsTab(query: String) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Pill("Play", icon = Icons.Rounded.PlayArrow, accent = true, onClick = { actions.play(shown.take(1000)) })
-                    Pill("Shuffle", icon = Icons.Rounded.Shuffle, onClick = { actions.shuffle(shown.shuffled().take(1000)) })
+                    Pill(t("Play"), icon = Icons.Rounded.PlayArrow, accent = true, onClick = { actions.play(shown.take(1000)) })
+                    Pill(t("Shuffle"), icon = Icons.Rounded.Shuffle, onClick = { actions.shuffle(shown.shuffled().take(1000)) })
                     SortMenu(sort, SongSort.entries, { it.label }) { sort = it }
                     Text(Format.count(shown.size, "track"), color = Kultr.colors.ink3)
                 }
@@ -382,8 +393,8 @@ private fun PlaylistsTab(query: String) {
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Row(Modifier.padding(6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Pill("New playlist", icon = Icons.Rounded.Add, accent = true, onClick = { creating = true })
-                Pill(if (refreshing) "Refreshing…" else "Refresh", icon = Icons.Rounded.Refresh, enabled = !refreshing, onClick = {
+                Pill(t("New playlist"), icon = Icons.Rounded.Add, accent = true, onClick = { creating = true })
+                Pill(if (refreshing) t("Refreshing…") else t("Refresh"), icon = Icons.Rounded.Refresh, enabled = !refreshing, onClick = {
                     refreshing = true
                     actions.launch {
                         graph.library.refreshPlaylists()?.let { graph.messages.error(it) }
@@ -394,16 +405,16 @@ private fun PlaylistsTab(query: String) {
         }
         if (shown.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                EmptyState(Icons.Rounded.LibraryMusic, "No playlists", body = "Create one, or add tracks to a new playlist from any track's menu.")
+                EmptyState(Icons.Rounded.LibraryMusic, t("No playlists"), body = t("Create one, or add tracks to a new playlist from any track's menu."))
             }
         }
         items(shown, key = { it.id }) { playlist -> PlaylistCard(playlist, onClick = { actions.openPlaylist(playlist.id) }) }
     }
     if (creating) {
         TextInputDialog(
-            title = "New playlist",
+            title = t("New playlist"),
             initial = "",
-            confirm = "Create",
+            confirm = t("Create"),
             onConfirm = { name -> actions.launch { graph.library.createPlaylist(name, emptyList())?.let { graph.messages.error(it) } } },
             onDismiss = { creating = false },
         )
@@ -440,7 +451,7 @@ private fun GenresTab(query: String) {
                 }
                 IconButton(onClick = {
                     actions.launch { actions.shuffle(actions.graph.library.songsOfGenreNow(genre.value)) }
-                }) { Icon(Icons.Rounded.Shuffle, contentDescription = "Shuffle ${genre.value}", tint = Kultr.colors.ink2) }
+                }) { Icon(Icons.Rounded.Shuffle, contentDescription = t("Shuffle %@", genre.value), tint = Kultr.colors.ink2) }
             }
         }
     }
@@ -460,7 +471,7 @@ private fun FavouritesTab() {
     val downloaded by graph.offline.downloadedIds.collectAsStateWithLifecycle()
     val selection = rememberSelection()
     if (songs.isEmpty() && albums.isEmpty() && artists.isEmpty()) {
-        EmptyState(Icons.Rounded.FavoriteBorder, "No favourites yet", body = "Heart a track, album or artist and it shows up here.")
+        EmptyState(Icons.Rounded.FavoriteBorder, t("No favourites yet"), body = t("Heart a track, album or artist and it shows up here."))
         return
     }
     Column(Modifier.fillMaxSize()) {
@@ -471,32 +482,32 @@ private fun FavouritesTab() {
                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Pill("Play", icon = Icons.Rounded.PlayArrow, accent = true, enabled = songs.isNotEmpty(), onClick = { actions.play(songs) })
-                    Pill("Shuffle", icon = Icons.Rounded.Shuffle, enabled = songs.isNotEmpty(), onClick = { actions.shuffle(songs) })
+                    Pill(t("Play"), icon = Icons.Rounded.PlayArrow, accent = true, enabled = songs.isNotEmpty(), onClick = { actions.play(songs) })
+                    Pill(t("Shuffle"), icon = Icons.Rounded.Shuffle, enabled = songs.isNotEmpty(), onClick = { actions.shuffle(songs) })
                     val missing = graph.offline.missing(songs)
                     Pill(
-                        if (missing == 0) "Downloaded" else "Download",
+                        if (missing == 0) t("Downloaded") else t("Download"),
                         icon = Icons.Rounded.Download,
                         badge = if (missing > 0) "$missing" else null,
                         enabled = missing > 0,
-                        onClick = { actions.download(songs, "Your favourites") },
+                        onClick = { actions.download(songs, t("Your favourites")) },
                     )
                 }
             }
             if (albums.isNotEmpty()) {
                 item(key = "albums") {
-                    SectionHeader("Albums")
+                    SectionHeader(t("Albums"))
                     Shelf(albums, key = { it.id }) { album, modifier -> AlbumCard(album, { actions.openAlbum(album.id) }, modifier) }
                 }
             }
             if (artists.isNotEmpty()) {
                 item(key = "artists") {
-                    SectionHeader("Artists")
+                    SectionHeader(t("Artists"))
                     Shelf(artists, key = { it.id }, cardWidth = 130.dp) { artist, modifier -> ArtistCard(artist, { actions.openArtist(artist.id) }, modifier) }
                 }
             }
             if (songs.isNotEmpty()) {
-                item(key = "songs-head") { SectionHeader("Tracks", icon = Icons.Rounded.Favorite) }
+                item(key = "songs-head") { SectionHeader(t("Tracks"), icon = Icons.Rounded.Favorite) }
                 songItems(
                     songs,
                     currentId = player.current?.id,
@@ -540,8 +551,8 @@ private fun RadioTab(query: String) {
     if (list.isEmpty()) {
         EmptyState(
             Icons.Rounded.Radio,
-            "No radio stations",
-            body = error ?: "Add internet radio stations in Navidrome and they appear here.",
+            t("No radio stations"),
+            body = error ?: t("Add internet radio stations in Navidrome and they appear here."),
         )
         return
     }
@@ -565,7 +576,7 @@ private fun RadioTab(query: String) {
                 }) {
                     Icon(
                         if (favourite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                        contentDescription = if (favourite) "Unfavourite" else "Favourite",
+                        contentDescription = if (favourite) t("Unfavourite") else t("Favourite"),
                         tint = if (favourite) Kultr.colors.accent else Kultr.colors.ink3,
                         modifier = Modifier.size(22.dp),
                     )

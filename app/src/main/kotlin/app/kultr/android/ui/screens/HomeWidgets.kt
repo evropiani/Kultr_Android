@@ -92,6 +92,7 @@ import app.kultr.core.settings.DEFAULT_HOME_WIDGETS
 import app.kultr.core.settings.HomeWidget
 import app.kultr.core.settings.homeWidgetRows
 import app.kultr.core.util.Format
+import app.kultr.core.util.t
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
@@ -147,9 +148,9 @@ fun HomeWidgetsGrid() {
         }
         if (editing || widgets.isEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Pill("Add a widget", icon = Icons.Rounded.Add, onClick = { adding = true })
+                Pill(t("Add a widget"), icon = Icons.Rounded.Add, onClick = { adding = true })
                 Spacer(Modifier.weight(1f))
-                if (editing) Pill("Done", accent = true, onClick = { editing = false })
+                if (editing) Pill(t("Done"), accent = true, onClick = { editing = false })
             }
         }
     }
@@ -197,14 +198,14 @@ private fun RowScope.WidgetTile(
             Box(
                 Modifier.offset((-8).dp, (-8).dp).size(26.dp).clip(CircleShape).background(colors.elevated).border(1.dp, colors.ink4, CircleShape).clickable(onClick = onRemove),
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Rounded.Remove, contentDescription = "Remove ${widget.kind.label}", tint = colors.ink, modifier = Modifier.size(16.dp)) }
+            ) { Icon(Icons.Rounded.Remove, contentDescription = t("Remove %@", widget.kind.label), tint = colors.ink, modifier = Modifier.size(16.dp)) }
             Row(Modifier.align(Alignment.BottomCenter).padding(6.dp)) {
-                if (canMoveEarlier) SmallRound(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Move earlier") { onMove(-1) }
-                if (canMoveLater) SmallRound(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Move later") { onMove(1) }
+                if (canMoveEarlier) SmallRound(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, t("Move earlier")) { onMove(-1) }
+                if (canMoveLater) SmallRound(Icons.AutoMirrored.Rounded.KeyboardArrowRight, t("Move later")) { onMove(1) }
             }
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            DropdownMenuItem(text = { Text("Edit widgets") }, leadingIcon = { Icon(Icons.Rounded.Dashboard, null) }, onClick = {
+            DropdownMenuItem(text = { Text(t("Edit widgets")) }, leadingIcon = { Icon(Icons.Rounded.Dashboard, null) }, onClick = {
                 menu = false
                 onEdit()
             })
@@ -218,13 +219,13 @@ private fun RowScope.WidgetTile(
                     },
                 )
             }
-            DropdownMenuItem(text = { Text("Add a widget…") }, leadingIcon = { Icon(Icons.Rounded.Add, null) }, onClick = {
+            DropdownMenuItem(text = { Text(t("Add a widget…")) }, leadingIcon = { Icon(Icons.Rounded.Add, null) }, onClick = {
                 menu = false
                 onAdd()
             })
             HorizontalDivider()
             DropdownMenuItem(
-                text = { Text("Remove widget", color = colors.danger) },
+                text = { Text(t("Remove widget"), color = colors.danger) },
                 leadingIcon = { Icon(Icons.Rounded.RemoveCircleOutline, null, tint = colors.danger) },
                 onClick = {
                     menu = false
@@ -283,8 +284,8 @@ private fun NowPlayingTile(size: HomeWidget.Size, enabled: Boolean, onLongPress:
     if (song == null) {
         Tap(enabled, onLongPress, onClick = actions.openPlayer) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                TileLabel(Icons.Rounded.GraphicEq, "Now playing")
-                Text("Nothing is playing", style = MaterialTheme.typography.titleMedium, color = colors.ink)
+                TileLabel(Icons.Rounded.GraphicEq, t("Now playing"))
+                Text(t("Nothing is playing"), style = MaterialTheme.typography.titleMedium, color = colors.ink)
             }
         }
         return
@@ -303,7 +304,7 @@ private fun NowPlayingTile(size: HomeWidget.Size, enabled: Boolean, onLongPress:
                     Artwork(song.artworkId, size = 118.dp, label = song.title)
                     Spacer(Modifier.width(12.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        TileLabel(Icons.Rounded.GraphicEq, "Now playing")
+                        TileLabel(Icons.Rounded.GraphicEq, t("Now playing"))
                         Text(song.title, style = MaterialTheme.typography.titleMedium, color = colors.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Text(song.artist.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = colors.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
@@ -320,12 +321,12 @@ private fun NowPlayingTile(size: HomeWidget.Size, enabled: Boolean, onLongPress:
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (size != HomeWidget.Size.SMALL) {
-                IconButton(enabled = enabled, onClick = player::previous) { Icon(Icons.Rounded.SkipPrevious, contentDescription = "Previous", tint = colors.ink) }
+                IconButton(enabled = enabled, onClick = player::previous) { Icon(Icons.Rounded.SkipPrevious, contentDescription = t("Previous"), tint = colors.ink) }
             }
             IconButton(enabled = enabled, onClick = player::toggle) {
-                Icon(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, contentDescription = if (playing) "Pause" else "Play", tint = colors.ink, modifier = Modifier.size(30.dp))
+                Icon(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, contentDescription = if (playing) t("Pause") else t("Play"), tint = colors.ink, modifier = Modifier.size(30.dp))
             }
-            IconButton(enabled = enabled, onClick = player::next) { Icon(Icons.Rounded.SkipNext, contentDescription = "Next", tint = colors.ink) }
+            IconButton(enabled = enabled, onClick = player::next) { Icon(Icons.Rounded.SkipNext, contentDescription = t("Next"), tint = colors.ink) }
         }
     }
 }
@@ -356,15 +357,15 @@ private fun ListeningTile(size: HomeWidget.Size, enabled: Boolean, onLongPress: 
     }
     Tap(enabled, onLongPress, onClick = { actions.navigate(Routes.STATS) }) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            TileLabel(Icons.Rounded.BarChart, "This week")
+            TileLabel(Icons.Rounded.BarChart, t("This week"))
             Text(
-                if (week > 0) Format.duration(week) else "Nothing yet",
+                if (week > 0) Format.duration(week) else t("Nothing yet"),
                 style = if (size == HomeWidget.Size.SMALL) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = colors.ink,
                 maxLines = 1,
             )
-            Text(if (usual > 0) "Usually ${Format.duration(usual)}" else "Your usual shows after a week", style = MaterialTheme.typography.bodySmall, color = colors.ink3, maxLines = 2)
+            Text(if (usual > 0) t("Usually %@", Format.duration(usual)) else t("Your usual shows after a week"), style = MaterialTheme.typography.bodySmall, color = colors.ink3, maxLines = 2)
             if (size != HomeWidget.Size.SMALL) {
                 val peak = days.max().coerceAtLeast(1)
                 Spacer(Modifier.weight(1f))
@@ -395,11 +396,11 @@ private fun NextMixTile(enabled: Boolean, onLongPress: () -> Unit) {
     val next = state.upNext.firstOrNull()?.song
     Tap(enabled, onLongPress, onClick = actions.openPlayer) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            TileLabel(Icons.AutoMirrored.Rounded.CallMerge, "Next mix")
+            TileLabel(Icons.AutoMirrored.Rounded.CallMerge, t("Next mix"))
             if (next == null) {
-                Text("Nothing up next", style = MaterialTheme.typography.titleMedium, color = colors.ink)
+                Text(t("Nothing up next"), style = MaterialTheme.typography.titleMedium, color = colors.ink)
                 Text(
-                    if (settings.karousel) "Karousel finds more as the track plays." else "Queue something, or turn on Karousel.",
+                    if (settings.karousel) t("Karousel finds more as the track plays.") else t("Queue something, or turn on Karousel."),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.ink3,
                 )
@@ -444,9 +445,9 @@ private fun StationTile(id: String?, size: HomeWidget.Size, enabled: Boolean, on
                 modifier = Modifier.size(if (size == HomeWidget.Size.SMALL) 28.dp else 40.dp),
             )
             Spacer(Modifier.weight(1f))
-            Text(station?.name ?: "Station gone", style = MaterialTheme.typography.titleMedium, color = colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(station?.name ?: t("Station gone"), style = MaterialTheme.typography.titleMedium, color = colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                station?.let { s -> tally?.counts?.get(s.id)?.let { Format.count(it, "track") } ?: s.summary } ?: "Tap to choose another",
+                station?.let { s -> tally?.counts?.get(s.id)?.let { Format.count(it, "track") } ?: s.summary } ?: t("Tap to choose another"),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.ink3,
                 maxLines = 2,
@@ -480,11 +481,11 @@ private fun CrateTile(id: String?, size: HomeWidget.Size, enabled: Boolean, onLo
                 Spacer(Modifier.width(12.dp))
             }
             Column {
-                TileLabel(Icons.Rounded.Inventory2, "Crate")
+                TileLabel(Icons.Rounded.Inventory2, t("Crate"))
                 Spacer(Modifier.weight(1f))
-                Text(crate?.name ?: "Crate gone", style = MaterialTheme.typography.titleMedium, color = colors.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(crate?.name ?: t("Crate gone"), style = MaterialTheme.typography.titleMedium, color = colors.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(
-                    crate?.let { if (it.byRules) it.rules?.summary.orEmpty() else it.contents } ?: "It was deleted",
+                    crate?.let { if (it.byRules) it.rules?.summary.orEmpty() else it.contents } ?: t("It was deleted"),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.ink3,
                     maxLines = 2,
@@ -502,7 +503,7 @@ private fun ShortcutTile(words: String, enabled: Boolean, onLongPress: () -> Uni
     val (icon, text) = command?.let(Commands::describe) ?: (Icons.Rounded.Bolt to "“$words”")
     Tap(enabled, onLongPress, onClick = {
         if (command == null) {
-            actions.graph.messages.show("Kultr doesn't know how to do “$words” any more.")
+            actions.graph.messages.show(t("Kultr doesn't know how to do “%@” any more.", words))
         } else {
             Commands.run(command, actions) { route -> actions.navigate(route) }
         }
@@ -525,9 +526,9 @@ fun homeWidgetTitle(widget: HomeWidget): String {
     val actions = LocalActions.current
     val graph = actions.graph
     return when (widget.kind) {
-        HomeWidget.Kind.STATION -> "Station: " + ((graph.settings.current.stations + graph.stations.tally.value?.decades.orEmpty()).firstOrNull { it.id == widget.ref }?.name ?: "gone")
-        HomeWidget.Kind.CRATE -> "Crate: " + (graph.settings.current.crates.firstOrNull { it.id == widget.ref }?.name ?: "gone")
-        HomeWidget.Kind.SHORTCUT -> Commands.parse(widget.ref.orEmpty(), actions)?.let { Commands.describe(it).second } ?: "Shortcut: “${widget.ref}”"
+        HomeWidget.Kind.STATION -> t("Station: %@", (graph.settings.current.stations + graph.stations.tally.value?.decades.orEmpty()).firstOrNull { it.id == widget.ref }?.title ?: t("gone"))
+        HomeWidget.Kind.CRATE -> t("Crate: %@", graph.settings.current.crates.firstOrNull { it.id == widget.ref }?.name ?: t("gone"))
+        HomeWidget.Kind.SHORTCUT -> Commands.parse(widget.ref.orEmpty(), actions)?.let { Commands.describe(it).second } ?: t("Shortcut: “%@”", widget.ref)
         else -> widget.kind.label
     }
 }
@@ -557,7 +558,7 @@ fun AddWidgetDialog(onAdd: (HomeWidget) -> Unit, onDismiss: () -> Unit) {
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add a widget") },
+        title = { Text(t("Add a widget")) },
         text = {
             LazyColumn(Modifier.heightIn(max = 480.dp)) {
                 items(HomeWidget.Kind.entries) { option ->
@@ -574,7 +575,7 @@ fun AddWidgetDialog(onAdd: (HomeWidget) -> Unit, onDismiss: () -> Unit) {
                             Text(option.label, color = colors.ink)
                             Text(option.note, style = MaterialTheme.typography.bodySmall, color = colors.ink3)
                         }
-                        if (kind == option) Icon(Icons.Rounded.Check, contentDescription = "Chosen", tint = colors.accent)
+                        if (kind == option) Icon(Icons.Rounded.Check, contentDescription = t("Chosen"), tint = colors.accent)
                     }
                 }
                 item {
@@ -584,10 +585,10 @@ fun AddWidgetDialog(onAdd: (HomeWidget) -> Unit, onDismiss: () -> Unit) {
                 }
                 when (kind) {
                     HomeWidget.Kind.STATION -> items(stations, key = { "s:" + it.id }) { station ->
-                        ChoiceRow(station.name, ref == station.id) { ref = station.id }
+                        ChoiceRow(station.title, ref == station.id) { ref = station.id }
                     }
                     HomeWidget.Kind.CRATE -> {
-                        if (settings.crates.isEmpty()) item { Text("No crates yet: make one in Library → Crates.", color = colors.ink3) }
+                        if (settings.crates.isEmpty()) item { Text(t("No crates yet: make one in Library → Crates."), color = colors.ink3) }
                         items(settings.crates, key = { "c:" + it.id }) { crate -> ChoiceRow(crate.name, ref == crate.id) { ref = crate.id } }
                     }
                     HomeWidget.Kind.SHORTCUT -> {
@@ -595,9 +596,9 @@ fun AddWidgetDialog(onAdd: (HomeWidget) -> Unit, onDismiss: () -> Unit) {
                             ChoiceRow(Commands.parse(words, actions)?.let { Commands.describe(it).second } ?: words, ref == words) { ref = words }
                         }
                         item {
-                            OutlinedTextField(ref, { ref = it }, label = { Text("Or your own words, as in Search") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                            OutlinedTextField(ref, { ref = it }, label = { Text(t("Or your own words, as in Search")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                             Text(
-                                Commands.parse(ref, actions)?.let { "Does: " + Commands.describe(it).second } ?: "Kultr doesn't understand those words yet.",
+                                Commands.parse(ref, actions)?.let { t("Does: %@", Commands.describe(it).second) } ?: t("Kultr doesn't understand those words yet."),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = colors.ink3,
                             )
@@ -611,9 +612,9 @@ fun AddWidgetDialog(onAdd: (HomeWidget) -> Unit, onDismiss: () -> Unit) {
             TextButton(enabled = canAdd, onClick = {
                 val needsRef = kind in setOf(HomeWidget.Kind.STATION, HomeWidget.Kind.CRATE, HomeWidget.Kind.SHORTCUT)
                 onAdd(HomeWidget(kind = kind, size = size, ref = if (needsRef) ref else null))
-            }) { Text("Add") }
+            }) { Text(t("Add")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Cancel")) } },
     )
 }
 
@@ -621,7 +622,7 @@ fun AddWidgetDialog(onAdd: (HomeWidget) -> Unit, onDismiss: () -> Unit) {
 private fun ChoiceRow(text: String, chosen: Boolean, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(text, color = Kultr.colors.ink, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-        if (chosen) Icon(Icons.Rounded.Check, contentDescription = "Chosen", tint = Kultr.colors.accent)
+        if (chosen) Icon(Icons.Rounded.Check, contentDescription = t("Chosen"), tint = Kultr.colors.accent)
     }
 }
 
@@ -634,8 +635,8 @@ fun HomeWidgetSettings() {
     var adding by remember { mutableStateOf(false) }
     fun change(transform: (List<HomeWidget>) -> List<HomeWidget>) = graph.settings.update { it.copy(homeWidgets = transform(it.homeWidgets)) }
     SettingRow(
-        "Widgets on Home",
-        hint = "At the top of Home: hold one there for its size, to move it or take it off.",
+        t("Widgets on Home"),
+        hint = t("At the top of Home: hold one there for its size, to move it or take it off."),
         onClick = { graph.settings.update { it.copy(showHomeWidgets = !it.showHomeWidgets) } },
     ) { Switch(settings.showHomeWidgets, { on -> graph.settings.update { it.copy(showHomeWidgets = on) } }) }
     if (!settings.showHomeWidgets) return
@@ -657,16 +658,16 @@ fun HomeWidgetSettings() {
                 }
             }
             IconButton(enabled = index > 0, onClick = { change { it.toMutableList().apply { add(index - 1, removeAt(index)) } } }) {
-                Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Move up")
+                Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = t("Move up"))
             }
             IconButton(onClick = { change { list -> list.filterNot { it.id == widget.id } } }) {
-                Icon(Icons.Rounded.RemoveCircleOutline, contentDescription = "Remove", tint = colors.danger)
+                Icon(Icons.Rounded.RemoveCircleOutline, contentDescription = t("Remove"), tint = colors.danger)
             }
         }
     }
     Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Pill("Add a widget", icon = Icons.Rounded.Add, onClick = { adding = true })
-        if (settings.homeWidgets != DEFAULT_HOME_WIDGETS) Pill("Back to the starting widgets", onClick = { change { DEFAULT_HOME_WIDGETS } })
+        Pill(t("Add a widget"), icon = Icons.Rounded.Add, onClick = { adding = true })
+        if (settings.homeWidgets != DEFAULT_HOME_WIDGETS) Pill(t("Back to the starting widgets"), onClick = { change { DEFAULT_HOME_WIDGETS } })
     }
     if (adding) {
         AddWidgetDialog(onAdd = { widget ->
