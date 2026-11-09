@@ -613,13 +613,32 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private inner class LibraryCallback : MediaLibrarySession.Callback {
-        /** Every controller, the system's player banner among them, gets the mode and like buttons. */
+        /**
+         * Every controller, the system's player banner among them, gets the
+         * mode and like buttons on top of what Media3 grants it by default:
+         * the full set for a trusted controller (Kultr's own player, System
+         * UI), the reduced one for anything else.
+         *
+         * Not built on super.onConnect: that is an empty placeholder (no
+         * commands at all) that Media3 swaps for these defaults only when it
+         * comes back untouched. Copying its commands, as 2.2.0 did, left every
+         * controller, Kultr's own included, unable to play anything.
+         */
         override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
-            val base = super.onConnect(session, controller)
-            if (!base.isAccepted) return base
+            val trusted = controller.isTrusted
+            val sessionCommands = if (trusted) {
+                MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
+            } else {
+                MediaSession.ConnectionResult.DEFAULT_UNTRUSTED_SESSION_AND_LIBRARY_COMMANDS
+            }
+            val playerCommands = if (trusted) {
+                MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
+            } else {
+                MediaSession.ConnectionResult.DEFAULT_UNTRUSTED_PLAYER_COMMANDS
+            }
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
-                .setAvailableSessionCommands(base.availableSessionCommands.buildUpon().add(MODE_COMMAND).add(LIKE_COMMAND).build())
-                .setAvailablePlayerCommands(base.availablePlayerCommands)
+                .setAvailableSessionCommands(sessionCommands.buildUpon().add(MODE_COMMAND).add(LIKE_COMMAND).build())
+                .setAvailablePlayerCommands(playerCommands)
                 .setMediaButtonPreferences(bannerButtons())
                 .build()
         }
