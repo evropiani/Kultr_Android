@@ -7,6 +7,7 @@ import app.kultr.core.injekt.affinity
 import app.kultr.core.karousel.ArtistRef
 import app.kultr.core.karousel.Karousel
 import app.kultr.core.karousel.KarouselSources
+import app.kultr.core.karousel.PlaylistSuggestions
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -37,13 +38,27 @@ class KarouselMusic(private val graph: AppGraph) : KarouselSources {
         return withTimeoutOrNull(left) { block() } ?: empty
     }
 
-    /** Songs like [seeds] (the track playing first) to follow [queued], leaving out what played in the last few hours. */
-    suspend fun next(seeds: List<Song>, queued: List<Song>, count: Int = 10): List<Song> {
+    /** Asks whether the server answers, and starts the time this search may wait for it. */
+    private suspend fun begin() {
         // Being online is not enough: the server has to answer.
         val client = graph.auth.client.value
         online = !graph.isLocal && client != null && graph.network.isOnline &&
             withTimeoutOrNull(PING_MS) { runCatching { client.ping() }.isSuccess } == true
         deadline = System.currentTimeMillis() + SERVER_BUDGET_MS
+    }
+
+    /**
+     * Songs to suggest under a playlist: like [added] once one has been added
+     * from the suggestions, otherwise like the playlist itself.
+     */
+    suspend fun suggest(playlist: List<Song>, added: Song?, leaveOut: List<Song> = emptyList()): List<Song> {
+        begin()
+        return PlaylistSuggestions.suggest(this, playlist, added, leaveOut)
+    }
+
+    /** Songs like [seeds] (the track playing first) to follow [queued], leaving out what played in the last few hours. */
+    suspend fun next(seeds: List<Song>, queued: List<Song>, count: Int = 10): List<Song> {
+        begin()
         val exclude = HashSet<String>()
         val recent = library.songsByIds(library.songIdsPlayedSince(System.currentTimeMillis() - RECENT_MS))
         for (song in queued + recent) {

@@ -66,6 +66,12 @@ or folders on this phone) and shows around the app.
   on your phone. With InjeKt on, the songs that mix best come first. Its songs
   show under their own heading in Up next and leave the queue when you turn it
   off.
+- **Playlist suggestions.** At the bottom of a playlist, a few songs that would
+  fit, each with a **+**. Add one and the suggestions turn to songs like it, so
+  a playlist builds itself the way it does on Spotify. Refresh for others.
+- **The player banner** (the media notification, the lock screen, Samsung's
+  Now Bar) has a mode button on the left, which moves through shuffle, repeat,
+  repeat one and Karousel, and a heart on the right to like the song.
 - **Offline.** Download albums, playlists, favourites or the whole library, at
   a bitrate of your choosing, on Wi-Fi only if you like. A Downloads page shows
   what is coming down, what is queued or failed, and what is already on the

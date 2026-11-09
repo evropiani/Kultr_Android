@@ -62,6 +62,8 @@ import app.kultr.android.ui.components.EmptyState
 import app.kultr.android.ui.components.InfoLine
 import app.kultr.android.ui.components.MenuAction
 import app.kultr.android.ui.components.Pill
+import app.kultr.android.ui.components.playlistSuggestions
+import app.kultr.android.ui.components.rememberPlaylistSuggestions
 import app.kultr.android.ui.components.SectionHeader
 import app.kultr.android.ui.components.SelectionBar
 import app.kultr.android.ui.components.Shelf
@@ -379,6 +381,7 @@ fun PlaylistScreen(id: String) {
     var renaming by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
     var refreshedOnce by remember(id) { mutableStateOf(false) }
+    val suggestions = rememberPlaylistSuggestions(graph, id, detail?.songs)
 
     val d = detail
     // Contents may not have been synced; fetch them once if the list looks short.
@@ -429,7 +432,11 @@ fun PlaylistScreen(id: String) {
         }
         if (songs.isEmpty()) {
             item(key = "empty") {
-                EmptyState(Icons.AutoMirrored.Rounded.QueueMusic, t("This playlist is empty"), body = t("Add tracks from any track's menu."))
+                EmptyState(
+                    Icons.AutoMirrored.Rounded.QueueMusic,
+                    t("This playlist is empty"),
+                    body = if (editable) t("Add songs from the suggestions below, or from any track's menu.") else t("Add tracks from any track's menu."),
+                )
             }
         }
         songItems(
@@ -449,6 +456,28 @@ fun PlaylistScreen(id: String) {
                 )
             },
         )
+        // Suggested songs, as on Spotify, for playlists that can be changed.
+        if (editable) {
+            playlistSuggestions(
+                suggestions,
+                songs,
+                onAdd = { song ->
+                    suggestions.adding = song.id
+                    actions.launch {
+                        val error = graph.library.addToPlaylist(id, listOf(song))
+                        suggestions.adding = null
+                        if (error != null) {
+                            graph.messages.error(error)
+                        } else {
+                            graph.messages.success(t("Added to “%@”", d.playlist.name))
+                            suggestions.added(song)
+                            suggestions.load(if (songs.any { it.id == song.id }) songs else songs + song, song)
+                        }
+                    }
+                },
+                onPlay = { song -> actions.play(listOf(song)) },
+            )
+        }
     }
     if (renaming) {
         TextInputDialog(t("Rename playlist"), d.playlist.name, t("Rename"), onConfirm = { name ->

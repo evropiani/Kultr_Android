@@ -3,6 +3,7 @@ package app.kultr.android.playback
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -11,11 +12,15 @@ import androidx.media3.cast.RemoteCastPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.LibraryParams
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionError
+import androidx.media3.session.SessionResult
 import app.kultr.android.AppGraph
 import app.kultr.android.KultrActivity
 import app.kultr.android.KultrApp
@@ -26,8 +31,10 @@ import app.kultr.core.api.Song
 import app.kultr.core.api.SubsonicClient
 import app.kultr.core.engine.EngineHost
 import app.kultr.core.engine.EngineStatus
+import app.kultr.core.engine.PlayMode
 import app.kultr.core.engine.PlaybackEngine
 import app.kultr.core.engine.QueueItem
+import app.kultr.core.engine.RepeatMode
 import app.kultr.core.engine.TrackChangeReason
 import app.kultr.core.injekt.PlanContext
 import app.kultr.core.injekt.TransitionPlan
@@ -37,6 +44,7 @@ import app.kultr.core.karousel.calmness
 import app.kultr.core.settings.Settings
 import app.kultr.core.util.t
 import com.google.common.collect.ImmutableList
+import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -157,6 +165,12 @@ class PlaybackService : MediaLibraryService() {
 
     /** The sleep timer is in its last 15 minutes: Karousel plays its calmest picks first. */
     @Volatile private var windingDown = false
+
+    /** The songs hearted in the library, for the like button in the player banner; null until read. */
+    private var starredIds: Set<String>? = null
+
+    /** A like pressed in the banner, shown at once while the library catches up. */
+    private var likePressed: Pair<String, Boolean>? = null
     private var session: MediaLibrarySession? = null
 
     /** What the session controls: [player] here, or a Cast receiver while one is connected. */
@@ -219,6 +233,8 @@ class PlaybackService : MediaLibraryService() {
 
         // The home screen widget follows whatever the session plays, here or on a Cast receiver.
         sessionPlayer.addListener(widgetListener)
+        sessionPlayer.addListener(bannerListener)
+        refreshBanner()
         NowPlayingWidget.publish(this, NowPlayingWidget.stateOf(sessionPlayer))
         current = this
     }
@@ -234,6 +250,111 @@ class PlaybackService : MediaLibraryService() {
                 )
             ) {
                 NowPlayingWidget.publish(this@PlaybackService, NowPlayingWidget.stateOf(player))
+            }
+        }
+    }
+
+    // ------------------------------------------------------- player banner --
+    //
+    // The system's player banner (the media notification, the lock screen,
+    // Samsung's Now Bar) gets two buttons beside the usual three: on the left
+    // a mode button that moves through off, shuffle, repeat, repeat one and
+    // Karousel; on the right a heart to like the song or take the like back.
+
+    private val bannerListener = object : Player.Listener {
+        override fun onEvents(player: Player, events: Player.Events) {
+            if (events.containsAny(
+                    Player.EVENT_MEDIA_ITEM_TRANSITION,
+                    Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED,
+                    Player.EVENT_REPEAT_MODE_CHANGED,
+                )
+            ) {
+                refreshBanner()
+            }
+        }
+    }
+
+    private fun currentSong(): Song? = sessionPlayer.currentMediaItem?.let(MediaItems::songOf)
+
+    private fun playMode(karousel: Boolean = graph.settings.current.karousel): PlayMode = PlayMode.of(
+        shuffle = sessionPlayer.shuffleModeEnabled,
+        repeat = when (sessionPlayer.repeatMode) {
+            Player.REPEAT_MODE_ONE -> RepeatMode.ONE
+            Player.REPEAT_MODE_ALL -> RepeatMode.ALL
+            else -> RepeatMode.OFF
+        },
+        karousel = karousel,
+    )
+
+    private fun isLiked(song: Song): Boolean =
+        likePressed?.takeIf { it.first == song.id }?.second ?: starredIds?.let { song.id in it } ?: song.isStarred
+
+    /** The banner's buttons for the player as it is, or as [mode] once a press has set it. */
+    private fun bannerButtons(mode: PlayMode = playMode()): List<CommandButton> {
+        val modeButton = CommandButton.Builder(
+            when (mode) {
+                PlayMode.OFF -> CommandButton.ICON_SHUFFLE_OFF
+                PlayMode.SHUFFLE -> CommandButton.ICON_SHUFFLE_ON
+                PlayMode.REPEAT -> CommandButton.ICON_REPEAT_ALL
+                PlayMode.REPEAT_ONE -> CommandButton.ICON_REPEAT_ONE
+                PlayMode.KAROUSEL -> CommandButton.ICON_UNDEFINED
+            },
+        )
+            .apply { if (mode == PlayMode.KAROUSEL) setCustomIconResId(R.drawable.ic_banner_karousel) }
+            .setDisplayName(
+                when (mode) {
+                    PlayMode.OFF -> t("Shuffle off")
+                    PlayMode.SHUFFLE -> t("Shuffle on")
+                    PlayMode.REPEAT -> t("Repeat the queue")
+                    PlayMode.REPEAT_ONE -> t("Repeat this track")
+                    PlayMode.KAROUSEL -> t("Karousel on")
+                },
+            )
+            .setSessionCommand(MODE_COMMAND)
+            .setSlots(CommandButton.SLOT_BACK_SECONDARY)
+            .build()
+        val song = currentSong()?.takeIf { !it.isRadio } ?: return listOf(modeButton)
+        val liked = isLiked(song)
+        val likeButton = CommandButton.Builder(if (liked) CommandButton.ICON_HEART_FILLED else CommandButton.ICON_HEART_UNFILLED)
+            .setDisplayName(if (liked) t("Remove from favourites") else t("Add to favourites"))
+            .setSessionCommand(LIKE_COMMAND)
+            .setSlots(CommandButton.SLOT_FORWARD_SECONDARY)
+            .build()
+        return listOf(modeButton, likeButton)
+    }
+
+    private fun refreshBanner(mode: PlayMode = playMode()) {
+        session?.setMediaButtonPreferences(bannerButtons(mode))
+    }
+
+    /** The mode button: on to the next mode, each one on alone. */
+    private fun nextMode() {
+        val next = playMode().next
+        val player = sessionPlayer
+        if (graph.settings.current.karousel != next.karousel) graph.settings.update { it.copy(karousel = next.karousel) }
+        if (player.shuffleModeEnabled != next.shuffle) player.shuffleModeEnabled = next.shuffle
+        val repeat = when (next.repeat) {
+            RepeatMode.ALL -> Player.REPEAT_MODE_ALL
+            RepeatMode.ONE -> Player.REPEAT_MODE_ONE
+            RepeatMode.OFF -> Player.REPEAT_MODE_OFF
+        }
+        if (player.repeatMode != repeat) player.repeatMode = repeat
+        // The setting is saved in a moment; show the new mode now.
+        refreshBanner(next)
+    }
+
+    /** The heart: like the song playing, or take the like back. */
+    private fun toggleLike() {
+        val song = currentSong()?.takeIf { !it.isRadio } ?: return
+        val liked = !isLiked(song)
+        likePressed = song.id to liked
+        refreshBanner()
+        scope.launch {
+            val error = graph.library.setStarred(song, liked)
+            if (error != null) {
+                likePressed = null
+                refreshBanner()
+                graph.messages.error(error)
             }
         }
     }
@@ -294,8 +415,17 @@ class PlaybackService : MediaLibraryService() {
                     // Switching Karousel off ends a station too.
                     if (!now.karousel) graph.hub.setStation(null)
                     engine.onKarouselChanged(now.karousel)
+                    refreshBanner(playMode(now.karousel))
                 }
                 previous = now
+            }
+        }
+        scope.launch {
+            graph.library.starredSongs().map { songs -> songs.mapTo(HashSet()) { it.id } }.distinctUntilChanged().collect { ids ->
+                starredIds = ids
+                // The library has caught up with a like pressed in the banner.
+                likePressed?.let { (id, liked) -> if ((id in ids) == liked) likePressed = null }
+                refreshBanner()
             }
         }
         // A different server has a different library; its queue makes no sense here.
@@ -469,6 +599,7 @@ class PlaybackService : MediaLibraryService() {
     override fun onDestroy() {
         current = null
         sessionPlayer.removeListener(widgetListener)
+        sessionPlayer.removeListener(bannerListener)
         NowPlayingWidget.publish(this, NowPlayingWidget.stateOf(sessionPlayer).copy(playing = false))
         saveSession()
         handler.removeCallbacks(tick)
@@ -482,6 +613,31 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private inner class LibraryCallback : MediaLibrarySession.Callback {
+        /** Every controller, the system's player banner among them, gets the mode and like buttons. */
+        override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
+            val base = super.onConnect(session, controller)
+            if (!base.isAccepted) return base
+            return MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
+                .setAvailableSessionCommands(base.availableSessionCommands.buildUpon().add(MODE_COMMAND).add(LIKE_COMMAND).build())
+                .setAvailablePlayerCommands(base.availablePlayerCommands)
+                .setMediaButtonPreferences(bannerButtons())
+                .build()
+        }
+
+        override fun onCustomCommand(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            customCommand: SessionCommand,
+            args: Bundle,
+        ): ListenableFuture<SessionResult> {
+            when (customCommand.customAction) {
+                MODE_COMMAND.customAction -> nextMode()
+                LIKE_COMMAND.customAction -> toggleLike()
+                else -> return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
+            }
+            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+        }
+
         override fun onGetLibraryRoot(
             session: MediaLibrarySession,
             browser: MediaSession.ControllerInfo,
@@ -590,6 +746,12 @@ class PlaybackService : MediaLibraryService() {
 
         /** How long before a sleep timer ends that Karousel winds down. */
         private const val WIND_DOWN_MS = 15 * 60 * 1000L
+
+        /** The player banner's mode button: off, shuffle, repeat, repeat one, Karousel. */
+        private val MODE_COMMAND = SessionCommand("app.kultr.banner.MODE", Bundle.EMPTY)
+
+        /** The player banner's heart. */
+        private val LIKE_COMMAND = SessionCommand("app.kultr.banner.LIKE", Bundle.EMPTY)
     }
 }
 
