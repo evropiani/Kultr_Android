@@ -257,9 +257,10 @@ class PlaybackService : MediaLibraryService() {
     // ------------------------------------------------------- player banner --
     //
     // The system's player banner (the media notification, the lock screen,
-    // Samsung's Now Bar) gets two buttons beside the usual three: on the left
-    // a mode button that moves through off, shuffle, repeat, repeat one and
-    // Karousel; on the right a heart to like the song or take the like back.
+    // Samsung's Now Bar) gets two buttons beside the usual three: a mode
+    // button that moves through off, shuffle, repeat, repeat one and
+    // Karousel, and a heart to like the song or take the like back. Which
+    // buttons and how they reach the system: BannerButtons.
 
     private val bannerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
@@ -290,38 +291,8 @@ class PlaybackService : MediaLibraryService() {
         likePressed?.takeIf { it.first == song.id }?.second ?: starredIds?.let { song.id in it } ?: song.isStarred
 
     /** The banner's buttons for the player as it is, or as [mode] once a press has set it. */
-    private fun bannerButtons(mode: PlayMode = playMode()): List<CommandButton> {
-        val modeButton = CommandButton.Builder(
-            when (mode) {
-                PlayMode.OFF -> CommandButton.ICON_SHUFFLE_OFF
-                PlayMode.SHUFFLE -> CommandButton.ICON_SHUFFLE_ON
-                PlayMode.REPEAT -> CommandButton.ICON_REPEAT_ALL
-                PlayMode.REPEAT_ONE -> CommandButton.ICON_REPEAT_ONE
-                PlayMode.KAROUSEL -> CommandButton.ICON_UNDEFINED
-            },
-        )
-            .apply { if (mode == PlayMode.KAROUSEL) setCustomIconResId(R.drawable.ic_banner_karousel) }
-            .setDisplayName(
-                when (mode) {
-                    PlayMode.OFF -> t("Shuffle off")
-                    PlayMode.SHUFFLE -> t("Shuffle on")
-                    PlayMode.REPEAT -> t("Repeat the queue")
-                    PlayMode.REPEAT_ONE -> t("Repeat this track")
-                    PlayMode.KAROUSEL -> t("Karousel on")
-                },
-            )
-            .setSessionCommand(MODE_COMMAND)
-            .setSlots(CommandButton.SLOT_BACK_SECONDARY)
-            .build()
-        val song = currentSong()?.takeIf { !it.isRadio } ?: return listOf(modeButton)
-        val liked = isLiked(song)
-        val likeButton = CommandButton.Builder(if (liked) CommandButton.ICON_HEART_FILLED else CommandButton.ICON_HEART_UNFILLED)
-            .setDisplayName(if (liked) t("Remove from favourites") else t("Add to favourites"))
-            .setSessionCommand(LIKE_COMMAND)
-            .setSlots(CommandButton.SLOT_FORWARD_SECONDARY)
-            .build()
-        return listOf(modeButton, likeButton)
-    }
+    private fun bannerButtons(mode: PlayMode = playMode()): List<CommandButton> =
+        BannerButtons.of(mode, liked = currentSong()?.takeIf { !it.isRadio }?.let(::isLiked))
 
     private fun refreshBanner(mode: PlayMode = playMode()) {
         session?.setMediaButtonPreferences(bannerButtons(mode))
@@ -613,35 +584,9 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private inner class LibraryCallback : MediaLibrarySession.Callback {
-        /**
-         * Every controller, the system's player banner among them, gets the
-         * mode and like buttons on top of what Media3 grants it by default:
-         * the full set for a trusted controller (Kultr's own player, System
-         * UI), the reduced one for anything else.
-         *
-         * Not built on super.onConnect: that is an empty placeholder (no
-         * commands at all) that Media3 swaps for these defaults only when it
-         * comes back untouched. Copying its commands, as 2.2.0 did, left every
-         * controller, Kultr's own included, unable to play anything.
-         */
-        override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
-            val trusted = controller.isTrusted
-            val sessionCommands = if (trusted) {
-                MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
-            } else {
-                MediaSession.ConnectionResult.DEFAULT_UNTRUSTED_SESSION_AND_LIBRARY_COMMANDS
-            }
-            val playerCommands = if (trusted) {
-                MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
-            } else {
-                MediaSession.ConnectionResult.DEFAULT_UNTRUSTED_PLAYER_COMMANDS
-            }
-            return MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
-                .setAvailableSessionCommands(sessionCommands.buildUpon().add(MODE_COMMAND).add(LIKE_COMMAND).build())
-                .setAvailablePlayerCommands(playerCommands)
-                .setMediaButtonPreferences(bannerButtons())
-                .build()
-        }
+        /** Every controller, the system's player banner among them, gets the mode and like buttons. */
+        override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult =
+            BannerButtons.connection(session, controller, bannerButtons())
 
         override fun onCustomCommand(
             session: MediaSession,
@@ -650,8 +595,8 @@ class PlaybackService : MediaLibraryService() {
             args: Bundle,
         ): ListenableFuture<SessionResult> {
             when (customCommand.customAction) {
-                MODE_COMMAND.customAction -> nextMode()
-                LIKE_COMMAND.customAction -> toggleLike()
+                BannerButtons.MODE.customAction -> nextMode()
+                BannerButtons.LIKE.customAction -> toggleLike()
                 else -> return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
             }
             return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
@@ -765,12 +710,6 @@ class PlaybackService : MediaLibraryService() {
 
         /** How long before a sleep timer ends that Karousel winds down. */
         private const val WIND_DOWN_MS = 15 * 60 * 1000L
-
-        /** The player banner's mode button: off, shuffle, repeat, repeat one, Karousel. */
-        private val MODE_COMMAND = SessionCommand("app.kultr.banner.MODE", Bundle.EMPTY)
-
-        /** The player banner's heart. */
-        private val LIKE_COMMAND = SessionCommand("app.kultr.banner.LIKE", Bundle.EMPTY)
     }
 }
 

@@ -46,8 +46,8 @@ android {
         applicationId = "app.kultr.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 16
-        versionName = "2.2.1"
+        versionCode = 17
+        versionName = "2.2.2"
     }
 
     signingConfigs {
@@ -79,6 +79,12 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
     }
 
     packaging {
@@ -135,4 +141,7 @@ dependencies {
 
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.junit)
+    // Runs Media3 and the Android framework's media session on the JVM, so the
+    // system player banner's buttons can be checked without a device.
+    testImplementation(libs.robolectric)
 }
